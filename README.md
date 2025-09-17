@@ -8,3 +8,5 @@ https://lovable.dev/projects/b4ed9c43-9833-4cb0-bb26-ca1fa52be18f?magic_link=mc_
 https://www.canva.com/design/DAGyvq5ahFE/2VxH4cvLC-LO1REXf-jmFA/edit?utm_content=DAGyvq5ahFE&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
 
 https://dbdiagram.io/d/68ca8a9b5779bb7265df7ee0
+
+https://www.figma.com/design/FYbK4YRH4Kcq78uiTYMfV9/Untitled?node-id=0-1&t=eMfWVATS9ztzp8DB-1
