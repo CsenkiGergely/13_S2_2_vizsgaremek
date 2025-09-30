@@ -1,8 +1,0 @@
-{
-  "runtimeOptions": {
-    "additionalProbingPaths": [
-      "C:\\Users\\Pali\\.dotnet\\store\\|arch|\\|tfm|",
-      "C:\\Users\\Pali\\.nuget\\packages"
-    ]
-  }
-}
