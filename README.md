@@ -5,6 +5,4 @@ https://camp-spot-booking.lovable.app/
 
 https://lovable.dev/projects/b4ed9c43-9833-4cb0-bb26-ca1fa52be18f?magic_link=mc_ea2655fe-7528-4d9b-a7fe-feabce55e429
 
-https://www.canva.com/design/DAGyvq5ahFE/2VxH4cvLC-LO1REXf-jmFA/edit?utm_content=DAGyvq5ahFE&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-
 https://www.figma.com/design/FYbK4YRH4Kcq78uiTYMfV9/Untitled?node-id=0-1&t=eMfWVATS9ztzp8DB-1
