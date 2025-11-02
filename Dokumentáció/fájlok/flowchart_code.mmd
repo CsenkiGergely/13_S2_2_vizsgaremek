@@ -1,0 +1,74 @@
+flowchart TD
+  %% I. User side – Registration & Login
+  A0([Kezdes])
+
+  subgraph I["Felhasznaloi oldal - Regisztracio es Bejelentkezes"]
+    direction TB
+    A1[Weboldal megnyitasa]
+    A2[Regisztracio urlap - Nev Email Jelszo]
+    A3{Urlap ervenyes}
+    A4[Bejelentkezes - email es jelszo]
+    A5{Hitelesites sikeres}
+    A6[Fooldal - menu kereso szuro]
+  end
+
+  A0 --> A1 --> A2 --> A3
+  A3 -- Igen --> A4 --> A5
+  A3 -- Nem --> A2
+  A5 -- Nem --> A4
+  A5 -- Igen --> A6
+
+  %% II. Search & Booking
+  subgraph II["Kemping kereses es foglalas"]
+    direction TB
+    B1[Szurok - hely ar szolgaltatasok]
+    B2[Eredmenyek - lista es terkep]
+    B3[Kemping adatlap - leiras kepek nyitvatartas]
+    B4[Grafikus hely kivalasztasa]
+    B5[Foglalasi urlap - datumok vendegek okmany rendszam]
+    B6{Adatok ervenyesek}
+    B7[Foglalas rogzitese]
+    B8[QR kod generalas es visszaigazolo email]
+  end
+
+  A6 --> B1 --> B2 --> B3 --> B4 --> B5 --> B6
+  B6 -- Nem --> B5
+  B6 -- Igen --> B7 --> B8
+
+  %% III. Gate – QR check
+  subgraph III["Beleptetes - QR ellenorzes"]
+    direction TB
+    C1[Erkezes a kapuhoz]
+    C2[QR kod beolvasasa]
+    C3{Foglalas aktiv az idoszakban}
+    C4{Kifizetve}
+    C5[Belepes engedelyezve - Kapu nyilik]
+    C6[Belepes megtagadva - Recepcios ellenorzes]
+    C7[Naplozas - be es ki esemeny]
+    C8[Kilepeskori QR ellenorzes]
+  end
+
+  B8 --> C1 --> C2 --> C3
+  C3 -- Nem --> C6
+  C3 -- Igen --> C4
+  C4 -- Nem --> C6
+  C4 -- Igen --> C5 --> C7 --> C8 --> C7
+
+  %% IV. Admin
+  subgraph IV["Tulajdonosi es Admin felulet"]
+    direction TB
+    D1[Admin bejelentkezes]
+    D2[Kemping kezeles - nev kepek szolgaltatasok nyitvatartas]
+    D3[Esemenynaplo megtekintese]
+    D4[Statisztikak - foglalasok telitettseg]
+    D5[Export - PDF vagy CSV]
+  end
+
+  C7 --> D3
+  D1 --> D2
+  D1 --> D3
+  D1 --> D4 --> D5
+
+  %% End
+  E0([Vege])
+  D5 --> E0
