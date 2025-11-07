@@ -7,3 +7,7 @@ Ez a repository a vizsgaremek dokumentációját tartalmazza.
 - **Butty Máté** (@Butty-Mate)
 - **Csenki Gergely** (@CsenkiGergely)  
 - **Dicső András** (@DicsoAndras)
+
+## Határidő
+- **2025. december 12.** – Prototípus verzió
+
