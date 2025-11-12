@@ -1,0 +1,28 @@
+Példa:
+ALGORITMUS bejelentkezes
+VÁLTOZÓK:
+    String: fnev := ""
+    String: jelszo := ""
+    Adatbázis tábla: Felhasznalo
+    Adat: talalat
+	Bool: userOK := false
+ciklus amíg (IGAZ)
+	ciklus, amíg NEM(fnev <> ÜRES ÉS jelszo <> ÜRES ÉS fnev.hosszúság <= 100 és jelszo.hosszúság <= 100)
+		BE: fnev [normál szövegdoboz]
+		BE: jelszo [jelszó szövegdoboz]
+		HA fnev = ÜRES VAGY jelszo = ÜRES:
+			KIÍR "Adja meg a felhasználónevet vagy a jelszót."	
+		HA fnev.hosszúság > 100 VAGY jelszo.hosszúság > 100:
+		 KIÍR: "A felhasználónév vagy a jelszó nem megengedett hosszúságú
+	ciklus vége	
+	talalat := LEKERDEZ("SELECT jelszo FROM Felhasznalo WHERE nev = fnev")
+	HA talalat = ÜRES:
+		KIÍR: "Hibás felhasználónév!"		
+		CONTINUE
+	HA jelszo = talalat
+		  userOK := true
+		  BREAK
+	KÜLÖNBEN
+		KIÍR: "Hibás jelszó!"
+ciklus vége
+ALGORITMUS vége
