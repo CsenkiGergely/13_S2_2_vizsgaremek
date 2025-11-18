@@ -1,66 +1,22 @@
-flowchart TD
-    Start([Kezdés])
-    Profile[/Profil fül megnyitása/]
-    MyCamping[/Saját kemping menüpont/]
-    CheckOwner{Tulajdonos<br/>jogosultság?}
-    ErrorAuth[/Hiba: Nincs jogosultság/]
-    
-    CampingView[/Kemping áttekintés oldal/]
-    AddSpotButton[/Hely hozzáadása<br/>gomb megnyomása/]
-    
-    SpotName[/Hely neve megadása/]
-    SpotType[/Típus kiválasztása:<br/>tóparti, erdei, stb./]
-    Capacity[/Maximum befogadó képesség/]
-    Price[/Ár/éjszaka megadása/]
-    Description[/Leírás megadása/]
-    
-    ValidateSpot{Hely adatok<br/>validálása}
-    ErrorValidate[/Hiba: Hiányzó vagy<br/>érvénytelen adat/]
-    
-    OptionalFields[/Opcionális mezők:<br/>is_available, row,<br/>column, rating/]
-    
-    AssembleData[/Adatcsomag összeállítása:<br/>camping_id, name, type,<br/>capacity, price, description/]
-    
-    CreateSpot[/Camping_spot rekord<br/>létrehozása DB-ben/]
-    
-    CheckSave{Sikeres<br/>mentés?}
-    ErrorSave[/Hiba: Mentési probléma/]
-    
-    Success[/Kempinghely sikeresen<br/>hozzáadva!/]
-    UpdateView[/Kemping áttekintés<br/>frissítése/]
-    
-    AddMore{További helyet<br/>szeretne hozzáadni?}
-    End([Vége])
-    
-    Start --> Profile
-    Profile --> MyCamping
-    MyCamping --> CheckOwner
-    CheckOwner -->|Nem| ErrorAuth
-    CheckOwner -->|Igen| CampingView
-    ErrorAuth --> End
-    
-    CampingView --> AddSpotButton
-    AddSpotButton --> SpotName
-    
-    SpotName --> SpotType
-    SpotType --> Capacity
-    Capacity --> Price
-    Price --> Description
-    
-    Description --> ValidateSpot
-    ValidateSpot -->|Sikertelen| ErrorValidate
-    ValidateSpot -->|Sikeres| OptionalFields
+---
+config:
+  layout: dagre
+---
+flowchart TB
+    Start(["Kezdés"]) --> Profile[/"Profil fül megnyitása"/]
+    Profile --> MyCamping[/"Saját kemping menüpont"/]
+    CampingView[/"Kemping áttekintés oldal"/] --> AddSpotButton[/"Hely hozzáadása<br>gomb megnyomása"/]
+    AddSpotButton --> SpotName[/"Hely neve megadása"/]
+    SpotName --> SpotType[/"Típus megadása:<br>tóparti, erdei, stb."/]
+    SpotType --> Capacity[/"Maximum befogadó képesség"/]
+    Capacity --> Price[/"Ár/éjszaka megadása"/]
+    Price --> Description[/"Leírás megadása"/]
+    Description --> ValidateSpot{"Hely adatok<br>validálása"}
+    ValidateSpot -- Sikertelen --> ErrorValidate[/"Hiba: Hiányzó vagy<br>érvénytelen adat"/]
+    ValidateSpot -- Sikeres --> Success[/"Kempinghely sikeresen<br>hozzáadva!"/]
     ErrorValidate --> SpotName
-    
-    OptionalFields --> AssembleData
-    AssembleData --> CreateSpot
-    
-    CreateSpot --> CheckSave
-    CheckSave -->|Sikertelen| ErrorSave
-    CheckSave -->|Sikeres| Success
-    ErrorSave --> End
-    
-    Success --> UpdateView
-    UpdateView --> AddMore
-    AddMore -->|Igen| AddSpotButton
-    AddMore -->|Nem| End
+    Success --> UpdateView[/"Kemping áttekintés<br>frissítése"/]
+    UpdateView --> AddMore{"További helyehozzáadása?"}
+    AddMore -- Igen --> AddSpotButton
+    AddMore -- Nem --> End(["Vége"])
+    MyCamping --> CampingView
