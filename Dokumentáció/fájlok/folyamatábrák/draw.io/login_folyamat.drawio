@@ -1,234 +1,250 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36" version="29.1.0">
-  <diagram name="Jelszó Ellenőrzés" id="3NW-ZfeIFaHpRldd_3VH">
-    <mxGraphModel dx="1141" dy="622" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-114" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-112">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-1" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Jelszó bevitele" vertex="1">
-          <mxGeometry height="60" width="160" x="890" y="120" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-54" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Kezdés" vertex="1">
-          <mxGeometry height="60" width="100" x="321" y="40" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-55" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-56" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-83">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-56" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="E-mail bevitele" vertex="1">
-          <mxGeometry height="60" width="160" x="291" y="320" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-57" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="Oy_LV_QENhHfxsFloEPC-63">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-58" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-57" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Nem" vertex="1">
-          <mxGeometry relative="1" x="-0.0855" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-61" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;font color=&quot;#28253d&quot; face=&quot;Recursive Variable, arial, sans-serif&quot;&gt;&lt;span style=&quot;font-size: 14px; text-wrap-mode: nowrap;&quot;&gt;Létezik a &lt;br&gt;felhasználó?&lt;/span&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="100" width="160" x="890" y="320" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-133" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-132">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-63" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Hiba:&amp;nbsp;&lt;br&gt;Felhasználó nem létezik" vertex="1">
-          <mxGeometry height="60" width="180" x="1110" y="340" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-70" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Vége" vertex="1">
-          <mxGeometry height="60" width="100" x="915" y="820" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-71" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-75" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-80">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-72" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-71" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Igen" vertex="1">
-          <mxGeometry relative="1" x="-0.2916" y="1" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-146" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-75" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="Oy_LV_QENhHfxsFloEPC-85">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-147" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-146" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Nem" vertex="1">
-          <mxGeometry relative="1" x="-0.1885" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-75" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;p&gt;Tartalmaz &quot;@&quot;-t ?&lt;/p&gt;" vertex="1">
-          <mxGeometry height="100" width="140" x="300" y="561" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-76" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-80" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-87">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-77" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-76" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Nem" vertex="1">
-          <mxGeometry relative="1" x="-0.2036" y="-1" as="geometry">
-            <mxPoint x="1" as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-78" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-80" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-91">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-79" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-78" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Igen" vertex="1">
-          <mxGeometry relative="1" x="-0.2654" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-80" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Tartalmaz &quot;.&quot;-t ?" vertex="1">
-          <mxGeometry height="100" width="140" x="300" y="701" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-81" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-75">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-82" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-81" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Igen" vertex="1">
-          <mxGeometry relative="1" x="-0.3162" y="-2" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-83" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Tartalmaz betűket a-z ?" vertex="1">
-          <mxGeometry height="100" width="140" x="300" y="420" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-150" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-85" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="40" y="611" />
-            </Array>
-            <mxPoint x="40" y="610" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-85" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Hiba:&amp;nbsp;&lt;br&gt;Nem tartalmaz @-t" vertex="1">
-          <mxGeometry height="60" width="180" x="84" y="581" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-149" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-87" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;curved=0;endArrow=none;endFill=0;">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="40" y="751" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-87" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Hiba:&amp;nbsp;&lt;br&gt;Nem megfelelő formátum" vertex="1">
-          <mxGeometry height="60" width="198" x="66" y="721" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-136" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-93">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-148" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="40" y="880" />
-              <mxPoint x="40" y="351" />
-            </Array>
-            <mxPoint x="300" y="880" as="sourcePoint" />
-            <mxPoint x="307" y="351" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-152" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-148" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Nem" vertex="1">
-          <mxGeometry relative="1" x="-0.6988" y="3" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-91" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Minimum 12 karakter" vertex="1">
-          <mxGeometry height="100" width="140" x="301" y="829" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-138" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-93" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-127">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-93" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Megfelelő e-mail" vertex="1">
-          <mxGeometry height="60" width="180" x="281" y="960" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-101" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Bejelentkezés gomb &lt;br&gt;megnyomása" vertex="1">
-          <mxGeometry height="60" width="180" x="280" y="230" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-106" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=light-dark(#b0b0b0, #4a4a4a);" value="Oldal megnyitása" vertex="1">
-          <mxGeometry height="60" width="150" x="295" y="140" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-109" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-107" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="Oy_LV_QENhHfxsFloEPC-108">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-118" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-109" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Nem" vertex="1">
-          <mxGeometry relative="1" x="-0.132" y="2" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-123" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-107" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-124">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="970.25" y="701" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-126" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-123" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Igen" vertex="1">
-          <mxGeometry relative="1" x="-0.1427" y="2" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-107" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;font color=&quot;#28253d&quot; face=&quot;Recursive Variable, arial, sans-serif&quot;&gt;&lt;span style=&quot;font-size: 14px; text-wrap-mode: nowrap;&quot;&gt;Megfelelő jelszó?&lt;/span&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="100" width="160" x="891" y="481" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-121" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-108" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="Oy_LV_QENhHfxsFloEPC-1">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="730" y="150" />
-            </Array>
-            <mxPoint x="710" y="131" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-108" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Hiba:&amp;nbsp;&lt;br&gt;Hibás jelszó" vertex="1">
-          <mxGeometry height="60" width="180" x="640" y="501" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-115" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-112" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-61">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-112" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Bejelentkezés gomb &lt;br&gt;megnyomása" vertex="1">
-          <mxGeometry height="60" width="180" x="880" y="220" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-116" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.503;entryY=0.03;entryDx=0;entryDy=0;entryPerimeter=0;" target="Oy_LV_QENhHfxsFloEPC-107">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-117" connectable="0" parent="Oy_LV_QENhHfxsFloEPC-116" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Igen" vertex="1">
-          <mxGeometry relative="1" x="-0.185" y="-1" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-124" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Sikeres bejelentkezés" vertex="1">
-          <mxGeometry height="60" width="180" x="881" y="630" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-127" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d0cee2;strokeColor=#56517e;" value="A" vertex="1">
-          <mxGeometry height="40" width="40" x="351" y="1060" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-129" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d0cee2;strokeColor=#56517e;" value="A" vertex="1">
-          <mxGeometry height="40" width="40" x="950" y="40" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-130" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.506;entryY=0.167;entryDx=0;entryDy=0;entryPerimeter=0;">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="971" y="80" as="sourcePoint" />
-            <mxPoint x="970.8600000000001" y="119.99999999999999" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-131" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-101" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.489;entryY=-0.025;entryDx=0;entryDy=0;entryPerimeter=0;" target="Oy_LV_QENhHfxsFloEPC-56">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-132" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d0cee2;strokeColor=#56517e;" value="B" vertex="1">
-          <mxGeometry height="40" width="40" x="1180" y="260" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-135" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-134" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="Oy_LV_QENhHfxsFloEPC-56">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-134" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d0cee2;strokeColor=#56517e;" value="B" vertex="1">
-          <mxGeometry height="40" width="40" x="490" y="330" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-139" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-106" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.503;entryY=-0.044;entryDx=0;entryDy=0;entryPerimeter=0;" target="Oy_LV_QENhHfxsFloEPC-101">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-140" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.511;entryY=0.044;entryDx=0;entryDy=0;entryPerimeter=0;" target="Oy_LV_QENhHfxsFloEPC-106">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-142" parent="1" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" value="Kezdő oldal megnyitása" vertex="1">
-          <mxGeometry height="60" width="180" x="880" y="721" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-144" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-124" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.503;entryY=-0.048;entryDx=0;entryDy=0;entryPerimeter=0;" target="Oy_LV_QENhHfxsFloEPC-142">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="Oy_LV_QENhHfxsFloEPC-145" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-142" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.545;entryY=-0.011;entryDx=0;entryDy=0;entryPerimeter=0;" target="Oy_LV_QENhHfxsFloEPC-70">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
+<mxfile host="65bd71144e">
+    <diagram name="Jelszó Ellenőrzés" id="3NW-ZfeIFaHpRldd_3VH">
+        <mxGraphModel dx="1851" dy="1113" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-114" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-1" target="Oy_LV_QENhHfxsFloEPC-112" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-1" value="Jelszó bevitele" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+                    <mxGeometry x="890" y="120" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-54" value="Kezdés" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="321" y="40" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-56" target="Oy_LV_QENhHfxsFloEPC-83" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-56" value="E-mail bevitele" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="291" y="320" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-57" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="Oy_LV_QENhHfxsFloEPC-61" target="Oy_LV_QENhHfxsFloEPC-63" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-58" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-57" connectable="0" vertex="1">
+                    <mxGeometry x="-0.0855" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-61" value="&lt;font color=&quot;#28253d&quot; face=&quot;Recursive Variable, arial, sans-serif&quot;&gt;&lt;span style=&quot;font-size: 14px; text-wrap-mode: nowrap;&quot;&gt;Létezik a &lt;br&gt;felhasználó?&lt;/span&gt;&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="890" y="320" width="160" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-133" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-63" target="Oy_LV_QENhHfxsFloEPC-132" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-63" value="Hiba:&amp;nbsp;&lt;br&gt;Felhasználó nem létezik" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="1110" y="340" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-70" value="Vége" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="915" y="820" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-71" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-75" target="Oy_LV_QENhHfxsFloEPC-80" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-72" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-71" connectable="0" vertex="1">
+                    <mxGeometry x="-0.2916" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-146" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="Oy_LV_QENhHfxsFloEPC-75" target="Oy_LV_QENhHfxsFloEPC-85" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-147" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-146" connectable="0" vertex="1">
+                    <mxGeometry x="-0.1885" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-75" value="&lt;p&gt;Tartalmaz &quot;@&quot;-t ?&lt;/p&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="561" width="140" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-76" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-80" target="Oy_LV_QENhHfxsFloEPC-87" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-77" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-76" connectable="0" vertex="1">
+                    <mxGeometry x="-0.2036" y="-1" relative="1" as="geometry">
+                        <mxPoint x="1" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-78" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-80" target="Oy_LV_QENhHfxsFloEPC-91" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-79" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-78" connectable="0" vertex="1">
+                    <mxGeometry x="-0.2654" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-80" value="Tartalmaz &quot;.&quot;-t ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="701" width="140" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-81" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-83" target="Oy_LV_QENhHfxsFloEPC-75" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-82" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-81" connectable="0" vertex="1">
+                    <mxGeometry x="-0.3162" y="-2" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="3" style="edgeStyle=none;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Oy_LV_QENhHfxsFloEPC-83" target="2">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="3">
+                    <mxGeometry x="-0.0515" y="-1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-83" value="Tartalmaz betűket a-z ?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="420" width="140" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-150" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-85" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="40" y="611"/>
+                        </Array>
+                        <mxPoint x="40" y="610" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-85" value="Hiba:&amp;nbsp;&lt;br&gt;Nem tartalmaz @-t" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="84" y="581" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-149" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;curved=0;endArrow=none;endFill=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-87" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="40" y="751" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-87" value="Hiba:&amp;nbsp;&lt;br&gt;Nem megfelelő formátum" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="66" y="721" width="198" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-136" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-91" target="Oy_LV_QENhHfxsFloEPC-93" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-148" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="40" y="880"/>
+                            <mxPoint x="40" y="351"/>
+                        </Array>
+                        <mxPoint x="300" y="880" as="sourcePoint"/>
+                        <mxPoint x="307" y="351" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-152" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-148" connectable="0" vertex="1">
+                    <mxGeometry x="-0.6988" y="3" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-91" value="Minimum 12 karakter" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="301" y="829" width="140" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-138" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-93" target="Oy_LV_QENhHfxsFloEPC-127" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-93" value="Megfelelő e-mail" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="281" y="960" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-101" value="Bejelentkezés gomb &lt;br&gt;megnyomása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="280" y="230" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-106" value="Oldal megnyitása" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=light-dark(#b0b0b0, #4a4a4a);" parent="1" vertex="1">
+                    <mxGeometry x="295" y="140" width="150" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-109" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="Oy_LV_QENhHfxsFloEPC-107" target="Oy_LV_QENhHfxsFloEPC-108" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-118" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-109" connectable="0" vertex="1">
+                    <mxGeometry x="-0.132" y="2" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-123" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-107" target="Oy_LV_QENhHfxsFloEPC-124" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="970.25" y="701" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-126" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-123" connectable="0" vertex="1">
+                    <mxGeometry x="-0.1427" y="2" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-107" value="&lt;font color=&quot;#28253d&quot; face=&quot;Recursive Variable, arial, sans-serif&quot;&gt;&lt;span style=&quot;font-size: 14px; text-wrap-mode: nowrap;&quot;&gt;Megfelelő jelszó?&lt;/span&gt;&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="891" y="481" width="160" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-121" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="Oy_LV_QENhHfxsFloEPC-108" target="Oy_LV_QENhHfxsFloEPC-1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="730" y="150"/>
+                        </Array>
+                        <mxPoint x="710" y="131" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-108" value="Hiba:&amp;nbsp;&lt;br&gt;Hibás jelszó" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+                    <mxGeometry x="640" y="501" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-115" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-112" target="Oy_LV_QENhHfxsFloEPC-61" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-112" value="Bejelentkezés gomb &lt;br&gt;megnyomása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+                    <mxGeometry x="880" y="220" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-116" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.503;entryY=0.03;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-61" target="Oy_LV_QENhHfxsFloEPC-107" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-117" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Oy_LV_QENhHfxsFloEPC-116" connectable="0" vertex="1">
+                    <mxGeometry x="-0.185" y="-1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-124" value="Sikeres bejelentkezés" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+                    <mxGeometry x="881" y="630" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-127" value="A" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d0cee2;strokeColor=#56517e;" parent="1" vertex="1">
+                    <mxGeometry x="351" y="1060" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-129" value="A" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d0cee2;strokeColor=#56517e;" parent="1" vertex="1">
+                    <mxGeometry x="950" y="40" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-130" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.506;entryY=0.167;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="971" y="80" as="sourcePoint"/>
+                        <mxPoint x="970.8600000000001" y="119.99999999999999" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-131" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.489;entryY=-0.025;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-101" target="Oy_LV_QENhHfxsFloEPC-56" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-132" value="B" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d0cee2;strokeColor=#56517e;" parent="1" vertex="1">
+                    <mxGeometry x="1180" y="260" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-135" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-134" target="Oy_LV_QENhHfxsFloEPC-56" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-134" value="B" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d0cee2;strokeColor=#56517e;" parent="1" vertex="1">
+                    <mxGeometry x="490" y="330" width="40" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-139" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.503;entryY=-0.044;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-106" target="Oy_LV_QENhHfxsFloEPC-101" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-140" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.511;entryY=0.044;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-54" target="Oy_LV_QENhHfxsFloEPC-106" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-142" value="Kezdő oldal megnyitása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+                    <mxGeometry x="880" y="721" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-144" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.503;entryY=-0.048;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-124" target="Oy_LV_QENhHfxsFloEPC-142" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="Oy_LV_QENhHfxsFloEPC-145" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.545;entryY=-0.011;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="Oy_LV_QENhHfxsFloEPC-142" target="Oy_LV_QENhHfxsFloEPC-70" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" style="edgeStyle=none;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;endArrow=none;endFill=0;" edge="1" parent="1" source="2">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="40" y="469.7777777777777" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="2" value="Hiba:&amp;nbsp;&lt;br&gt;Nem tartalmaz&amp;nbsp;&lt;div&gt;betűt (a-z, A-Z)?&lt;/div&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+                    <mxGeometry x="90" y="440" width="180" height="60" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>
