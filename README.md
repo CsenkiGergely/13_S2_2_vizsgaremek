@@ -9,6 +9,5 @@ Ez a repository a vizsgaremek dokumentációját tartalmazza.
 - **Dicső András** (@DicsoAndras)
 
 ## Határidő
-- **2025. november 25.** – Algoritmus
 - **2025. december 12.** – Prototípus verzió
 
