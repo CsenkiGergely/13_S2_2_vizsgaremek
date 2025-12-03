@@ -18,9 +18,11 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
         'email',
         'password',
+        'role',
+        'is_superuser',
+        'phone_number',
     ];
 
     /**
@@ -43,6 +45,29 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => 'boolean',
+            'is_superuser' => 'boolean',
         ];
+    }
+
+    // Kapcsolatok
+    public function guests()
+    {
+        return $this->hasMany(UserGuest::class);
+    }
+
+    public function campings()
+    {
+        return $this->hasMany(Camping::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
     }
 }

@@ -9,7 +9,7 @@ import Home from './views/Home.vue'
     <Header/>
 
     <!-- Main Content - Ez fog változni oldalanként -->
-    <main class="flex-grow">    <!-- nem kell majd ide -->
+    <main class="grow">    <!-- nem kell majd ide -->
       <Home />
     </main>
 
