@@ -1,10 +1,41 @@
 <script setup>
 import { ref } from 'vue'
+import AuthModal from './AuthModal.vue'
+import { useAuth } from '../composables/useAuth'
+
+const { user, isAuthenticated, logout } = useAuth()
 
 const mobileMenuOpen = ref(false)
+const authModalOpen = ref(false)
+const authModalMode = ref('login')
 
 const toggleMobileMenu = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value
+}
+
+const openLoginModal = () => {
+  authModalMode.value = 'login'
+  authModalOpen.value = true
+  mobileMenuOpen.value = false
+}
+
+const openRegisterModal = () => {
+  authModalMode.value = 'register'
+  authModalOpen.value = true
+  mobileMenuOpen.value = false
+}
+
+const closeAuthModal = () => {
+  authModalOpen.value = false
+}
+
+const handleAuthSuccess = (userData) => {
+  console.log('Sikeres bejelentkezés/regisztráció:', userData)
+}
+
+const handleLogout = async () => {
+  await logout()
+  mobileMenuOpen.value = false
 }
 </script>
 
@@ -22,8 +53,18 @@ const toggleMobileMenu = () => {
         <nav class="hidden md:flex items-center space-x-6">
           <a href="#" class="text-gray-700 hover:text-[#4A7434] transition">Menü</a>
           <a href="#" class="text-gray-700 hover:text-[#4A7434] transition">Legyél partnerünk</a>
-          <a href="#" class="text-gray-700 hover:text-[#4A7434] transition">Regisztráció</a>
-          <a href="#" class="bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition">Login</a>
+          
+          <!-- Ha nincs bejelentkezve -->
+          <template v-if="!isAuthenticated">
+            <button @click="openRegisterModal" class="text-gray-700 hover:text-[#4A7434] transition">Regisztráció</button>
+            <button @click="openLoginModal" class="bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition">Login</button>
+          </template>
+          
+          <!-- Ha be van jelentkezve -->
+          <template v-else>
+            <span class="text-gray-700">{{ user?.email }}</span>
+            <button @click="handleLogout" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">Kijelentkezés</button>
+          </template>
         </nav>
 
         <!-- Mobile Menu Button -->
@@ -39,10 +80,28 @@ const toggleMobileMenu = () => {
       <nav v-if="mobileMenuOpen" class="md:hidden mt-4 pb-4 space-y-3">
         <a href="#" class="block text-gray-700 hover:text-[#4A7434] transition py-2">Menü</a>
         <a href="#" class="block text-gray-700 hover:text-[#4A7434] transition py-2">Legyél partnerünk</a>
-        <a href="#" class="block text-gray-700 hover:text-[#4A7434] transition py-2">Regisztráció</a>
-        <a href="#" class="block bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition text-center">Login</a>
+        
+        <!-- Ha nincs bejelentkezve -->
+        <template v-if="!isAuthenticated">
+          <button @click="openRegisterModal" class="block w-full text-left text-gray-700 hover:text-[#4A7434] transition py-2">Regisztráció</button>
+          <button @click="openLoginModal" class="block w-full bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition text-center">Login</button>
+        </template>
+        
+        <!-- Ha be van jelentkezve -->
+        <template v-else>
+          <span class="block text-gray-700 py-2">{{ user?.email }}</span>
+          <button @click="handleLogout" class="block w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-center">Kijelentkezés</button>
+        </template>
       </nav>
     </div>
+
+    <!-- Auth Modal -->
+    <AuthModal 
+      :isOpen="authModalOpen" 
+      :initialMode="authModalMode" 
+      @close="closeAuthModal"
+      @success="handleAuthSuccess"
+    />
   </header>
 </template>
 
