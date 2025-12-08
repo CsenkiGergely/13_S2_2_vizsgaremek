@@ -1,16 +1,15 @@
 import { ref, computed } from 'vue'
 import api from '../api/axios'
 
-// Reaktív állapotok
 const user = ref(JSON.parse(localStorage.getItem('user')) || null)
 const token = ref(localStorage.getItem('auth_token') || null)
 const loading = ref(false)
 const error = ref(null)
 
-// Computed
+
 const isAuthenticated = computed(() => !!token.value)
 
-// Regisztráció
+// registrateion
 const register = async (userData) => {
   loading.value = true
   error.value = null
@@ -25,7 +24,6 @@ const register = async (userData) => {
     
     const { user: userData2, token: newToken } = response.data
     
-    // Token mentése (a register endpoint-nél a token objektumban van)
     const plainToken = newToken.plainTextToken || newToken
     token.value = plainToken
     user.value = userData2
@@ -42,7 +40,7 @@ const register = async (userData) => {
   }
 }
 
-// Bejelentkezés
+// bejelentkezés
 const login = async (credentials) => {
   loading.value = true
   error.value = null
@@ -53,7 +51,7 @@ const login = async (credentials) => {
       password: credentials.password
     })
     
-    // Ellenőrizzük, hogy sikeres volt-e a bejelentkezés
+    // bejelentkezés check
     if (response.data.message === 'Invalid credentials') {
       error.value = 'Hibás email cím vagy jelszó'
       return { success: false, error: error.value }
@@ -70,7 +68,7 @@ const login = async (credentials) => {
     return { success: true, user: userData }
   } catch (err) {
     if (err.response?.status === 422) {
-      // Validation error
+
       const errors = err.response?.data?.errors
       if (errors?.email) {
         error.value = errors.email[0]
@@ -88,14 +86,14 @@ const login = async (credentials) => {
   }
 }
 
-// Kijelentkezés
+// kijelentkezés
 const logout = async () => {
   loading.value = true
   
   try {
     await api.post('/logout')
   } catch (err) {
-    // Ha hiba van, akkor is kijelentkeztetjük lokálisan
+    // ha hiba van, akkor is kijelentkeztetjük lokálisan
     console.error('Logout error:', err)
   } finally {
     token.value = null
@@ -106,7 +104,7 @@ const logout = async () => {
   }
 }
 
-// Felhasználó adatainak lekérése
+// felhasználó adatainak lekérése
 const fetchUser = async () => {
   if (!token.value) return null
   
@@ -118,7 +116,7 @@ const fetchUser = async () => {
     localStorage.setItem('user', JSON.stringify(response.data))
     return response.data
   } catch (err) {
-    // Ha 401, akkor a token lejárt
+    // ha 401 akkor a token lejárt
     if (err.response?.status === 401) {
       token.value = null
       user.value = null
@@ -131,7 +129,45 @@ const fetchUser = async () => {
   }
 }
 
-// Composable exportálása
+// elfelejtett jelszó
+const forgotPassword = async (email) => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const response = await api.post('/forgot-password', { email })
+    return { 
+      success: true, 
+      message: response.data.message || 'Jelszó visszaállító linket elküldtük az email címedre.' 
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Hiba történt. Próbáld újra később.'
+    return { success: false, error: error.value }
+  } finally {
+    loading.value = false
+  }
+}
+
+// jelszó visszaállítás
+const resetPassword = async (data) => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const response = await api.post('/reset-password', data)
+    return { 
+      success: true, 
+      message: response.data.message || 'Jelszó sikeresen megváltoztatva!' 
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Hiba történt. Próbáld újra később.'
+    return { success: false, error: error.value }
+  } finally {
+    loading.value = false
+  }
+}
+
+
 export function useAuth() {
   return {
     user,
@@ -142,6 +178,8 @@ export function useAuth() {
     register,
     login,
     logout,
-    fetchUser
+    fetchUser,
+    forgotPassword,
+    resetPassword
   }
 }

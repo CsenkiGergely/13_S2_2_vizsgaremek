@@ -12,7 +12,7 @@ const formError = ref(null)
 const successMessage = ref(null)
 
 onMounted(() => {
-  // URL paraméterek kiolvasása
+  // link cím név gen adatok
   const urlParams = new URLSearchParams(window.location.search)
   token.value = urlParams.get('token') || ''
   email.value = urlParams.get('email') || ''
@@ -54,17 +54,17 @@ const goToHome = () => {
 <template>
   <div class="min-h-screen bg-gray-900 flex items-center justify-center p-4">
     <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden p-8">
-      <!-- Logo -->
+      <!-- logo -->
       <div class="flex justify-center mb-6">
         <img src="/img/CampSite.svg" alt="CampSite Logo" class="h-20">
       </div>
 
-      <!-- Title -->
+      <!-- cím -->
       <h2 class="text-center text-2xl font-bold tracking-tight text-white mb-6">
         Új jelszó megadása
       </h2>
 
-      <!-- Success Message -->
+      <!-- sikeres üzenet -->
       <div v-if="successMessage" class="text-center">
         <div class="mb-4 p-3 rounded-lg bg-green-500/20 border border-green-500/50 text-green-400 text-sm">
           {{ successMessage }}
@@ -77,12 +77,12 @@ const goToHome = () => {
         </button>
       </div>
 
-      <!-- Error Message -->
+      <!-- hiba -->
       <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 text-sm">
         {{ formError }}
       </div>
 
-      <!-- No token error -->
+      <!-- reset lejart token -->
       <div v-if="!token && !successMessage" class="text-center">
         <div class="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 text-sm">
           Érvénytelen vagy hiányzó token!
@@ -95,7 +95,7 @@ const goToHome = () => {
         </button>
       </div>
 
-      <!-- Form -->
+      <!-- adat mezők -->
       <form v-if="token && !successMessage" @submit.prevent="handleSubmit" class="space-y-5">
         <div>
           <label for="reset-email" class="block text-sm font-medium text-gray-100 mb-2">
@@ -150,14 +150,14 @@ const goToHome = () => {
             <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+            </svg>  <!-- töltés svg ikon gen -->
             Mentés...
           </span>
           <span v-else>Jelszó mentése</span>
         </button>
       </form>
 
-      <!-- Back to Home -->
+      <!-- vissza -->
       <p v-if="token && !successMessage" class="mt-6 text-center text-sm text-gray-400">
         <a href="/" class="font-semibold text-[#4A7434] hover:text-[#F17E21] transition">
           ← Vissza a főoldalra
