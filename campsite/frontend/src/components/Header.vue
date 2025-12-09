@@ -57,7 +57,7 @@ const handleLogout = async () => {
           <!-- ha nincs bejelentkezve -->
           <template v-if="!isAuthenticated">
             <button @click="openRegisterModal" class="text-gray-700 hover:text-[#4A7434] transition">Regisztráció</button>
-            <button @click="openLoginModal" class="bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition">Login</button>
+            <button @click="openLoginModal" class="bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition">Bejelentkezés</button>
           </template>
           
           <!-- ha be van jelentkezve -->
@@ -78,13 +78,13 @@ const handleLogout = async () => {
 
       <!-- mobil menü -->
       <nav v-if="mobileMenuOpen" class="md:hidden mt-4 pb-4 space-y-3">
-        <a href="#" class="block text-gray-700 hover:text-[#4A7434] transition py-2">Menü</a>
-        <a href="#" class="block text-gray-700 hover:text-[#4A7434] transition py-2">Legyél partnerünk</a>
+        <a href="#" class="block text-gray-700 hover:text-[#4A7434] transition py-2" text-center>Menü</a>
+        <a href="#" class="block text-gray-700 hover:text-[#4A7434] transition py-2" text-center>Legyél partnerünk</a>
         
         <!-- ha nincs bejelentkezve -->
         <template v-if="!isAuthenticated">
-          <button @click="openRegisterModal" class="block w-full text-left text-gray-700 hover:text-[#4A7434] transition py-2">Regisztráció</button>
-          <button @click="openLoginModal" class="block w-full bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition text-center">Login</button>
+          <button @click="openRegisterModal" class="block w-full text-left text-gray-700 hover:text-[#4A7434] transition py-2 text-center">Regisztráció</button>
+          <button @click="openLoginModal" class="block w-full bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition text-center">Bejelentkezés</button>
         </template>
         
         <!-- ha be van jelentkezve -->
