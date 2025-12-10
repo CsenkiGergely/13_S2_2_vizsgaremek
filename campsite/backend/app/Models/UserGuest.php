@@ -17,7 +17,7 @@ class UserGuest extends Model
         'mothers_birth_name',
         'id_card_number',
         'passport_number',
-        'visa',
+        'visa_flight_number',
         'resident_permit_number',
         'date_of_entry',
         'place_of_entry',
