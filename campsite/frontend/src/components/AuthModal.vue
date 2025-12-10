@@ -23,6 +23,13 @@ watch(() => props.initialMode, (newVal) => {
   mode.value = newVal
 })
 
+
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) {
+    mode.value = props.initialMode
+  }
+})
+
 const isLogin = computed(() => mode.value === 'login')
 const isRegister = computed(() => mode.value === 'register')
 const isForgotPassword = computed(() => mode.value === 'forgot-password')
@@ -32,6 +39,41 @@ const loginForm = ref({
   email: '',
   password: ''
 })
+
+const passwordStrength = computed(() => {
+  const password = registerForm.value.password
+  if (!password) return { level: 0, text: '', color: '' }
+
+
+  
+  let score = 0
+  
+  if (password.length >= 12) {
+    score += 3
+  } else if (password.length >= 8) {
+    score += 2 
+  } else {
+    score += 1
+  }
+  
+  if (/[a-z]/.test(password)) score += 1
+  if (/[A-Z]/.test(password)) score += 1
+  if (/[0-9]/.test(password)) score += 1
+  if (/[^a-zA-Z0-9]/.test(password)) score += 2
+
+   if (password.length <= 6) {
+    score = 0
+  } 
+
+  if (score <= 4) {
+    return { level: 1, text: 'Gyenge jelszó', color: 'text-red-400' }
+  } else if (score <= 7) {
+    return { level: 2, text: 'Közepes jelszó', color: 'text-yellow-400' }
+  } else {
+    return { level: 3, text: 'Erős jelszó', color: 'text-[#4A7434]' }
+  }
+})
+
 
 const registerForm = ref({
   name: '',
@@ -78,6 +120,10 @@ const handleLogin = async () => {
 
 const handleRegister = async () => {
   formError.value = null
+  if (passwordStrength.value.level < 2) {
+  formError.value = 'A jelszónak legalább közepes erősségűnek kell lennie!'
+  return
+}
   
   // jelszó check
   if (registerForm.value.password !== registerForm.value.password_confirmation) {
@@ -288,7 +334,8 @@ const handleForgotPassword = async () => {
                 </div>
 
                 <div>
-                  <label for="register-password" class="block text-sm font-medium text-gray-100 mb-2">
+
+                  <label for="register-email" class="block text-sm font-medium text-gray-100 mb-2">
                     Jelszó
                   </label>
                   <input 
@@ -300,6 +347,10 @@ const handleForgotPassword = async () => {
                     placeholder="••••••••"
                     class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition"
                   />
+                  <p v-if="registerForm.password" class="mt-1 text-sm" :class="passwordStrength.color">
+                     {{ passwordStrength.text }}
+                  </p>
+
                 </div>
 
                 <div>

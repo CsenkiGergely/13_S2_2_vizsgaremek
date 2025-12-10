@@ -83,7 +83,7 @@ const handleLogout = async () => {
         
         <!-- ha nincs bejelentkezve -->
         <template v-if="!isAuthenticated">
-          <button @click="openRegisterModal" class="block w-full text-left text-gray-700 hover:text-[#4A7434] transition py-2 text-center">Regisztráció</button>
+          <button @click="openRegisterModal" class="block w-full  text-gray-700 hover:text-[#4A7434] transition py-2 text-center">Regisztráció</button>
           <button @click="openLoginModal" class="block w-full bg-[#4A7434] text-white px-4 py-2 rounded-lg hover:bg-[#F17E21] transition text-center">Bejelentkezés</button>
         </template>
         
