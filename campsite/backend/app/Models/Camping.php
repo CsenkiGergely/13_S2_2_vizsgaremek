@@ -58,4 +58,22 @@ class Camping extends Model
     {
         return $this->hasMany(Comment::class);
     }
+
+    // Szamitott mezok
+    public function getAverageRating()
+    {
+        $average = $this->comments()->avg('rating');
+
+        return $average !== null ? round($average, 1) : null;
+    }
+
+    public function getReviewsCount()
+    {
+        return $this->comments()->count();
+    }
+
+    public function getMinPrice()
+    {
+        return $this->spots()->min('price');
+    }
 }
