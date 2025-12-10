@@ -72,8 +72,13 @@ class Camping extends Model
         return $this->comments()->count();
     }
 
-    public function getMinPrice()
+    public function getMinPriceAttribute()
     {
-        return $this->spots()->min('price');
+        return $this->spots()->min('price_per_night');
+    }
+
+        public function getMaxPriceAttribute()
+    {
+        return $this->spots()->max('price_per_night');
     }
 }
