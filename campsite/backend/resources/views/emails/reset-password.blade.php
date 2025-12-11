@@ -31,6 +31,11 @@
             margin: 0;
             font-size: 28px;
         }
+        .logo {
+            display: block;
+            margin: 0 auto 10px;
+            height: 60px;
+        }
         .content {
             padding: 40px 30px;
         }
@@ -91,12 +96,10 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
-            <h1>🏕️ CampSite</h1>
+            <h1>CampSite</h1>
         </div>
 
-        <!-- Content -->
         <div class="content">
             <h2>Jelszó Visszaállítási Kérelem</h2>
             
@@ -120,7 +123,6 @@
             </p>
         </div>
 
-        <!-- Footer -->
         <div class="footer">
             <p><strong>CampSite</strong> - A legjobb kempingek egy helyen</p>
             <p>Ez egy automatikus üzenet, kérjük ne válaszolj rá.</p>
