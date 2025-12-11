@@ -54,10 +54,15 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email'
+            'email' => 'required|email'
         ]);
 
         $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Nem regisztrált vagy nem megfelelő email.'
+            ], 404);
+        }
 
         $token = Str::random(64);
 
@@ -86,7 +91,7 @@ class AuthController extends Controller
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'token' => 'required',
             'password' => 'required|min:8|confirmed'
         ]);
@@ -108,7 +113,7 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // Token lejárat ellenőrzése (60 perc)
+        // Token lejárat ellenőrzése 60p
         $createdAt = \Carbon\Carbon::parse($passwordReset->created_at);
         if ($createdAt->addMinutes(60)->isPast()) {
             return response()->json([
@@ -118,6 +123,11 @@ class AuthController extends Controller
 
 
         $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Érvénytelen token vagy email cím.'
+            ], 400);
+        }
         $user->password = Hash::make($request->password);
         $user->save();
 
