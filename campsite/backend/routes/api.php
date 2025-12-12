@@ -17,4 +17,4 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::post('/campings', [CampingController::class, 'getCampings']);
+Route::get('/campings', [CampingController::class, 'getCampings']);
