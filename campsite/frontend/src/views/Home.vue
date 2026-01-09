@@ -38,8 +38,8 @@ const handleSearch = () => {
 </script>
 
 <template>
-  </head>
-<body>
+ 
+
   <div class="hero" role="banner">
     <div class="container">
       <div class="title">
@@ -85,10 +85,10 @@ const handleSearch = () => {
 
    
     <div class="gallery" aria-label="Népszerű régiók képei">
-      <a href="#" title="Balaton környéke"><img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=60&auto=format&fit=crop" alt="Naplemente a Balaton felett"/></a>
-      <a href="#" title="Tisza-tó"><img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=60&auto=format&fit=crop" alt="Tisza-tó partja és csónakok"/></a>
-      <a href="#" title="Őrség / erdők"><img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?crop=entropy&w=1200&q=60&auto=format&fit=crop&ixlib=rb-4.0.3" alt="Erdő és kempinghely természetes környezetben"/></a>
-      <a href="#" title="Dél-Alföld"><img src="https://images.unsplash.com/photo-1493558103817-58b2924bce98?w=1200&q=60&auto=format&fit=crop" alt="Tanyasi horizont és csillagos égbolt"/></a>
+      <a href="#" title="Balaton környéke"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
+      <a href="#" title="Tisza-tó"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
+      <a href="#" title="Őrség / erdők"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
+      <a href="#" title="Dél-Alföld"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
     </div>
 
    
@@ -97,7 +97,7 @@ const handleSearch = () => {
 
    
     <div class="single-image" aria-hidden="false">
-      <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=60&auto=format&fit=crop" alt="Kiemelt kemping nagy panorámakép"/>
+      <img src="/img/night-1189929_1920.jpg" alt="Kiemelt kemping nagy panorámakép"/>
     </div>
   </main>
 </template>
@@ -114,21 +114,32 @@ const handleSearch = () => {
 
   
     *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      background: linear-gradient(135deg, var(--bg-grad-start), var(--bg-grad-end));
-      color:#1f2937;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      line-height:1.4;
-    }
+
 
     .hero{
-      background: var(--accent);
-      color: #fff;
+      position: relative;
+      overflow: hidden;
       padding:3.5rem 0;
-      position:relative;
-      overflow:hidden;
+      color: #fff;
+      /* félátlátszó zöld háttér (állítsd az alfa értéket tetszés szerint 0.0 - 1.0 között) */
+      background-color: rgba(74,116,52,1);
+    }
+    .hero::before{
+      content: "";
+      position: absolute;
+      inset: 0;
+      /* a kép URL-jét cseréld le, ha másik képet akarsz */
+      background-image: url('/img/ground-camping-8260968_1280.jpg');
+      background-size: cover;
+      background-position: center;
+      /* állítsd az opacity-t a kívánt átlátszóságra (0 = láthatatlan, 1 = teljesen fed) */
+      opacity: 0.06;
+      pointer-events: none;
+      z-index: 0;
+    }
+     .hero .container{
+      position: relative;
+      z-index: 1;
     }
     .container{
       width: min(1100px, 92%);
@@ -152,7 +163,8 @@ const handleSearch = () => {
 
     
     .search-card{
-      background: var(--card-bg);
+      background-color: #fff;
+      color: black;
       border-radius:1rem;
       padding:1.25rem;
       box-shadow: 0 10px 30px rgba(0,0,0,0.12);
@@ -168,7 +180,7 @@ const handleSearch = () => {
     input[type="text"], input[type="date"], input[type="number"]{
       width:100%;
       padding:.75rem 1rem;
-      border:1px solid #e5e7eb;
+      border:1px solid #829dd4;
       border-radius:.625rem;
       outline:none;
       font-size:0.95rem;
@@ -179,7 +191,7 @@ const handleSearch = () => {
       border-color: transparent;
     }
     .btn{
-      background: var(--cta);
+      background-color: #4A7434;
       color:#fff;
       padding:.7rem 1.5rem;
       border-radius:.75rem;
