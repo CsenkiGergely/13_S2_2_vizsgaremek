@@ -70,7 +70,7 @@ const handleSearch = () => {
           </div>
 
           <div class="submit-col" style="margin-top:.5rem">
-            <button class="btn" type="submit">🔍 Keresés</button>
+            <button class="btn" type="submit";>🔍 Keresés</button>
           </div>
         </form>
       </div>
@@ -201,7 +201,8 @@ const handleSearch = () => {
       box-shadow: 0 8px 18px rgba(241,126,33,0.22);
       transition: background .25s, box-shadow .25s, transform .08s;
     }
-    .btn:hover{ background: var(--accent); box-shadow: 0 14px 30px rgba(0,0,0,0.18)}
+    .btn:hover{ background: white; box-shadow: 0 14px 30px rgba(0,0,0,0.18)}
+    .btn:hover{ color: black;}
     .btn:active{ transform: translateY(1px) }
 
     
