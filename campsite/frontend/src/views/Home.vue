@@ -85,10 +85,10 @@ const handleSearch = () => {
 
    
     <div class="gallery" aria-label="Népszerű régiók képei">
-      <a href="#" title="Balaton környéke"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
-      <a href="#" title="Tisza-tó"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
-      <a href="#" title="Őrség / erdők"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
-      <a href="#" title="Dél-Alföld"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
+      <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
+      <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
+      <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
+      <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
     </div>
 
    
