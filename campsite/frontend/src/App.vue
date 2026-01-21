@@ -5,6 +5,7 @@ import Footer from './components/Footer.vue'
 import Home from './views/Home.vue'
 import ResetPassword from './views/ResetPassword.vue'
 
+
 const currentView = ref('home')
 
 onMounted(() => {
@@ -17,6 +18,15 @@ onMounted(() => {
 </script>
 
 <template>
+
+
+
+
+
+
+
+
+
   <div class="min-h-screen flex flex-col">
     <!-- reset password full screen nézet -->
     <template v-if="currentView === 'reset-password'">

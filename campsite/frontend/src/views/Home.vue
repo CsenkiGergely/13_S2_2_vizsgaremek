@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 
+
 const today = new Date().toISOString().split('T')[0]
 
 const searchForm = ref({
@@ -37,6 +38,15 @@ const handleSearch = () => {
 }
 </script>
 
+<script>
+export default {
+  methods: {
+    goToSearch() {
+      this.$router.push('/kereses')
+    }
+  }
+}
+</script>
 <template>
  
 
@@ -70,7 +80,9 @@ const handleSearch = () => {
           </div>
 
           <div class="submit-col" style="margin-top:.5rem">
-            <button class="btn" type="submit";>🔍 Keresés</button>
+           
+            <button class="btn" @click="goToSearch">🔍 Keresés</button>
+
           </div>
         </form>
       </div>
@@ -90,6 +102,8 @@ const handleSearch = () => {
       <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
       <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
     </div>
+
+
 
    
     <h2 class="section-title" style="margin-top:2rem">Kiemelt kempingünk</h2>

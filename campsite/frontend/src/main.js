@@ -4,11 +4,24 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
+import router from './Router'
+
+
+
+if (!window.__app__) {
+  const app = createApp(App)
+  app.use(router)
+  app.mount('#app')
+  window.__app__ = app  // jelzés, hogy már mountolva van
+}
 
 
 
 
-const app = createApp(App)
+
+
+
+
 
 // modal click kintre bezárás
 app.directive('click-outside', {
