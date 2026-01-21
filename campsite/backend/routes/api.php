@@ -6,7 +6,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CampingController;
 use App\Http\Controllers\BookingSearchController;
-use App\Http\Controllers\LocationController;
+
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -22,7 +22,3 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/campings', [CampingController::class, 'getCampings']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
 
-// Location autocomplete és GPS keresés
-Route::get('/location/autocomplete', [LocationController::class, 'autocomplete']);
-Route::get('/location/details', [LocationController::class, 'getPlaceDetails']);
-Route::get('/location/nearby', [LocationController::class, 'nearbySearch']);

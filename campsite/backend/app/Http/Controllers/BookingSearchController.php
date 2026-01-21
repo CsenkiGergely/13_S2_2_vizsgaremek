@@ -11,7 +11,6 @@ class BookingSearchController extends Controller
 {
     public function search(Request $request)
     {
-        // Validáció
         $request->validate([
             'location' => 'nullable|string',
             'arrival_date' => 'required|date|after_or_equal:today',
@@ -19,8 +18,9 @@ class BookingSearchController extends Controller
             'guests' => 'required|integer|min:1'
         ]);
 
+        // http://127.0.0.1:8000/api/booking/search?location=Siófok&arrival_date=2026-06-01&departure_date=2026-06-05&guests=14&page=1
+        // elérhető helyek ellenőrzése a cemnping foglalásai alapján
         $query = Camping::with(['photos', 'location', 'tags', 'spots' => function ($q) use ($request) {
-            // Csak azokat a spotokat töltjük be, amik szabadok
             $q->where('is_available', true)
               ->whereDoesntHave('bookings', function ($bookingQuery) use ($request) {
                   $bookingQuery->where(function ($dateQuery) use ($request) {
@@ -34,7 +34,7 @@ class BookingSearchController extends Controller
               });
         }]);
 
-        // Hely szerinti szűrés (város vagy megye)
+        // város megye alapú szűrés 
         if ($request->location) {
             $location = '%' . mb_strtolower($request->location) . '%';
             $query->whereHas('location', function ($q) use ($location) {
@@ -43,7 +43,7 @@ class BookingSearchController extends Controller
             });
         }
 
-        // Olyan kempingek, ahol van elég összkapacitás a szabad helyeken
+         // elérhető helyek ellenőrzése a cemnping kapacitásához mérten 
         $query->whereHas('spots', function ($q) use ($request) {
             $q->where('is_available', true)
               ->whereDoesntHave('bookings', function ($bookingQuery) use ($request) {
@@ -58,22 +58,22 @@ class BookingSearchController extends Controller
               });
         });
 
-        // Lekérjük a kempingeket
+
         $campings = $query->get();
 
-        // Szűrjük azokat, ahol az összes szabad hely kapacitása >= kért létszám
+        // ellenőrizzük az összkapacitás elég-e 
         $filteredCampings = $campings->filter(function ($camping) use ($request) {
             $totalCapacity = $camping->spots->sum('capacity');
             return $totalCapacity >= $request->guests;
         });
 
-        // Hozzáadjuk az available_capacity mezőt minden kempinghez
+        // elérhető kapacitás és helyek száma
         $filteredCampings->each(function ($camping) {
             $camping->available_capacity = $camping->spots->sum('capacity');
             $camping->available_spots_count = $camping->spots->count();
         });
 
-        // Lapozás manuálisan
+        // 10 camp / oldal 
         $page = $request->get('page', 1);
         $perPage = 10;
         $offset = ($page - 1) * $perPage;
