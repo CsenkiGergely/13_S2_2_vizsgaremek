@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -67,7 +68,7 @@ class AuthController extends Controller
         $token = Str::random(64);
 
 
-        \DB::table('password_reset_tokens')->updateOrInsert(
+        DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->email],
             [
                 'email' => $request->email,
@@ -96,7 +97,7 @@ class AuthController extends Controller
             'password' => 'required|min:8|confirmed'
         ]);
 
-        $passwordReset = \DB::table('password_reset_tokens')
+        $passwordReset = DB::table('password_reset_tokens')
             ->where('email', $request->email)
             ->first();
 
@@ -131,7 +132,7 @@ class AuthController extends Controller
         $user->password = Hash::make($request->password);
         $user->save();
 
-        \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
         return response()->json([
             'message' => 'Jelszó sikeresen megváltoztatva!'
