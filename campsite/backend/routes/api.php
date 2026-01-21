@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CampingController;
+use App\Http\Controllers\BookingSearchController;
+
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -18,3 +20,5 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/campings', [CampingController::class, 'getCampings']);
+Route::get('/booking/search', [BookingSearchController::class, 'search']);
+
