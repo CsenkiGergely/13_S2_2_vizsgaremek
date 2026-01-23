@@ -215,8 +215,7 @@ export default {
       box-shadow: 0 8px 18px rgba(241,126,33,0.22);
       transition: background .25s, box-shadow .25s, transform .08s;
     }
-    .btn:hover{ background: white; box-shadow: 0 14px 30px rgba(0,0,0,0.18)}
-    .btn:hover{ color: black;}
+    .btn:hover{ background: #F17E21; box-shadow: 0 14px 30px rgba(0,0,0,0.18)}
     .btn:active{ transform: translateY(1px) }
 
     
