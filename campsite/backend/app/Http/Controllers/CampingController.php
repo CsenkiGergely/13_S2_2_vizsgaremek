@@ -33,6 +33,16 @@ class CampingController extends Controller
         });
 
         $campings = $camping->paginate(2); // 2 egyszerre
+        
+        // árak és értékelések hozzáadása minden kempinghez
+        $campings->getCollection()->transform(function ($camp) {
+            $camp->min_price = $camp->min_price;
+            $camp->max_price = $camp->max_price;
+            $camp->average_rating = $camp->getAverageRating();
+            $camp->reviews_count = $camp->getReviewsCount();
+            return $camp;
+        });
+        
         return response()->json($campings);
     }
 

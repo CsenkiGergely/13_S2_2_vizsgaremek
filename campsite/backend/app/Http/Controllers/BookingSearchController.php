@@ -67,10 +67,18 @@ class BookingSearchController extends Controller
             return $totalCapacity >= $request->guests;
         });
 
-        // elérhető kapacitás és helyek száma
+        // elérhető kapacitás helyek száma árak és értékelések
         $filteredCampings->each(function ($camping) {
             $camping->available_capacity = $camping->spots->sum('capacity');
             $camping->available_spots_count = $camping->spots->count();
+            
+            // min és max árak számítása az elérhető helyekből
+            $camping->min_price = $camping->spots->min('price_per_night');
+            $camping->max_price = $camping->spots->max('price_per_night');
+            
+            // átlag értékelés és értékelések száma
+            $camping->average_rating = $camping->getAverageRating();
+            $camping->reviews_count = $camping->getReviewsCount();
         });
 
         // 10 camp / oldal 
