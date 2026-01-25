@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CampingController;
 use App\Http\Controllers\BookingSearchController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\CampingPhotoController;
 
 
 Route::get('/user', function (Request $request) {
