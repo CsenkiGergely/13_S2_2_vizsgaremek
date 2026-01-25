@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
-import Home from './views/Home.vue'
 import ResetPassword from './views/ResetPassword.vue'
 
 
@@ -18,15 +17,6 @@ onMounted(() => {
 </script>
 
 <template>
-
-
-
-
-
-
-
-
-
   <div class="min-h-screen flex flex-col">
     <!-- reset password full screen nézet -->
     <template v-if="currentView === 'reset-password'">
@@ -37,7 +27,7 @@ onMounted(() => {
     <template v-else>
       <Header/>
       <main class="grow">
-        <Home />
+        <router-view />
       </main>
       <Footer/>
     </template>
