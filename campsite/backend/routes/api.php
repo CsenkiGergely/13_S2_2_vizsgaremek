@@ -23,8 +23,14 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
+// Partner státuszra váltás only login  -> nincs külön nincs jogosultságod üzenet
+Route::post('/upgrade-to-partner', [AuthController::class, 'upgradeToPartner'])->middleware('auth:sanctum');
+
 // Kempingek
 Route::get('/campings', [CampingController::class, 'getCampings']);
+Route::get('/campings/{id}', [CampingController::class, 'show']);
+Route::get('/campings/{id}/spots', [CampingController::class, 'getSpots']);
+Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
 
 // Foglalások
@@ -41,5 +47,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/owner/bookings', [BookingController::class, 'ownerBookings']);
     Route::patch('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
     Route::post('/bookings/scan', [BookingController::class, 'scanQrCode']);
+    
+    // Kemping kezelés (csak tulajdonosoknak)
+    Route::post('/campings', [CampingController::class, 'store']);
+    Route::put('/campings/{id}', [CampingController::class, 'update']);
+    Route::delete('/campings/{id}', [CampingController::class, 'destroy']);
 });
 

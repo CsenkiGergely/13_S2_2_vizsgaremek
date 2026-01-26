@@ -114,7 +114,7 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // Token lejárat ellenőrzése 60p
+        // token lejárat ellenőrzése 60p                       carbon atrakni datetime ra és a db t laravel lekeresre 
         $createdAt = \Carbon\Carbon::parse($passwordReset->created_at);
         if ($createdAt->addMinutes(60)->isPast()) {
             return response()->json([
@@ -136,6 +136,27 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Jelszó sikeresen megváltoztatva!'
+        ], 200);
+    }
+
+    // partner státuszra váltás bejelentkezett felhasználónak
+    public function upgradeToPartner(Request $request)
+    {
+        // -> nincs külön nincs jogosultságod üzenet
+        // validáljuk a telefonszámot
+        $fields = $request->validate([
+            'phone_number' => 'required|string|max:20'
+        ]);
+
+        // bejelentkezett user adatainak frissítése
+        $user = $request->user();
+        $user->phone_number = $fields['phone_number'];
+        $user->role = 1; // true
+        $user->save();
+
+        return response()->json([
+            'message' => 'Sikeresen partner státuszra váltottál!',
+            'user' => $user
         ], 200);
     }
 }
