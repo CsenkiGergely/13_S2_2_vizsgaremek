@@ -1,10 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
-import Kereses from '../views/Kereses.vue'
+import kereses from '../views/kereses.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
-  { path: '/kereses', name: 'Kereses', component: Kereses }
+  { path: '/kereses', name: 'kereses', component: kereses }
 ]
 
 const router = createRouter({

@@ -33,7 +33,7 @@ const decrementChildren = () => {
 
 const handleSearch = () => {
   console.log('Keresés:', searchForm.value)
-  // TODO: Keresési logika implementálása
+  
 }
 </script>
 
