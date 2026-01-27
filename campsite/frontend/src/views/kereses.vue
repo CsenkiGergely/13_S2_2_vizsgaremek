@@ -1,4 +1,4 @@
-<script>
+<script setup>
 import { ref, computed } from 'vue'
 
 const today = new Date().toISOString().split('T')[0]
@@ -31,36 +31,71 @@ const decrementChildren = () => {
   if (searchForm.value.children > 0) searchForm.value.children--
 }
 </script>
+<script>
+export default {
+  methods: {
+    goToSearch() {
+      this.$router.push('/fizetes')
+    }
+  }
+}
+
+</script>
 <template>
-<header>
-    <h1>🏕 CampSite</h1>
-    <div class="actions">
-        <button class="login">Bejelentkezés</button>
-        <button class="register">Regisztráció</button>
-    </div>
-</header>
+
 
 <div class="container">
 
     <aside class="sidebar">
-        <h3>Helyszín típusa</h3>
-        <label><input type="radio"> Tóparti</label>
-        <label><input type="radio"> Hegyi</label>
-        <label><input type="radio"> Erdei</label>
-        <label><input type="radio"> Sivatagi</label>
-        <label><input type="radio"> Tengerparti</label>
+        <h2>Ár éjszakánként</h2>
+<input type="range" min="0" max="100" value="50" id="slider">
+<p>5 000 Ft</p> <p class="line">25 000 Ft</p>
+
+
+<h3>Helyszín típusa</h3>
+<label><input type="radio" name="helyszin"> 🌅Tóparti</label>
+<label><input type="radio" name="helyszin"> 🏔️Hegyi</label>
+<label><input type="radio" name="helyszin"> 🏕️Erdei</label>
+<label><input type="radio" name="helyszin"> 🏜️Sivatagi</label>
+<label><input type="radio" name="helyszin"> 🏞️Tengerparti</label>
 
         <h3>Szolgáltatások</h3>
-        <label><input type="checkbox"> WiFi</label>
-        <label><input type="checkbox"> Parkoló</label>
-        <label><input type="checkbox"> Étterem</label>
-        <label><input type="checkbox"> Sátorhely</label>
-        <label><input type="checkbox"> Lakókocsi csatlakozó</label>
+        <div class="sor">
+  <input type="checkbox" id="opcio1">
+  <img src="/img/wifi-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+  <label for="opcio1">Wifi</label>
+</div>
+        <div class="sor">
+  <input type="checkbox" id="opcio1">
+  <img src="/img/tent-9-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+  <label for="opcio1">Sátorhelyek</label>
+</div>
+        <div class="sor">
+  <input type="checkbox" id="opcio1">
+  <img src="/img/mountain-outlined-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+  <label for="opcio1">Túraútvonalak</label>
+</div>
+       <div class="sor">
+  <input type="checkbox" id="opcio1">
+  <img src="/img/fork-knife-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+  <label for="opcio1">Étterem</label>
+</div>
+       <div class="sor">
+  <input type="checkbox" id="opcio1">
+  <img src="/img/car-side-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+  <label for="opcio1">Lakókocsi csatlakozó</label>
+</div>
 
-        <h3>Minimum értékelés</h3>
-        <label><input type="radio"> 4.5+</label>
-        <label><input type="radio"> 4.0+</label>
-        <label><input type="radio"> 3.5+</label>
+       <div class="sor">
+  <input type="checkbox" id="opcio1">
+  <img src="/img/car-side-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+  <label for="opcio1">Parkoló</label>
+</div>
+
+<h3>Minimum értékelés</h3>
+<label><input type="radio" name="ertekeles"> 4.5+⭐</label>
+<label><input type="radio" name="ertekeles"> 4.0+⭐</label>
+<label><input type="radio" name="ertekeles"> 3.5+⭐</label>
 
         <button class="reset">Szűrők törlése</button>
         <button class="apply">Szűrők alkalmazása</button>
@@ -84,7 +119,7 @@ const decrementChildren = () => {
                     </div>
                     <div class="price-row">
                         <div class="price">12 000 Ft / éjszaka</div>
-                        <button class="book">Foglalás</button>
+                        <button class="book" @click="goToSearch">Foglalás</button>
                     </div>
                 </div>
             </div>
@@ -103,7 +138,7 @@ const decrementChildren = () => {
                     </div>
                     <div class="price-row">
                         <div class="price">18 500 Ft / éjszaka</div>
-                        <button class="book">Foglalás</button>
+                        <button class="book" @click="goToSearch">Foglalás</button>
                     </div>
                 </div>
             </div>
@@ -141,6 +176,18 @@ const decrementChildren = () => {
             box-sizing: border-box;
             font-family: Arial, sans-serif;
         }
+
+.sor {
+  display: flex;          /* elemek egy sorban */
+  align-items: center;    /* függőlegesen középre igazítja */
+  gap: 10px;              /* távolság az elemek között */
+}
+
+.kicsi-kep {
+  width: 15px;   /* kicsinyített kép */
+  height: auto;  /* arány megtartása */
+}
+
 
         body {
             margin: 0;
@@ -317,4 +364,14 @@ const decrementChildren = () => {
             background: white;
             cursor: pointer;
         }
+
+        .line{
+            margin-left: 150px;
+            margin-top: -24px;
+        }
+
+          input[type=range] {
+    width: 200px;
+    accent-color: #4CAF50;
+  }
 </style>

@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Location extends Model
 {
     protected $fillable = [
-        'postcode',
-        'county',
         'city',
-        'street',
-        'street_number',
+        'zip_code',
+        'street_address',
+        'latitude',
+        'longitude',
     ];
 
     // Kapcsolatok
