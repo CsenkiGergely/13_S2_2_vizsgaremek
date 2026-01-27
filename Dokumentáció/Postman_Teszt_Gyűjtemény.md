@@ -1,6 +1,5 @@
 # Postman Teszt Gyűjtemény - CampSite API
 
-## 📌 Alapbeállítások
 
 **Base URL**: `http://127.0.0.1:8000/api`
 
@@ -10,9 +9,9 @@
 
 ---
 
-## 🔐 1. AUTENTIKÁCIÓ ENDPOINTS
+## AUTENTIKÁCIÓ ENDPOINTS
 
-### ✅ 1.1 Regisztráció
+### Regisztráció
 
 ```
 Method: POST
@@ -45,7 +44,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 1.2 Bejelentkezés
+### Bejelentkezés
 
 ```
 Method: POST
@@ -77,7 +76,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 1.3 Kijelentkezés
+### Kijelentkezés
 
 ```
 Method: POST
@@ -99,7 +98,7 @@ Body: (none)
 
 ---
 
-### ✅ 1.4 Elfelejtett Jelszó
+### Elfelejtett Jelszó
 
 ```
 Method: POST
@@ -123,7 +122,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 1.5 Jelszó Visszaállítás
+### Jelszó Visszaállítás
 
 ```
 Method: POST
@@ -150,7 +149,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 1.6 Partner Státuszra Váltás
+### Partner Státuszra Váltás
 
 ```
 Method: POST
@@ -182,7 +181,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 1.7 Bejelentkezett User Adatai
+### Bejelentkezett User Adatai
 
 ```
 Method: GET
@@ -207,9 +206,9 @@ Body: (none)
 
 ---
 
-## 🏕️ 2. KEMPINGEK ENDPOINTS
+## KEMPINGEK ENDPOINTS
 
-### ✅ 2.1 Összes Kemping Listázása
+### Összes Kemping Listázása
 
 ```
 Method: GET
@@ -227,7 +226,7 @@ Body: (none)
 
 ---
 
-### ✅ 2.2 Kemping Keresés Szűréssel
+### Kemping Keresés Szűréssel
 
 ```
 Method: GET
@@ -240,7 +239,7 @@ Body: (none)
 
 ---
 
-### ✅ 2.3 Egy Kemping Részletei
+### Egy Kemping Részletei
 
 ```
 Method: GET
@@ -253,7 +252,7 @@ Body: (none)
 
 ---
 
-### ✅ 2.4 Kemping Helyeinek Listázása
+### Kemping Helyeinek Listázása
 
 ```
 Method: GET
@@ -266,7 +265,7 @@ Body: (none)
 
 ---
 
-### ✅ 2.5 Kemping Elérhetőség Ellenőrzése
+### Kemping Elérhetőség Ellenőrzése
 
 ```
 Method: GET
@@ -279,7 +278,7 @@ Body: (none)
 
 ---
 
-### ✅ 2.6 Kemping Létrehozása (Partner státusz szükséges)
+### Kemping Létrehozása (Partner státusz szükséges)
 
 ```
 Method: POST
@@ -307,7 +306,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 2.7 Kemping Módosítása (Tulajdonos)
+### Kemping Módosítása (Tulajdonos)
 
 ```
 Method: PUT
@@ -327,7 +326,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 2.8 Kemping Törlése (Tulajdonos)
+### Kemping Törlése (Tulajdonos)
 
 ```
 Method: DELETE
@@ -341,9 +340,9 @@ Body: (none)
 
 ---
 
-## 🔍 3. FOGLALÁS KERESÉS
+## FOGLALÁS KERESÉS
 
-### ✅ 3.1 Kemping Keresés Foglalási Paraméterekkel
+### Kemping Keresés Foglalási Paraméterekkel
 
 ```
 Method: GET
@@ -362,9 +361,9 @@ Body: (none)
 
 ---
 
-## 📅 4. FOGLALÁSOK ENDPOINTS
+## FOGLALÁSOK ENDPOINTS
 
-### ✅ 4.1 Saját Foglalások Listázása
+### Saját Foglalások Listázása
 
 ```
 Method: GET
@@ -383,7 +382,7 @@ Body: (none)
 
 ---
 
-### ✅ 4.2 Egy Foglalás Részletei
+### Egy Foglalás Részletei
 
 ```
 Method: GET
@@ -397,7 +396,7 @@ Body: (none)
 
 ---
 
-### ✅ 4.3 Új Foglalás Létrehozása
+### Új Foglalás Létrehozása
 
 ```
 Method: POST
@@ -438,7 +437,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 4.4 Foglalás Módosítása
+### Foglalás Módosítása
 
 ```
 Method: PUT
@@ -458,7 +457,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 4.5 Foglalás Törlése
+### Foglalás Törlése
 
 ```
 Method: DELETE
@@ -472,7 +471,7 @@ Body: (none)
 
 ---
 
-### ✅ 4.6 Foglalás QR Kód Lekérése
+### Foglalás QR Kód Lekérése
 
 ```
 Method: GET
@@ -494,9 +493,9 @@ Body: (none)
 
 ---
 
-## 👨‍💼 5. TULAJDONOSI FUNKCIÓK
+## TULAJDONOSI FUNKCIÓK
 
-### ✅ 5.1 Tulajdonos Kempingjeihez Tartozó Foglalások
+### Tulajdonos Kempingjeihez Tartozó Foglalások
 
 ```
 Method: GET
@@ -515,7 +514,7 @@ Body: (none)
 
 ---
 
-### ✅ 5.2 Foglalás Státusz Módosítása
+### Foglalás Státusz Módosítása
 
 ```
 Method: PATCH
@@ -539,7 +538,7 @@ Body (raw JSON):
 
 ---
 
-### ✅ 5.3 QR Kód Beolvasása (Check-in/Check-out)
+### QR Kód Beolvasása (Check-in/Check-out) még nem jó
 
 ```
 Method: POST
@@ -565,147 +564,10 @@ Body (raw JSON):
     "check_in_time": "2026-02-01T14:30:00.000000Z"
   }
 }
-```
 
 ---
 
-## 📝 6. POSTS (Teszt/Demo Endpoints)
-
-### ✅ 6.1 Összes Post Listázása
-
-```
-Method: GET
-URL: {{base_url}}/posts
-Headers:
-  Accept: application/json
-
-Body: (none)
-```
-
----
-
-### ✅ 6.2 Post Létrehozása
-
-```
-Method: POST
-URL: {{base_url}}/posts
-Headers:
-  Content-Type: application/json
-  Accept: application/json
-  Authorization: Bearer {{token}}
-
-Body (raw JSON):
-{
-  "title": "Első bejegyzésem",
-  "body": "Ez egy teszt bejegyzés tartalma."
-}
-```
-
----
-
-### ✅ 6.3 Post Részletei
-
-```
-Method: GET
-URL: {{base_url}}/posts/1
-Headers:
-  Accept: application/json
-
-Body: (none)
-```
-
----
-
-### ✅ 6.4 Post Módosítása
-
-```
-Method: PUT
-URL: {{base_url}}/posts/1
-Headers:
-  Content-Type: application/json
-  Accept: application/json
-  Authorization: Bearer {{token}}
-
-Body (raw JSON):
-{
-  "title": "Módosított bejegyzés címe",
-  "body": "Frissített tartalom."
-}
-```
-
----
-
-### ✅ 6.5 Post Törlése
-
-```
-Method: DELETE
-URL: {{base_url}}/posts/1
-Headers:
-  Accept: application/json
-  Authorization: Bearer {{token}}
-
-Body: (none)
-```
-
----
-
-## 🎯 TESZTELÉSI SORREND (Ajánlott)
-
-### 1. Felhasználói folyamat:
-1. ✅ **Regisztráció** → Token mentése
-2. ✅ **Bejelentkezés** → Token mentése
-3. ✅ **User adatok lekérése**
-4. ✅ **Kempingek listázása**
-5. ✅ **Egy kemping részletei**
-6. ✅ **Kemping helyek**
-7. ✅ **Foglalás létrehozása**
-8. ✅ **Saját foglalások**
-9. ✅ **Foglalás QR kód**
-10. ✅ **Kijelentkezés**
-
-### 2. Partner folyamat:
-1. ✅ **Bejelentkezés**
-2. ✅ **Partner státuszra váltás**
-3. ✅ **Kemping létrehozása**
-4. ✅ **Kemping módosítása**
-5. ✅ **Tulajdonos foglalásai**
-6. ✅ **Foglalás státusz változtatás**
-7. ✅ **QR kód beolvasás**
-
-### 3. Jelszó visszaállítás:
-1. ✅ **Elfelejtett jelszó**
-2. ✅ Email ellenőrzése
-3. ✅ **Jelszó visszaállítás** (token az emailből)
-4. ✅ **Bejelentkezés új jelszóval**
-
----
-
-## 📦 POSTMAN COLLECTION IMPORTÁLÁS
-
-### JSON formátum (másold be Postman-be):
-
-```json
-{
-  "info": {
-    "name": "CampSite API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://127.0.0.1:8000/api"
-    },
-    {
-      "key": "token",
-      "value": ""
-    }
-  ]
-}
-```
-
----
-
-## 🛠️ HIBAELHÁRÍTÁS
+## HIBAELHÁRÍTÁS
 
 ### 401 Unauthorized
 - Ellenőrizd, hogy a token helyesen van-e beállítva
@@ -729,24 +591,3 @@ Body: (none)
 ### 500 Server Error
 - Backend hiba
 - Ellenőrizd a Laravel log fájlokat: `storage/logs/laravel.log`
-
----
-
-## 💡 TIPPEK
-
-1. **Environment Variables használata**: Állíts be `base_url` és `token` változókat
-2. **Token automatikus mentése**: Használj Postman Test script-et:
-   ```javascript
-   var jsonData = pm.response.json();
-   pm.environment.set("token", jsonData.token);
-   ```
-3. **Pre-request Scripts**: Automatikus dátum generálás:
-   ```javascript
-   pm.environment.set("arrival_date", new Date().toISOString().split('T')[0]);
-   ```
-
----
-
-**Utolsó frissítés**: 2026. január 27.  
-**Verzió**: 1.0  
-**Készítette**: Butty Máté, Csenki Gergely, Dicső András
