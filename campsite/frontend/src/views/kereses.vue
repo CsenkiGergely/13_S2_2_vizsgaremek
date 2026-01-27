@@ -1,4 +1,4 @@
-<script>
+<script setup>
 import { ref, computed } from 'vue'
 
 const today = new Date().toISOString().split('T')[0]
@@ -31,14 +31,16 @@ const decrementChildren = () => {
   if (searchForm.value.children > 0) searchForm.value.children--
 }
 </script>
+<script>
+export default {
+  methods: {
+    goToSearch() {
+      this.$router.push('/fizetes')
+    }
+  }
+}
+</script>
 <template>
-<header>
-    <h1>🏕 CampSite</h1>
-    <div class="actions">
-        <button class="login">Bejelentkezés</button>
-        <button class="register">Regisztráció</button>
-    </div>
-</header>
 
 <div class="container">
 
@@ -84,7 +86,7 @@ const decrementChildren = () => {
                     </div>
                     <div class="price-row">
                         <div class="price">12 000 Ft / éjszaka</div>
-                        <button class="book">Foglalás</button>
+                        <button class="book" @click="goToSearch">Foglalás</button>
                     </div>
                 </div>
             </div>
@@ -103,7 +105,7 @@ const decrementChildren = () => {
                     </div>
                     <div class="price-row">
                         <div class="price">18 500 Ft / éjszaka</div>
-                        <button class="book">Foglalás</button>
+                        <button class="book" @click="goToSearch">Foglalás</button>
                     </div>
                 </div>
             </div>
