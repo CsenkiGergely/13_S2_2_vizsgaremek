@@ -169,6 +169,7 @@ export default {
       font-weight:700;
       margin-bottom:0.5rem;
       line-height:1.05;
+      color: white;
     }
     .hero p.lead{
       font-size:1.05rem;

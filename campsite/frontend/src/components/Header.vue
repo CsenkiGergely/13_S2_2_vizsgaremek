@@ -41,12 +41,15 @@ const handleLogout = async () => {
 
 <template>
   <!-- fejléc -->
-  <header class="bg-white shadow-md">
-    <div class="container mx-auto px-4 py-4">
+  <header class="bg-white shadow-md py-0">
+    <div class="container mx-auto px-1 py-1 " >
       <div class="flex items-center justify-between">
         <!-- logo -->
         <div class="flex items-center">
-          <img src="/img/CampSite.svg" alt="CampSite Logo" class="h-12">
+             <router-link to="/" class="logo">
+                <img src="/img/CampSite.svg" alt="CampSite Logo" class="h-20"/>
+              </router-link>
+          <img  >
         </div>
 
         <!-- gépes nézet -->
@@ -105,5 +108,5 @@ const handleLogout = async () => {
   </header>
 </template>
 
-<style scoped>
+<style>
 </style>

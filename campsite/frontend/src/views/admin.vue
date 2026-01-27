@@ -36,20 +36,27 @@ const handleSearch = () => {
 
 }
 
-  const tabs = document.querySelectorAll('.tab');
-  const pages = document.querySelectorAll('.page');
 
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
+</script>
 
-      const target = tab.dataset.page;
-      pages.forEach(p => {
-        p.style.display = p.id === target ? 'block' : 'none';
-      });
-    });
+<script>
+const tabs = document.querySelectorAll('.tab');
+const contents = document.querySelectorAll('.tab-content');
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    // Aktív tab beállítása
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    // Tartalom váltása
+    contents.forEach(c => c.style.display = 'none');
+    const page = tab.dataset.page;
+    document.getElementById(page).style.display = 'block';
   });
+});
+
+
 
 </script>
 
@@ -59,12 +66,15 @@ const handleSearch = () => {
     <h1>Kemping Admin</h1>
     <div class="subtitle">Kezelje a foglalásokat és monitorizálja a kemping működését</div>
 
-    <div class="tabs">
-      <div class="tab active" data-page="dashboard">Dashboard</div>
-      <div class="tab" data-page="bookings">Foglalások</div>
-      <div class="tab" data-page="map">Térkép</div>
-      <div class="tab" data-page="revenue">Bevételek</div>
-    </div>
+
+<div class="tabs">
+  <div class="tab" onclick="window.location.href='dashboard.html'">Dashboard</div>
+  <div class="tab" onclick="window.location.href='bookings.html'">Foglalások</div>
+  <div class="tab" onclick="window.location.href='map.html'">Térkép</div>
+  <div class="tab" onclick="window.location.href='revenue.html'">Bevételek</div>
+</div>
+
+
 
     <!-- DASHBOARD -->
     <div class="page" id="dashboard">
@@ -72,7 +82,7 @@ const handleSearch = () => {
         <div class="card">
           <small>Összes foglalás</small>
           <h2>127</h2>
-          <div class="trend">Ez hónapban +12%</div>
+          <div class="trend">E hónapban +12%</div>
         </div>
 
         <div class="card">
@@ -164,6 +174,9 @@ const handleSearch = () => {
 </template>
 
 <style>
+
+
+
     * { box-sizing: border-box; }
     body {
       margin: 0;
