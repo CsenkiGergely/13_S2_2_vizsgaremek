@@ -287,4 +287,30 @@ export default {
       text-align:center;
       margin-top:.5rem;
     }
+
+        .modal {
+      display: none; /* alapból rejtett */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5); /* félátlátszó fekete */
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* A modális tartalom */
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      width: 300px;
+    }
+
+    .close-btn {
+      margin-top: 10px;
+      padding: 5px 10px;
+    }
 </style>
