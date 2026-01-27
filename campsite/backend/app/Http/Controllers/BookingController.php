@@ -11,12 +11,13 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
-    // bejelentkezett felhasználó összes foglalásának lekérése
+    // Bejelentkezett felhasználó összes foglalásának lekérése
     public function index(Request $request)
     {
-        // lekérdezzük a bejelentkezett user összes foglalását
+
         $user_id = $request->user()->id;
         
+        // Lekérdezzük az összes foglalást        
         $bookings = Booking::where('user_id', $user_id)
             ->with(['camping.location', 'camping.photos', 'campingSpot'])
             ->orderBy('arrival_date', 'desc')
@@ -25,10 +26,10 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
-    // új foglalás létrehozása
+    // Új foglalás létrehozása
     public function store(Request $request)
     {
-        // ellenőrizzük hogy minden adatot megadott-e
+        // Minden szügséges adat ellenőrzése
         $validated = $request->validate([
             'camping_id' => 'required|exists:campings,id',
             'camping_spot_id' => 'required|exists:camping_spots,spot_id',
@@ -37,7 +38,7 @@ class BookingController extends Controller
             'guests' => 'required|integer|min:1'
         ]);
 
-        // megkeressük a kiválasztott helyet
+        // Kiválasztott hely megkeresése
         $spot = CampingSpot::find($validated['camping_spot_id']);
         
         if (!$spot) {
@@ -46,28 +47,28 @@ class BookingController extends Controller
             ], 404);
         }
         
-        // ellenőrizzük hogy a hely valóban ehhez a kempinghez tartozik-e
+        // Ellenőrizzük hogy a hely valóban ehhez a kempinghez tartozik-e
         if ($spot->camping_id != $validated['camping_id']) {
             return response()->json([
                 'message' => 'Ez a hely nem ehhez a kempinghez tartozik.'
             ], 422);
         }
         
-        // megnézzük hogy a hely elérhető-e
+        // Megnézzük hogy a hely elérhető-e
         if ($spot->is_available == false) {
             return response()->json([
                 'message' => 'Ez a hely jelenleg nem elérhető.'
             ], 422);
         }
 
-        // megnézzük hogy elfér-e ennyi ember
+        // Megnézzük hogy elfér-e ennyi ember
         if ($validated['guests'] > $spot->capacity) {
             return response()->json([
                 'message' => "Ez a hely maximum " . $spot->capacity . " fő részére alkalmas."
             ], 422);
         }
 
-        // megnézzük hogy már foglalt-e a hely ebben az időszakban
+        // Megnézzük hogy már foglalt-e a hely ebben az időszakban
         $overlapping_bookings = Booking::where('camping_spot_id', $validated['camping_spot_id'])
             ->where('status', '!=', 'cancelled')
             ->where(function ($query) use ($validated) {
@@ -95,7 +96,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        // létrehozzuk a foglalást
+        // Foglalás létrehozzása
         $booking = new Booking();
         $booking->user_id = $request->user()->id;
         $booking->camping_id = $validated['camping_id'];
@@ -105,17 +106,17 @@ class BookingController extends Controller
         $booking->status = 'pending';
         $booking->save();
 
-        // string a jövöbeli qr kódhoz
+        // QR kódhoz string generálása
         $user_id = $request->user()->id;
         $booking_id = $booking->id;
         $random_string = strtoupper(Str::random(8));
         $qr_code = 'USR' . $user_id . '-BKG' . $booking_id . '-' . $random_string;
         
-        // hozzáadjuk a qr string et a booking táblához
+        // Hozzáadjuk a string-et a booking táblához
         $booking->qr_code = $qr_code;
         $booking->save();
 
-        // betöltjük a kapcsolódó adatokat -> a részletes api valasz miatt kell
+        // Betöltjük a kapcsolódó adatokat -> a részletes api válasz miatt kell
         $booking->load(['camping.location', 'camping.photos', 'campingSpot']);
 
         return response()->json([
@@ -124,10 +125,10 @@ class BookingController extends Controller
         ], 201);
     }
 
-    // egy foglalás részleteinek lekérése
+    // Egy foglalás részleteinek lekérése
     public function show(Request $request, $id)
     {
-        // megkeressük a foglalást
+        // Megkeressük a foglalást
         $booking = Booking::with(['camping.location', 'camping.photos', 'campingSpot', 'user'])
             ->find($id);
             
@@ -139,7 +140,7 @@ class BookingController extends Controller
 
         $user_id = $request->user()->id;
         
-        // megnézzük, hogy a user/owner megegyezik e a capimng vagy a booking user id val
+        // Megnézzük, hogy a user/owner megegyezik-e a camping vagy a booking user id-val
         $is_own_booking = ($booking->user_id == $user_id);
         $is_camping_owner = Camping::where('id', $booking->camping_id)
             ->where('user_id', $user_id)
@@ -151,19 +152,19 @@ class BookingController extends Controller
             ], 403);
         }
 
-        // kiszámoljuk hány éjszaka a foglalás
+        // Hány éjszakás a foglalás
         $arrival = new \DateTime($booking->arrival_date);
         $departure = new \DateTime($booking->departure_date);
         $nights = $arrival->diff($departure)->days;
         
-        // kiszámoljuk a teljes árat
+        // Teljes ár kiszámolása
         $booking->nights = $nights;
         $booking->total_price = $nights * $booking->campingSpot->price_per_night;
 
         return response()->json($booking);
     }
 
-    // foglalás módosítása csak a saját és csak pending státusznál
+    // Foglalás módosítása
     public function update(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -174,27 +175,27 @@ class BookingController extends Controller
             ], 404);
         }
 
-        // csak a saját foglalást lehet módosítani
+        // Csak saját foglalást lehet módosítani
         if ($booking->user_id != $request->user()->id) {
             return response()->json([
                 'message' => 'Nincs jogosultságod ehhez a foglaláshoz.'
             ], 403);
         }
 
-        // csak pending (függőben lévő) foglalást lehet módosítani
+        // Csak pending (függőben lévő) foglalást lehet módosítani
         if ($booking->status != 'pending') {
             return response()->json([
                 'message' => 'Csak függőben lévő foglalást lehet módosítani.'
             ], 422);
         }
 
-        // ellenőrizzük az új dátumokat
+        // Új dátumok ellenőrzése
         $validated = $request->validate([
             'arrival_date' => 'required|date|after_or_equal:today',
             'departure_date' => 'required|date|after:arrival_date',
         ]);
 
-        // megnézzük, hogy az új dátumokkal nem ütközik-e másik foglalással
+        // Megnézzük, hogy az új dátumok nem ütköznek más foglalással
         $overlapping_bookings = Booking::where('camping_spot_id', $booking->camping_spot_id)
             ->where('id', '!=', $booking->id)
             ->where('status', '!=', 'cancelled')
@@ -220,7 +221,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        // frissítjük a dátumokat
+        // Frissítjük a dátumokat
         $booking->arrival_date = $validated['arrival_date'];
         $booking->departure_date = $validated['departure_date'];
         $booking->save();
@@ -233,7 +234,7 @@ class BookingController extends Controller
         ]);
     }
 
-    // foglalás lemondása/törlése
+    // Foglalás lemondása
     public function destroy(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -246,7 +247,7 @@ class BookingController extends Controller
 
         $user_id = $request->user()->id;
         
-        // csak a saját foglalást vagy a kemping tulajdonosa törölheti
+        // Csak  saját foglalást vagy az adott kemping tulajdonosa törölheti
         $is_own_booking = ($booking->user_id == $user_id);
         $is_camping_owner = Camping::where('id', $booking->camping_id)
             ->where('user_id', $user_id)
@@ -258,14 +259,14 @@ class BookingController extends Controller
             ], 403);
         }
 
-        // már befejezett vagy lemondott foglalást ne lehessen törölni
+        // Már befejezett vagy lemondott foglalást ne lehessen törölni
         if ($booking->status == 'completed' || $booking->status == 'cancelled') {
             return response()->json([
                 'message' => 'Ez a foglalás már nem törölhető.'
             ], 422);
         }
 
-        // státusz átállítása lemondottra (nem töröljük végleg)
+        // Státusz átállítása lemondottra (nem töröljük végleg)
         $booking->status = 'cancelled';
         $booking->save();
 
@@ -274,7 +275,7 @@ class BookingController extends Controller
         ]);
     }
 
-    // foglalás státuszának módosítása   még nem teljessen jó !!!!
+    // Foglalás státuszának módosítása       még nem teljessen jó!!!!
     public function updateStatus(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -285,7 +286,7 @@ class BookingController extends Controller
             ], 404);
         }
 
-        // csak a kemping tulajdonosa változtathatja a státuszt
+        // Csak a kemping tulajdonosa változtathatja a státuszt
         $is_camping_owner = Camping::where('id', $booking->camping_id)
             ->where('user_id', $request->user()->id)
             ->exists();
@@ -300,7 +301,7 @@ class BookingController extends Controller
             'status' => 'required|in:pending,confirmed,checked_in,completed,cancelled'
         ]);
 
-        // frissítjük a státuszt
+        // Frissítjük a státuszt
         $booking->status = $validated['status'];
         $booking->save();
         
@@ -323,7 +324,7 @@ class BookingController extends Controller
             ], 404);
         }
 
-        // csak a saját foglaláshoz kérhet 
+        // Csak a saját foglaláshoz kérhet 
         if ($booking->user_id != $request->user()->id) {
             return response()->json([
                 'message' => 'Nincs jogosultságod ehhez a foglaláshoz.'
@@ -339,26 +340,26 @@ class BookingController extends Controller
         ]);
     }
 
-    // tulajdonos összes foglalása a saját kempingjeihez !!! postman teljes teszt
+    // Tulajdonos összes foglalása a saját kempingjeihez !!! postman teljes teszt
     public function ownerBookings(Request $request)
     {
         $user_id = $request->user()->id;
         
-        // lekérdezzük a user saját kempingjeit
+        // Lekérdezzük a user saját kempingjeit
         $my_camping_ids = Camping::where('user_id', $user_id)
             ->pluck('id')
             ->toArray();
 
-        // lekérdezzük az ezekhez tartozó foglalásokat
+        // Lekérdezzük az ezekhez tartozó foglalásokat
         $bookings = Booking::whereIn('camping_id', $my_camping_ids)
             ->with(['user', 'camping.location', 'campingSpot']);
         
-        // ha kértek státusz szűrést
+        // Ha kértek státusz szűrést
         if ($request->has('status')) {
             $bookings = $bookings->where('status', $request->status);
         }
         
-        // ha kértek kemping szűrést
+        // Ha kértek kemping szűrést
         if ($request->has('camping_id')) {
             $bookings = $bookings->where('camping_id', $request->camping_id);
         }
@@ -377,13 +378,13 @@ class BookingController extends Controller
             'camping_id' => 'required|exists:campings,id'
         ]);
 
-        // megkeressük a foglalást 
+        // Megkeressük a foglalást 
         $booking = Booking::where('qr_code', $validated['qr_code'])
             ->where('camping_id', $validated['camping_id'])
             ->with(['user', 'campingSpot'])
             ->first();
 
-        // ha nincs foglalás 
+        // Ha nincs foglalás 
         if (!$booking) {
             return response()->json([
                 'valid' => false,
@@ -391,7 +392,7 @@ class BookingController extends Controller
             ], 404);
         }
 
-        // ha a foglalás le van mondva
+        // Ha a foglalás le van mondva
         if ($booking->status == 'cancelled') {
             return response()->json([
                 'valid' => false,
@@ -400,7 +401,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        // megnézzük, hogy a mai nap benne van-e a foglalási időszakban
+        // Megnézzük, hogy a mai nap benne van-e a foglalási időszakban
         $today = date('Y-m-d');
         
         if ($today < $booking->arrival_date) {
@@ -419,7 +420,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        // ha pending vagy confirmed akkor bejelentkeztetjük ????
+        // Ha pending vagy confirmed akkor bejelentkeztetjük ????
         if ($booking->status == 'pending' || $booking->status == 'confirmed') {
             $booking->status = 'checked_in';
             $booking->save();
