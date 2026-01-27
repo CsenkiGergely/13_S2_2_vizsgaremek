@@ -21,7 +21,7 @@
   <!-- 2. oszlop -->
   <div class="footer-column">
     <h3>Gyors linkek</h3>
-    <a href="#">Főoldal</a>
+    <a href="/">Főoldal</a>
     <a href="#">Keresés</a>
     <a href="#">Profil</a>
     <a href="#">Szolgáltatások</a>
@@ -63,7 +63,7 @@
     © 2025 CampSite. Minden jog fenntartva.
   </div>
   <div class="footer-right">
-    <a href="#">Adatvédelem</a>
+    <a href="/Adatvedelem.vue">Adatvédelem</a>
     <a href="#">Felhasználási feltételek</a>
     <a href="#">Cookie-k</a>
   </div>
