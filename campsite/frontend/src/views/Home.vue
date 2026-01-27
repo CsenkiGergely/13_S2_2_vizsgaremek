@@ -202,7 +202,6 @@ export default {
     }
     input:focus{
       box-shadow: 0 0 0 4px rgba(74,116,52,0.12);
-      border-color: transparent;
     }
     .btn{
       background-color: #4A7434;
