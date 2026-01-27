@@ -8,6 +8,7 @@ use App\Http\Controllers\CampingController;
 use App\Http\Controllers\BookingSearchController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CampingPhotoController;
+use App\Http\Controllers\CampingSpotController;
 
 
 Route::get('/user', function (Request $request) {
@@ -33,6 +34,10 @@ Route::get('/campings/{id}/spots', [CampingController::class, 'getSpots']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
 
+// Kemping helyek (publikus lekérés)
+Route::get('/campings/{campingId}/spots', [CampingSpotController::class, 'index']);
+Route::get('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'show']);
+
 // Foglalások
 Route::middleware('auth:sanctum')->group(function () {
     // felhasználói foglalások
@@ -52,5 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/campings', [CampingController::class, 'store']);
     Route::put('/campings/{id}', [CampingController::class, 'update']);
     Route::delete('/campings/{id}', [CampingController::class, 'destroy']);
+    
+    // Kemping helyek kezelése (csak tulajdonosoknak)
+    Route::post('/campings/{campingId}/spots', [CampingSpotController::class, 'store']);
+    Route::put('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'update']);
+    Route::delete('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'destroy']);
 });
 

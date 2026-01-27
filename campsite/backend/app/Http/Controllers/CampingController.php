@@ -147,10 +147,16 @@ class CampingController extends Controller
             ], 404);
         }
 
-        // csak owner
-        if ($camping->user_id !== $request->user()->id) {
+        // csak owner 
+        if ($camping->user_id != $request->user()->id) {
             return response()->json([
-                'message' => 'Nincs jogosultságod ennek a kempingnek a módosításához!'
+                'message' => 'Nincs jogosultságod ennek a kempingnek a módosításához!',
+                'debug' => [
+                    'camping_user_id' => $camping->user_id,
+                    'camping_user_id_type' => gettype($camping->user_id),
+                    'current_user_id' => $request->user()->id,
+                    'current_user_id_type' => gettype($request->user()->id)
+                ]
             ], 403);
         }
 
@@ -214,7 +220,7 @@ class CampingController extends Controller
         }
 
       
-        if ($camping->user_id !== $request->user()->id) {
+        if ($camping->user_id != $request->user()->id) {
             return response()->json([
                 'message' => 'Nincs jogosultságod ennek a kempingnek a törléséhez!'
             ], 403);
