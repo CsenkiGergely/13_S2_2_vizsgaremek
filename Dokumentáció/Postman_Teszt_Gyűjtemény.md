@@ -70,9 +70,6 @@ Body (raw JSON):
   },
   "token": "2|xyz789..."
 }
-```
-
-**⚠️ FONTOS**: Másold ki a `token` értéket és állítsd be az environment változóban!
 
 ---
 
