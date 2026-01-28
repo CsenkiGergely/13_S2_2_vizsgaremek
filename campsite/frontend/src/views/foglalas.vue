@@ -1,52 +1,32 @@
-<script setup>
-import { ref } from 'vue'
-
-// Galéria képei
-const images = [
-  '/img/hely1.jpg',
-  '/img/hely2.jpg',
-  '/img/hely3.jpg'
-]
-const currentImage = ref(0)
-
-const nextImage = () => {
-  currentImage.value = (currentImage.value + 1) % images.length
-}
-
-const prevImage = () => {
-  currentImage.value = (currentImage.value - 1 + images.length) % images.length
-}
-
-// Például szolgáltatások / tagok
-const features = [
-  { name: 'Étterem', icon: '🍽️' },
-  { name: 'Parkoló', icon: '🅿️' },
-  { name: 'Wifi', icon: '📶' },
-  { name: 'Medence', icon: '🏊‍♂️' },
-]
-</script>
-
 <template>
-  <div class="container mx-auto px-4 py-6 grid md:grid-cols-3 gap-6">
-    
-    <!-- Bal / középső rész -->
-    <div class="md:col-span-2 space-y-6">
+  <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
+
+    <!-- Bal/középső rész -->
+    <div class="md:flex-2 space-y-6">
       <!-- Képgaléria -->
       <div class="relative rounded-xl overflow-hidden shadow-lg">
-        <img :src="images[currentImage]" alt="Helyszín képe" class="w-full h-80 object-cover"/>
-        <button @click="prevImage" class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/70 rounded-full p-2 hover:bg-white transition">‹</button>
-        <button @click="nextImage" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/70 rounded-full p-2 hover:bg-white transition">›</button>
+        <img :src="images[currentImage]" alt="Helyszín képe" class="w-full h-64 md:h-80 object-cover"/>
+        
+        <button @click="prevImage" 
+                class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/70 rounded-full p-2 hover:bg-white transition text-2xl">
+          ‹
+        </button>
+        <button @click="nextImage" 
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/70 rounded-full p-2 hover:bg-white transition text-2xl">
+          ›
+        </button>
       </div>
 
-      <!-- Tulajdonságok / tagok -->
+      <!-- Feature / tagok -->
       <div class="flex flex-wrap gap-4">
-        <div v-for="feature in features" :key="feature.name" class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg shadow-sm">
-          <span class="text-xl">{{ feature.icon }}</span>
+        <div v-for="feature in features" :key="feature.name" 
+             class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg shadow-sm text-lg">
+          <span>{{ feature.icon }}</span>
           <span class="font-medium">{{ feature.name }}</span>
         </div>
       </div>
 
-      <!-- Leírás -->
+      <!-- Helyszín leírása -->
       <div class="bg-white p-6 rounded-xl shadow border">
         <h2 class="text-2xl font-semibold mb-4">Helyszín leírása</h2>
         <p class="text-gray-700">
@@ -56,8 +36,8 @@ const features = [
     </div>
 
     <!-- Jobb oldali rész -->
-    <div class="space-y-6">
-      <!-- Helyszín részletes infó -->
+    <div class="md:flex-1 space-y-6">
+      <!-- Részletes információk -->
       <div class="bg-white p-6 rounded-xl shadow border">
         <h3 class="text-xl font-semibold mb-2">Részletes információk</h3>
         <ul class="text-gray-700 space-y-1">
@@ -99,9 +79,53 @@ const features = [
   </div>
 </template>
 
+<script setup>
+import { ref } from 'vue'
+
+// Galéria képei (itt lehet a saját képeket betenni)
+const images = [
+  '/img/Budapest_szallas1.jpg',
+  '/img/Budapest_szallas2.jpg',
+  '/img/Budapest_szallas3.jpg'
+]
+const currentImage = ref(0)
+
+const nextImage = () => {
+  currentImage.value = (currentImage.value + 1) % images.length
+}
+
+const prevImage = () => {
+  currentImage.value = (currentImage.value - 1 + images.length) % images.length
+}
+
+// Feature / szolgáltatások
+const features = [
+  { name: 'Étterem', icon: '🍽️' },
+  { name: 'Parkoló', icon: '🅿️' },
+  { name: 'Wifi', icon: '📶' },
+  { name: 'Medence', icon: '🏊‍♂️' },
+]
+</script>
+
 <style scoped>
-/* Ha szeretnéd a gombokat a képgalérián nagyobbá és átlátszóbbá tenni */
+/* Galéria gombok */
 button {
-  font-size: 1.5rem;
+  font-size: 2rem;
+  background-color: rgba(255,255,255,0.7);
+  transition: background-color 0.3s;
+}
+button:hover {
+  background-color: rgba(255,255,255,1);
+}
+
+/* Container reszponzív elrendezés */
+.container > div {
+  gap: 1rem;
+}
+
+/* Képek és árnyékok */
+img {
+  border-radius: 0.5rem;
+  object-fit: cover;
 }
 </style>
