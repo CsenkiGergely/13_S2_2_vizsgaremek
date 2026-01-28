@@ -30,10 +30,10 @@ watch(() => props.isOpen, (isOpen) => {
   }
 })
 
-const isLogin = computed(() => mode.value === 'login')
-const isRegister = computed(() => mode.value === 'register')
+const isEmailLogin = computed(() => props.initialMode === 'login')
+const isRegister = computed(() => props.initialMode === 'register')
 const isForgotPassword = computed(() => mode.value === 'forgot-password')
-const isPhoneLogin = computed(() => mode.value === 'phone-login')
+const isPhoneLogin = computed(() => props.initialMode === 'phone-login')
 
 const phoneLoginForm = ref({
   phone: ''})
@@ -102,28 +102,42 @@ const closeModal = () => {
   forgotPasswordForm.value = { email: '' }
 }
 
+
+
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
 const handlePhoneLogin = async () => {
   formError.value = null
 
-  if (!phoneLoginForm.value.phone) {
-    formError.value = 'Add meg a telefonszámod!'
+  const phone = phoneLoginForm.value.phone.trim()
+
+  // egyszerű regex a +36 formátumhoz: +36xx xxx xxxx
+  const phoneRegex = /^\+36\d{2}\s?\d{3}\s?\d{4}$/
+
+  if (!phoneRegex.test(phone)) {
+    formError.value = 'Érvénytelen telefonszám formátum! Pl: +36701234567 vagy +36 70 123 4567'
     return
   }
 
   try {
-    // Feltételezve, hogy a useAuth-ban van phoneLogin() metódus
-    const result = await login({ phone: phoneLoginForm.value.phone }) 
+    // Példa: a useAuth login metódusát hívjuk telefonszámmal
+    const result = await login({ phone })
 
     if (result.success) {
       emit('success', result.user)
       closeModal()
+      // sikeres belépés után átirányítás
+      router.push('/admin')
     } else {
-      formError.value = result.error
+      formError.value = result.error || 'Hiba a bejelentkezés során.'
     }
   } catch (err) {
-    formError.value = 'Hiba történt a bejelentkezés során.'
+    formError.value = 'Hiba a bejelentkezés során.'
   }
 }
+
 
 const switchMode = (newMode) => {
   console.log('Switching mode to:', newMode)
@@ -297,7 +311,6 @@ const handleForgotPassword = async () => {
                 </button>
               </form>
 
-              <!-- telefonszámos bejelentkezés -->
 <form v-if="isPhoneLogin" @submit.prevent="handlePhoneLogin" class="space-y-5">
   <div>
     <label for="phone-login" class="block text-sm font-medium text-gray-100 mb-2">
@@ -308,7 +321,7 @@ const handleForgotPassword = async () => {
       v-model="phoneLoginForm.phone"
       type="tel"
       required
-      placeholder="+36 20 123 4567"
+      placeholder="+36 70 123 4567"
       class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition"
     />
   </div>
@@ -328,6 +341,7 @@ const handleForgotPassword = async () => {
     <span v-else>Bejelentkezés</span>
   </button>
 </form>
+
 
 
               <!-- elfelejtett jelszó űrlap -->
@@ -461,6 +475,7 @@ const handleForgotPassword = async () => {
     </button>
   </template>
 </p>
+
 
               <p class="mt-6 text-center text-sm text-gray-400">
                 

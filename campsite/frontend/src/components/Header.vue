@@ -13,6 +13,8 @@ const toggleMobileMenu = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value
 }
 
+
+
 const openLoginModal = () => {
   authModalMode.value = 'login'
   authModalOpen.value = true
@@ -25,10 +27,11 @@ const openRegisterModal = () => {
   mobileMenuOpen.value = false
 }
 const openPhoneLoginModal = () => {
-  authModalMode.value = 'phone-login'  // ez az új mód a modalban
+  authModalMode.value = 'phone-login'
   authModalOpen.value = true
   mobileMenuOpen.value = false
 }
+
 
 const closeAuthModal = () => {
   authModalOpen.value = false
