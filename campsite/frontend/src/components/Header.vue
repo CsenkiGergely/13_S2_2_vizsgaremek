@@ -50,7 +50,10 @@ const handleLogout = async () => {
     <!-- desktop nav -->
     <nav class="hidden md:flex items-center space-x-4">
       <a href="#" class="text-gray-700 hover:text-[#4A7434] transition text-base font-medium">Menü</a>
-      <a href="#" class="text-gray-700 hover:text-[#4A7434] transition text-base font-medium">Legyél partnerünk</a>
+                          <router-link to="/admin">
+                                 <a href="#" class="text-gray-700 hover:text-[#4A7434] transition text-base font-medium">Legyél partnerünk</a>
+                    </router-link>
+
 
       <template v-if="!isAuthenticated">
         <button @click="openRegisterModal" class="text-gray-700 hover:text-[#4A7434] transition text-base font-medium py-1 px-2">Regisztráció</button>
