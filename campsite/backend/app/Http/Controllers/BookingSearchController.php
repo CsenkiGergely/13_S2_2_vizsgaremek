@@ -9,6 +9,7 @@ use App\Models\Booking;
 
 class BookingSearchController extends Controller
 {
+    // Keresés
     public function search(Request $request)
     {
         $request->validate([
@@ -19,7 +20,8 @@ class BookingSearchController extends Controller
         ]);
 
         // http://127.0.0.1:8000/api/booking/search?location=Siófok&arrival_date=2026-06-01&departure_date=2026-06-05&guests=14&page=1
-        // elérhető helyek ellenőrzése a cemnping foglalásai alapján
+        
+        // Elérhető helyek ellenőrzése a cemnping foglalásai alapján
         $query = Camping::with(['photos', 'location', 'tags', 'spots' => function ($q) use ($request) {
             $q->where('is_available', true)
               ->whereDoesntHave('bookings', function ($bookingQuery) use ($request) {
@@ -34,7 +36,7 @@ class BookingSearchController extends Controller
               });
         }]);
 
-        // város megye alapú szűrés 
+        // Város megye alapú szűrés 
         if ($request->location) {
             $location = '%' . mb_strtolower($request->location) . '%';
             $query->whereHas('location', function ($q) use ($location) {
@@ -43,7 +45,7 @@ class BookingSearchController extends Controller
             });
         }
 
-         // elérhető helyek ellenőrzése a cemnping kapacitásához mérten 
+         // Elérhető helyek ellenőrzése a cemnping kapacitásához mérten 
         $query->whereHas('spots', function ($q) use ($request) {
             $q->where('is_available', true)
               ->whereDoesntHave('bookings', function ($bookingQuery) use ($request) {
@@ -54,34 +56,34 @@ class BookingSearchController extends Controller
                                     $overlapQuery->where('arrival_date', '<=', $request->arrival_date)
                                                  ->where('departure_date', '>=', $request->departure_date);
                                 });
-                  });
-              });
+                });
+            });
         });
 
 
         $campings = $query->get();
 
-        // ellenőrizzük az összkapacitás elég-e 
+        // Ellenőrizzük az összkapacitás elég-e 
         $filteredCampings = $campings->filter(function ($camping) use ($request) {
             $totalCapacity = $camping->spots->sum('capacity');
             return $totalCapacity >= $request->guests;
         });
 
-        // elérhető kapacitás helyek száma árak és értékelések
+        // Elérhető kapacitás helyek száma árak és értékelések
         $filteredCampings->each(function ($camping) {
             $camping->available_capacity = $camping->spots->sum('capacity');
             $camping->available_spots_count = $camping->spots->count();
             
-            // min és max árak számítása az elérhető helyekből
+            // Minimum és maximum árak számítása az elérhető helyekből
             $camping->min_price = $camping->spots->min('price_per_night');
             $camping->max_price = $camping->spots->max('price_per_night');
             
-            // átlag értékelés és értékelések száma
+            // Átlag értékelés és értékelések száma
             $camping->average_rating = $camping->getAverageRating();
             $camping->reviews_count = $camping->getReviewsCount();
         });
 
-        // 10 camp / oldal 
+        // 10 camping / oldal 
         $page = $request->get('page', 1);
         $perPage = 10;
         $offset = ($page - 1) * $perPage;
