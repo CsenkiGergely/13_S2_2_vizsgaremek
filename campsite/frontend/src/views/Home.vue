@@ -151,7 +151,7 @@ export default {
       pointer-events: none;
       z-index: 0;
     }
-     .hero .container{
+    .hero .container{
       position: relative;
       z-index: 1;
     }
@@ -190,7 +190,13 @@ export default {
       gap:0.75rem;
       align-items:end;
     }
-    label{display:block;font-size:.85rem;font-weight:600;margin-bottom:.35rem;color:#374151}
+    label{
+      display:block;
+      font-size:.85rem;
+      font-weight:600;
+      margin-bottom:.35rem;
+      color:#374151;
+    }
     input[type="text"], input[type="date"], input[type="number"]{
       width:100%;
       padding:.75rem 1rem;
@@ -287,7 +293,7 @@ export default {
       margin-top:.5rem;
     }
 
-        .modal {
+    .modal {
       display: none; /* alapból rejtett */
       position: fixed;
       top: 0;
