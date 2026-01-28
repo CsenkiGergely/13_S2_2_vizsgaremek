@@ -99,7 +99,7 @@ const features = [
   </div>
 </template>
 
-<style>
+<style scoped>
 /* Ha szeretnéd a gombokat a képgalérián nagyobbá és átlátszóbbá tenni */
 button {
   font-size: 1.5rem;
