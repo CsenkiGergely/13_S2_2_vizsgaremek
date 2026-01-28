@@ -33,6 +33,11 @@ watch(() => props.isOpen, (isOpen) => {
 const isLogin = computed(() => mode.value === 'login')
 const isRegister = computed(() => mode.value === 'register')
 const isForgotPassword = computed(() => mode.value === 'forgot-password')
+const isPhoneLogin = computed(() => mode.value === 'phone-login')
+
+const phoneLoginForm = ref({
+  phone: ''})
+
 
 // mező változók
 const loginForm = ref({
@@ -95,6 +100,29 @@ const closeModal = () => {
   loginForm.value = { email: '', password: '' }
   registerForm.value = { name: '', email: '', password: '', password_confirmation: '' }
   forgotPasswordForm.value = { email: '' }
+}
+
+const handlePhoneLogin = async () => {
+  formError.value = null
+
+  if (!phoneLoginForm.value.phone) {
+    formError.value = 'Add meg a telefonszámod!'
+    return
+  }
+
+  try {
+    // Feltételezve, hogy a useAuth-ban van phoneLogin() metódus
+    const result = await login({ phone: phoneLoginForm.value.phone }) 
+
+    if (result.success) {
+      emit('success', result.user)
+      closeModal()
+    } else {
+      formError.value = result.error
+    }
+  } catch (err) {
+    formError.value = 'Hiba történt a bejelentkezés során.'
+  }
 }
 
 const switchMode = (newMode) => {
@@ -252,6 +280,7 @@ const handleForgotPassword = async () => {
                   />
                 </div>
 
+
                 <button 
                   type="submit"
                   :disabled="loading"
@@ -267,6 +296,39 @@ const handleForgotPassword = async () => {
                   <span v-else>Bejelentkezés</span>
                 </button>
               </form>
+
+              <!-- telefonszámos bejelentkezés -->
+<form v-if="isPhoneLogin" @submit.prevent="handlePhoneLogin" class="space-y-5">
+  <div>
+    <label for="phone-login" class="block text-sm font-medium text-gray-100 mb-2">
+      Telefonszám
+    </label>
+    <input 
+      id="phone-login"
+      v-model="phoneLoginForm.phone"
+      type="tel"
+      required
+      placeholder="+36 20 123 4567"
+      class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition"
+    />
+  </div>
+
+  <button 
+    type="submit"
+    :disabled="loading"
+    class="w-full rounded-lg bg-[#4A7434] px-4 py-3 text-sm font-semibold text-white hover:bg-[#F17E21] focus:outline-none focus:ring-2 focus:ring-[#4A7434] focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    <span v-if="loading" class="flex items-center justify-center">
+      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Bejelentkezés...
+    </span>
+    <span v-else>Bejelentkezés</span>
+  </button>
+</form>
+
 
               <!-- elfelejtett jelszó űrlap -->
               <form v-if="isForgotPassword && !successMessage" @submit.prevent="handleForgotPassword" class="space-y-5">
@@ -385,7 +447,24 @@ const handleForgotPassword = async () => {
               </form>
 
               <!-- mód váltás -->
+               <p class="mt-6 text-center text-sm text-gray-400">
+  <template v-if="isLogin">
+    Nem vagy még partnerünk?
+    <button @click="switchMode('phone-login')" class="font-semibold text-[#4A7434] hover:text-[#F17E21] ml-1">
+      Telefonszám
+    </button>
+  </template>
+  <template v-else-if="isPhoneLogin">
+    Vissza emailes bejelentkezéshez
+    <button @click="switchMode('login')" class="font-semibold text-[#4A7434] hover:text-[#F17E21] ml-1">
+      Email
+    </button>
+  </template>
+</p>
+
               <p class="mt-6 text-center text-sm text-gray-400">
+                
+                
                 <template v-if="isLogin">
                   Még nincs fiókod?
                   <button 
@@ -395,6 +474,7 @@ const handleForgotPassword = async () => {
                     Regisztrálj most!
                   </button>
                 </template>
+                
                 <template v-else-if="isRegister">
                   Már van fiókod?
                   <button 
@@ -404,6 +484,7 @@ const handleForgotPassword = async () => {
                     Jelentkezz be!
                   </button>
                 </template>
+                
                 <template v-else-if="isForgotPassword">
                   <button 
                     @click="switchMode('login')"
@@ -412,6 +493,8 @@ const handleForgotPassword = async () => {
                     ← Vissza a bejelentkezéshez
                   </button>
                 </template>
+                
+                
               </p>
             </div>
           </div>
