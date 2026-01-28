@@ -270,13 +270,13 @@ class CampingController extends Controller
 
         // dátumok ellenőrzése
         $fields = $request->validate([
-            'start_date' => 'required|date',
+            'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
         // dátumok átalakítása
-        $startDate = \Carbon\Carbon::parse($fields['start_date']);
-        $endDate = \Carbon\Carbon::parse($fields['end_date']);
+        $startDate = \Carbon\Carbon::parse($fields['start_date'])->startOfDay();
+        $endDate = \Carbon\Carbon::parse($fields['end_date'])->endOfDay();
 
         // az összes hely lekérése
         $spots = $camping->spots;
@@ -286,23 +286,31 @@ class CampingController extends Controller
         
         foreach ($spots as $spot) {
             // foglalások keresése erre a helyre ebben az időszakban
-            $bookings = Booking::where('camping_spot_id', $spot->id)
+            $bookings = Booking::where('camping_spot_id', $spot->spot_id)
                 ->where('status', '!=', 'cancelled') // Törölt foglalások nem számítanak
                 ->where(function ($query) use ($startDate, $endDate) {
                     // ha a foglalás beleesik a keresett időszakba
                     $query->where(function ($q) use ($startDate, $endDate) {
-                        $q->where('check_in_date', '<=', $endDate)
-                          ->where('check_out_date', '>=', $startDate);
+                        $q->where('arrival_date', '<=', $endDate)
+                          ->where('departure_date', '>=', $startDate);
                     });
                 })
-                ->get(['check_in_date', 'check_out_date', 'status']);
+                ->get(['arrival_date', 'departure_date', 'status'])
+                ->map(function ($booking) {
+                    return [
+                        'arrival_date' => $booking->arrival_date->format('Y-m-d'),
+                        'departure_date' => $booking->departure_date->format('Y-m-d'),
+                        'status' => $booking->status,
+                    ];
+                });
 
             // van-e foglalás? Ha nincs, akkor szabad
             $isFree = $bookings->isEmpty();
 
             $availability[] = [
-                'spot_id' => $spot->id,
-                'spot_name' => $spot->spot_name,
+                'spot_id' => $spot->spot_id,
+                'spot_number' => $spot->spot_number,
+                'spot_type' => $spot->spot_type,
                 'capacity' => $spot->capacity,
                 'price_per_night' => $spot->price_per_night,
                 'available' => $isFree, // boolean
