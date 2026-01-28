@@ -183,6 +183,15 @@
                 "value": "Bearer {{token}}"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone_number\": \"+36301234567\",\n  \"company_name\": \"Balatoni Kempingek Kft.\",\n  \"tax_number\": \"12345678-1-23\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{base_url}}/upgrade-to-partner",
               "host": ["{{base_url}}"],
@@ -831,7 +840,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"A-12\",\n  \"type\": \"tent\",\n  \"capacity\": 4,\n  \"price_per_night\": 5000,\n  \"description\": \"Szép hely a tó mellett\",\n  \"row\": 1,\n  \"column\": 12\n}",
+              "raw": "{\n  \"spot_number\": \"A-12\",\n  \"spot_type\": \"tent\",\n  \"capacity\": 4,\n  \"price_per_night\": 5000,\n  \"amenities\": [\"wifi\", \"electricity\"],\n  \"is_available\": true,\n  \"description\": \"Szép hely a tó mellett\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -865,7 +874,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"A-12 Módosított\",\n  \"price_per_night\": 5500,\n  \"is_available\": true\n}",
+              "raw": "{\n  \"price_per_night\": 5500,\n  \"is_available\": false,\n  \"description\": \"Átmenetileg karbantartás alatt\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
