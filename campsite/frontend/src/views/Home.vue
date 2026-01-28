@@ -104,8 +104,6 @@ export default {
     </div>
 
 
-
-   
     <h2 class="section-title" style="margin-top:2rem">Kiemelt kempingünk</h2>
     <p class="muted">Különlegesen ajánlott hely — családbarát szolgáltatásokkal és gyönyörű panorámával.</p>
 
@@ -126,9 +124,7 @@ export default {
       --card-bg:#ffffff;
     }
 
-  
     *{box-sizing:border-box;margin:0;padding:0}
-
 
     .hero{
       position: relative;
@@ -174,7 +170,6 @@ export default {
       font-size:1.05rem;
       color: rgba(255,255,255,0.95);
     }
-
     
     .search-card{
       background-color: #fff;

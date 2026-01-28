@@ -11,7 +11,7 @@
       modal.style.display = "none"; // elrejtés
     });
 
-    // Kattintás a háttérre bezárja az ablakot
+    // Kattintás a háttérre és bezárja az ablakot
     window.addEventListener("click", (e) => {
       if(e.target === modal){
         modal.style.display = "none";
@@ -32,13 +32,13 @@
 <style>
 /* A modális háttér */
     .modal {
-      display: none; /* alapból rejtett */
+      display: none; /* Alapból rejtett */
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0,0,0,0.5); /* félátlátszó fekete */
+      background-color: rgba(0,0,0,0.5); /* Félátlátszó fekete */
       justify-content: center;
       align-items: center;
     }
