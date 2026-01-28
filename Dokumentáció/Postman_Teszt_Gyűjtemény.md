@@ -561,30 +561,323 @@ Body (raw JSON):
     "check_in_time": "2026-02-01T14:30:00.000000Z"
   }
 }
+```
 
 ---
 
-## HIBAELHÁRÍTÁS
+## ÉRTÉKELÉSEK (COMMENTS) ENDPOINTS
 
-### 401 Unauthorized
-- Ellenőrizd, hogy a token helyesen van-e beállítva
-- Ellenőrizd, hogy a token nem járt-e le
-- Próbálj meg újra bejelentkezni
+### Kemping összes értékelésének lekérése
 
-### 403 Forbidden
-- Nincs jogosultságod az adott művelethez
-- Partner státusz szükséges
+```
+Method: GET
+URL: {{base_url}}/campings/1/comments
+Headers:
+  Accept: application/json
+```
 
-### 404 Not Found
-- Rossz endpoint URL
-- Az erőforrás (kemping, foglalás, stb.) nem létezik
+**Várható válasz:**
+```json
+{
+  "camping": "Balaton Kemping",
+  "average_rating": 4.5,
+  "reviews_count": 3,
+  "comments": [
+    {
+      "id": 1,
+      "camping_id": 1,
+      "user_id": 2,
+      "parent_id": null,
+      "rating": 5,
+      "comment": "Nagyszerű kemping, csodálatos környezet!",
+      "upload_date": "2026-01-28",
+      "created_at": "2026-01-28T10:00:00.000000Z",
+      "user": {
+        "id": 2,
+        "name": "Kovács János",
+        "email": "kovacs@example.com"
+      },
+      "replies": [
+        {
+          "id": 2,
+          "camping_id": 1,
+          "user_id": 1,
+          "parent_id": 1,
+          "rating": null,
+          "comment": "Köszönjük az értékelést!",
+          "upload_date": "2026-01-28",
+          "created_at": "2026-01-28T11:00:00.000000Z",
+          "user": {
+            "id": 1,
+            "name": "Kemping Tulajdonos",
+            "email": "owner@example.com"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
-### 422 Validation Error
-- Ellenőrizd a request body mezőit
-- Minden kötelező mező ki van töltve?
-- Az email formátum helyes?
-- A dátumok megfelelő formátumban vannak?
+---
 
-### 500 Server Error
-- Backend hiba
-- Ellenőrizd a Laravel log fájlokat: `storage/logs/laravel.log`
+### Új értékelés létrehozása (Vendég)
+
+**Követelmények:**
+- Be kell jelentkezni
+- Csak olyan vendég értékelhet, aki már foglalt a kempingnél (`checked_in` vagy `completed` státusz)
+- Egy vendég csak egyszer értékelheti ugyanazt a kempinget
+
+```
+Method: POST
+URL: {{base_url}}/campings/1/comments
+Headers:
+  Content-Type: application/json
+  Accept: application/json
+  Authorization: Bearer {{token}}
+
+Body (raw JSON):
+{
+  "rating": 5,
+  "comment": "Nagyszerű kemping, csodálatos környezet és tiszta helyek!"
+}
+```
+
+**Várható válasz (201 Created):**
+```json
+{
+  "message": "Értékelés sikeresen létrehozva!",
+  "comment": {
+    "id": 3,
+    "camping_id": 1,
+    "user_id": 2,
+    "parent_id": null,
+    "rating": 5,
+    "comment": "Nagyszerű kemping, csodálatos környezet és tiszta helyek!",
+    "upload_date": "2026-01-28",
+    "created_at": "2026-01-28T10:00:00.000000Z",
+    "user": {
+      "id": 2,
+      "name": "Kovács János",
+      "email": "kovacs@example.com"
+    }
+  }
+}
+```
+
+**Hibalehetőségek:**
+- 403: Ha a vendég még nem foglalt a kempingnél
+- 422: Ha a vendég már értékelte a kempinget
+
+---
+
+### Válasz értékelésre (Csak Tulajdonos)
+
+**Követelmények:**
+- Be kell jelentkezni
+- Csak a kemping tulajdonosa válaszolhat
+- Csak fő kommentekre lehet válaszolni (nem válaszra válaszolni)
+- Egy tulajdonos csak egyszer válaszolhat ugyanarra a kommentre
+
+```
+Method: POST
+URL: {{base_url}}/comments/1/reply
+Headers:
+  Content-Type: application/json
+  Accept: application/json
+  Authorization: Bearer {{token}}
+
+Body (raw JSON):
+{
+  "comment": "Köszönjük szépen az értékelést! Örülünk, hogy jól érezte magát nálunk!"
+}
+```
+
+**Várható válasz (201 Created):**
+```json
+{
+  "message": "Válasz sikeresen hozzáadva!",
+  "reply": {
+    "id": 4,
+    "camping_id": 1,
+    "user_id": 1,
+    "parent_id": 1,
+    "rating": null,
+    "comment": "Köszönjük szépen az értékelést! Örülünk, hogy jól érezte magát nálunk!",
+    "upload_date": "2026-01-28",
+    "created_at": "2026-01-28T11:00:00.000000Z",
+    "user": {
+      "id": 1,
+      "name": "Kemping Tulajdonos",
+      "email": "owner@example.com"
+    }
+  }
+}
+```
+
+**Hibalehetőségek:**
+- 403: Ha nem a kemping tulajdonosa vagy
+- 422: Ha válaszra próbálsz válaszolni, vagy már válaszoltál erre a kommentre
+
+---
+
+### Saját értékelés szerkesztése
+
+**Követelmények:**
+- Be kell jelentkezni
+- Csak a saját értékelésedet szerkesztheted
+- Fő kommentnél (parent_id = null) a rating is módosítható
+- Válaszoknál csak a comment szöveg módosítható
+
+```
+Method: PUT
+URL: {{base_url}}/comments/1
+Headers:
+  Content-Type: application/json
+  Accept: application/json
+  Authorization: Bearer {{token}}
+
+Body (raw JSON):
+{
+  "rating": 4,
+  "comment": "Szép kemping, csak a wifi lehetne jobb."
+}
+```
+
+**Várható válasz:**
+```json
+{
+  "message": "Értékelés sikeresen frissítve!",
+  "comment": {
+    "id": 1,
+    "camping_id": 1,
+    "user_id": 2,
+    "parent_id": null,
+    "rating": 4,
+    "comment": "Szép kemping, csak a wifi lehetne jobb.",
+    "upload_date": "2026-01-28",
+    "created_at": "2026-01-28T10:00:00.000000Z",
+    "updated_at": "2026-01-28T12:00:00.000000Z",
+    "user": {
+      "id": 2,
+      "name": "Kovács János",
+      "email": "kovacs@example.com"
+    }
+  }
+}
+```
+
+**Hibalehetőségek:**
+- 403: Ha nem a te értékelésed
+
+---
+
+### Értékelés törlése
+
+**Követelmények:**
+- Be kell jelentkezni
+- A saját értékelésedet törölheted VAGY
+- A kemping tulajdonosa törölheti a kempingjére írt értékeléseket
+
+```
+Method: DELETE
+URL: {{base_url}}/comments/1
+Headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+```
+
+**Várható válasz:**
+```json
+{
+  "message": "Értékelés sikeresen törölve!"
+}
+```
+
+**Hibalehetőségek:**
+- 403: Ha nincs jogosultságod törölni
+- 404: Ha nem létezik az értékelés
+
+---
+
+## KEMPING KÉPEK (PHOTOS) ENDPOINTS
+
+### Kemping összes képének lekérése
+
+```
+Method: GET
+URL: {{base_url}}/campings/1/photos
+Headers:
+  Accept: application/json
+```
+
+**Várható válasz:**
+```json
+[
+  {
+    "photo_id": 1,
+    "camping_id": 1,
+    "photo_url": "/storage/campings/1234567890_abc123.jpg",
+    "caption": "Gyönyörű napnyugta a kempingnél",
+    "uploaded_at": "2026-01-28",
+    "created_at": "2026-01-28T10:00:00.000000Z",
+    "updated_at": "2026-01-28T10:00:00.000000Z"
+  },
+  {
+    "photo_id": 2,
+    "camping_id": 1,
+    "photo_url": "/storage/campings/1234567891_def456.png",
+    "caption": "Tágas kempinghelyek",
+    "uploaded_at": "2026-01-28",
+    "created_at": "2026-01-28T11:00:00.000000Z",
+    "updated_at": "2026-01-28T11:00:00.000000Z"
+  }
+]
+```
+
+---
+
+### Kép feltöltése (Csak Tulajdonos)
+
+**⚠️ Követelmények:**
+- Be kell jelentkezni
+- Csak a kemping tulajdonosa tölthet fel képet
+- **Maximum 10 kép / kemping**
+- **Engedélyezett formátumok**: jpg, jpeg, png, webp
+- **Maximum fájlméret**: 10MB (10240 KB)
+
+```
+Method: POST
+URL: {{base_url}}/campings/1/photos
+Headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+
+Body (form-data):
+  photo: [FILE] (képfájl kiválasztása)
+  caption: "Gyönyörű napnyugta a kempingnél" (opcionális)
+```
+
+**⚠️ FONTOS - Postman használat:**
+1. Body tab → `form-data` kiválasztása
+2. `photo` key hozzáadása → Type: `File` → fájl kiválasztása
+3. `caption` key hozzáadása → Type: `Text` → leírás megadása (opcionális)
+
+**Sikeres válasz (201 Created):**
+```json
+{
+  "message": "Kép sikeresen feltöltve",
+  "photo": {
+    "photo_id": 3,
+    "camping_id": 1,
+    "photo_url": "/storage/campings/1738065432_abc123def456.jpg",
+    "caption": "Gyönyörű napnyugta a kempingnél",
+    "uploaded_at": "2026-01-28",
+    "created_at": "2026-01-28T12:00:00.000000Z",
+    "updated_at": "2026-01-28T12:00:00.000000Z"
+  },
+  "remaining_slots": 7
+}
+```
+
+**Hiba válaszok:**
