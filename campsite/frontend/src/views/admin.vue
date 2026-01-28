@@ -33,51 +33,26 @@ const decrementChildren = () => {
 
 const handleSearch = () => {
   console.log('Keresés:', searchForm.value)
-
 }
 
-
-</script>
-
-<script>
-const tabs = document.querySelectorAll('.tab');
-const contents = document.querySelectorAll('.tab-content');
-
-tabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    // Aktív tab beállítása
-    tabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-
-    // Tartalom váltása
-    contents.forEach(c => c.style.display = 'none');
-    const page = tab.dataset.page;
-    document.getElementById(page).style.display = 'block';
-  });
-});
-
-
-
+const activeTab = ref('dashboard')
 </script>
 
 <template>
-<body>
   <div class="container">
     <h1>Kemping Admin</h1>
     <div class="subtitle">Kezelje a foglalásokat és monitorizálja a kemping működését</div>
 
-
-<div class="tabs">
-  <div class="tab" onclick="window.location.href='dashboard.html'">Dashboard</div>
-  <div class="tab" onclick="window.location.href='bookings.html'">Foglalások</div>
-  <div class="tab" onclick="window.location.href='map.html'">Térkép</div>
-  <div class="tab" onclick="window.location.href='revenue.html'">Bevételek</div>
-</div>
-
-
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Dashboard</div>
+      <div class="tab" :class="{ active: activeTab === 'foglalasok' }" @click="activeTab = 'foglalasok'">Foglalások</div>
+      <div class="tab" :class="{ active: activeTab === 'terkep' }" @click="activeTab = 'terkep'">Térkép</div>
+      <div class="tab" :class="{ active: activeTab === 'bevetelek' }" @click="activeTab = 'bevetelek'">Bevételek</div>
+    </div>
 
     <!-- DASHBOARD -->
-    <div class="page" id="dashboard">
+    <div v-if="activeTab === 'dashboard'">
       <div class="stats">
         <div class="card">
           <small>Összes foglalás</small>
@@ -143,37 +118,130 @@ tabs.forEach(tab => {
       </div>
     </div>
 
-    <!-- FOGLALASOK -->
-    <div class="page" id="bookings" style="display:none">
-      <div class="section">
-        <h3>Összes foglalás</h3>
-        <p>Itt később lista + szerkesztés.</p>
+    <!-- FOGLALÁSOK -->
+    <div v-if="activeTab === 'foglalasok'">
+      <div class="card">
+        <h2>Összes foglalás</h2>
+        <p>Kezelje a jelenlegi és múltbeli foglalásokat</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Azonosító</th>
+              <th>Vendég neve</th>
+              <th>Hely</th>
+              <th>Érkezés</th>
+              <th>Távozás</th>
+              <th>Vendégek</th>
+              <th>Státusz</th>
+              <th>Ár</th>
+              <th>Műveletek</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>001</strong></td>
+              <td>Kovács János</td>
+              <td>A-15</td>
+              <td>2024-01-15</td>
+              <td>2024-01-18</td>
+              <td>4 fő</td>
+              <td><span class="badge active-badge">Aktív</span></td>
+              <td><strong>45 000 Ft</strong></td>
+              <td><button class="btn">👁 Részletek</button></td>
+            </tr>
+            <tr>
+              <td><strong>002</strong></td>
+              <td>Nagy Anna</td>
+              <td>B-8</td>
+              <td>2024-01-16</td>
+              <td>2024-01-19</td>
+              <td>2 fő</td>
+              <td><span class="badge confirmed">Megerősített</span></td>
+              <td><strong>32 000 Ft</strong></td>
+              <td><button class="btn">👁 Részletek</button></td>
+            </tr>
+            <tr>
+              <td><strong>003</strong></td>
+              <td>Szabó Péter</td>
+              <td>C-3</td>
+              <td>2024-01-10</td>
+              <td>2024-01-14</td>
+              <td>3 fő</td>
+              <td><span class="badge finished">Befejezett</span></td>
+              <td><strong>38 000 Ft</strong></td>
+              <td><button class="btn">👁 Részletek</button></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <!-- TERKEP -->
-    <div class="page" id="map" style="display:none">
-      <div class="section">
-        <h3>Térkép</h3>
-        <p>Itt jelenhet meg majd a kemping térképe.</p>
+    <!-- TÉRKÉP -->
+    <div v-if="activeTab === 'terkep'">
+      <div class="card">
+        <h2>Térkép</h2>
+        <p>Kemping térképes nézete.</p>
       </div>
     </div>
 
-    <!-- BEVETELEK -->
-    <div class="page" id="revenue" style="display:none">
+    <!-- BEVÉTELEK -->
+    <div v-if="activeTab === 'bevetelek'">
+      <div class="stats">
+        <div class="card">
+          <small>Havi bevétel</small>
+          <h2>450 000 Ft</h2>
+          <div class="trend">+25% az előző hónaphoz képest</div>
+        </div>
+        <div class="card">
+          <small>Átlagos foglalási érték</small>
+          <h2>38 500 Ft</h2>
+          <div class="trend">+12% az előző hónaphoz képest</div>
+        </div>
+      </div>
+
       <div class="section">
-        <h3>Bevételek</h3>
-        <p>Később diagramok és statisztikák.</p>
+        <h3>Bevétel típusok szerint</h3>
+        <p>Helyek típusainak bevétel megoszlása</p>
+
+        <div class="booking">
+          <div>
+            <div class="name">Tóparti premium helyek</div>
+            <div class="place">12 foglalás</div>
+          </div>
+          <div class="right">
+            <div class="price">180 000 Ft</div>
+            <p>40%</p>
+          </div>
+        </div>
+
+        <div class="booking">
+          <div>
+            <div class="name">Erdei helyek</div>
+            <div class="place">18 foglalás</div>
+          </div>
+          <div class="right">
+            <div class="price">162 000 Ft</div>
+            <p>36%</p>
+          </div>
+        </div>
+
+        <div class="booking">
+          <div>
+            <div class="name">Standard helyek</div>
+            <div class="place">22 foglalás</div>
+          </div>
+          <div class="right">
+            <div class="price">108 000 Ft</div>
+            <p>24%</p>
+          </div>
+        </div>
       </div>
     </div>
-
   </div>
-
-
-</body>
 </template>
 
-<style>
+
+<style scoped>
 
 
 
@@ -304,4 +372,125 @@ tabs.forEach(tab => {
       .booking { flex-direction: column; align-items: flex-start; gap: 10px; }
       .right { text-align: left; }
     }
+
+
+            * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            background: #f6f7fb;
+            margin: 0;
+            padding: 30px;
+            color: #1f2937;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: inline-flex;
+            background: #eef0f4;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 25px;
+        }
+
+        .tab {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            color: #374151;
+        }
+
+        .tab.active {
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+            font-weight: 600;
+        }
+
+
+        /* Card */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, .06);
+        }
+
+        .card h2 {
+            margin-bottom: 5px;
+        }
+
+        .card p {
+            margin-bottom: 20px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            color: #6b7280;
+            font-weight: 500;
+            padding-bottom: 10px;
+        }
+
+        td {
+            padding: 14px 0;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .active-badge {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .confirmed {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .finished {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        /* Button */
+        .btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn:hover {
+            background: #f9fafb;
+        }
   </style>

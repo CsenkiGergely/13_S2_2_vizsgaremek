@@ -140,7 +140,9 @@ export default {
                     </div>
                     <div class="price-row">
                         <div class="price">18 500 Ft / éjszaka</div>
-                        <button class="book" @click="goToSearch">Foglalás</button>
+                    <router-link to="/foglalas">
+                            <button class="book">Foglalás</button>
+                    </router-link>
                     </div>
                 </div>
             </div>
