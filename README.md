@@ -1,7 +1,7 @@
 # 13_S2_2_vizsgaremek
 
 ## A projektről
-Ez a repository a vizsgaremek dokumentációját tartalmazza.
+Ez a repository a vizsgaremeket és dokumentációját tartalmazza.
 
 ## Készítők
 - **Butty Máté** (@Butty-Mate)
