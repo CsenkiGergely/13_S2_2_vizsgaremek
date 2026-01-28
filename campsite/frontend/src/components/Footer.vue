@@ -2,11 +2,11 @@
 </script>
 
 <template>
-  <!-- lábléc -->
+  <!-- Lábléc -->
   <footer class="beckgroundcolor">
     <div class="container mx-auto px-4">
       <div class="flex flex-col md:flex-row items-center justify-between">
-        <!-- logo -->
+        <!--Logo -->
 
 
       </div>
@@ -70,10 +70,6 @@
 </footer>
 
     </div>
-
-
-
-    
   </footer>
 </template>
 
@@ -98,14 +94,14 @@ body {
 
   .footer {
     display: flex;
-    flex-wrap: wrap;      /* mobilon lecsorogjon */
+    flex-wrap: wrap;      /* Mobilon lecsorogjon */
     gap: 20px;
     background-color: #4A7434;
     padding: 40px;
   }
 
   .footer-column {
-    flex: 1 1 200px;      /* minden oszlop rugalmas, minimum 200px */
+    flex: 1 1 200px;      /* Minden oszlop rugalmas, minimum 200px */
   }
 
   .footer-column h3 {
@@ -140,19 +136,19 @@ body {
 
 .footerr {
   display: flex;
-  justify-content: space-between; /* bal-jobb oldal */
+  justify-content: space-between; /* Bal-jobb oldal */
   align-items: center;
-  flex-wrap: wrap;               /* mobilon lecsorogjon */
+  flex-wrap: wrap;               /* Mobilon lecsorogjon */
   padding: 20px;
-  background-color: #4A7434;     /* sötét háttér */
-  color: white;                  /* fehér szöveg */
+  background-color: #4A7434;     /* Sötét háttér */
+  color: white;                  /* Fehér szöveg */
   font-size: 14px;
 }
 
 .footer-right a {
   color: white;
   text-decoration: none;
-  margin-left: 15px;             /* távolság a linkek között */
+  margin-left: 15px;             /* Linkek közötti távolság */
 }
 
 .footer-right a:hover {
@@ -162,7 +158,7 @@ body {
 /* Reszponzív mobilon */
 @media (max-width: 600px) {
   .footer {
-    flex-direction: column;      /* egymás alá kerül minden */
+    flex-direction: column;      /* Egymás alá kerül minden */
     align-items: flex-start;
   }
 
