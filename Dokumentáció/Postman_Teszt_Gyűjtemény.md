@@ -68,8 +68,9 @@ Body (raw JSON):
   },
   "token": "2|xyz789..."
 }
-
 ```
+
+---
 
 ### Kijelentkezés
 ```
