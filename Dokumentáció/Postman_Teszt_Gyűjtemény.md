@@ -12,7 +12,6 @@
 ## AUTENTIKÁCIÓ ENDPOINTS
 
 ### Regisztráció
-
 ```
 Method: POST
 URL: {{base_url}}/register
@@ -45,7 +44,6 @@ Body (raw JSON):
 ---
 
 ### Bejelentkezés
-
 ```
 Method: POST
 URL: {{base_url}}/login
@@ -70,11 +68,11 @@ Body (raw JSON):
   },
   "token": "2|xyz789..."
 }
+```
 
 ---
 
 ### Kijelentkezés
-
 ```
 Method: POST
 URL: {{base_url}}/logout
@@ -96,7 +94,6 @@ Body: (none)
 ---
 
 ### Elfelejtett Jelszó
-
 ```
 Method: POST
 URL: {{base_url}}/forgot-password
@@ -120,7 +117,6 @@ Body (raw JSON):
 ---
 
 ### Jelszó Visszaállítás
-
 ```
 Method: POST
 URL: {{base_url}}/reset-password
@@ -147,7 +143,6 @@ Body (raw JSON):
 ---
 
 ### Partner Státuszra Váltás
-
 ```
 Method: POST
 URL: {{base_url}}/upgrade-to-partner
@@ -179,7 +174,6 @@ Body (raw JSON):
 ---
 
 ### Bejelentkezett User Adatai
-
 ```
 Method: GET
 URL: {{base_url}}/user
@@ -206,7 +200,6 @@ Body: (none)
 ## KEMPINGEK ENDPOINTS
 
 ### Összes Kemping Listázása
-
 ```
 Method: GET
 URL: {{base_url}}/campings
@@ -224,7 +217,6 @@ Body: (none)
 ---
 
 ### Kemping Keresés Szűréssel
-
 ```
 Method: GET
 URL: {{base_url}}/campings?search=balaton&min_price=1500&max_price=4000
@@ -237,7 +229,6 @@ Body: (none)
 ---
 
 ### Egy Kemping Részletei
-
 ```
 Method: GET
 URL: {{base_url}}/campings/1
@@ -250,7 +241,6 @@ Body: (none)
 ---
 
 ### Kemping Helyeinek Listázása
-
 ```
 Method: GET
 URL: {{base_url}}/campings/1/spots
@@ -263,7 +253,6 @@ Body: (none)
 ---
 
 ### Kemping Elérhetőség Ellenőrzése
-
 ```
 Method: GET
 URL: {{base_url}}/campings/1/availability?arrival_date=2026-02-01&departure_date=2026-02-05
@@ -276,7 +265,6 @@ Body: (none)
 ---
 
 ### Kemping Létrehozása (Partner státusz szükséges)
-
 ```
 Method: POST
 URL: {{base_url}}/campings
@@ -304,7 +292,6 @@ Body (raw JSON):
 ---
 
 ### Kemping Módosítása (Tulajdonos)
-
 ```
 Method: PUT
 URL: {{base_url}}/campings/1
@@ -324,7 +311,6 @@ Body (raw JSON):
 ---
 
 ### Kemping Törlése (Tulajdonos)
-
 ```
 Method: DELETE
 URL: {{base_url}}/campings/1
@@ -340,7 +326,6 @@ Body: (none)
 ## FOGLALÁS KERESÉS
 
 ### Kemping Keresés Foglalási Paraméterekkel
-
 ```
 Method: GET
 URL: {{base_url}}/booking/search?location=Balaton&arrival_date=2026-02-01&departure_date=2026-02-05&guests=4
@@ -361,7 +346,6 @@ Body: (none)
 ## FOGLALÁSOK ENDPOINTS
 
 ### Saját Foglalások Listázása
-
 ```
 Method: GET
 URL: {{base_url}}/bookings
@@ -380,7 +364,6 @@ Body: (none)
 ---
 
 ### Egy Foglalás Részletei
-
 ```
 Method: GET
 URL: {{base_url}}/bookings/1
@@ -394,7 +377,6 @@ Body: (none)
 ---
 
 ### Új Foglalás Létrehozása
-
 ```
 Method: POST
 URL: {{base_url}}/bookings
@@ -435,7 +417,6 @@ Body (raw JSON):
 ---
 
 ### Foglalás Módosítása
-
 ```
 Method: PUT
 URL: {{base_url}}/bookings/1
@@ -455,7 +436,6 @@ Body (raw JSON):
 ---
 
 ### Foglalás Törlése
-
 ```
 Method: DELETE
 URL: {{base_url}}/bookings/1
@@ -469,7 +449,6 @@ Body: (none)
 ---
 
 ### Foglalás QR Kód Lekérése
-
 ```
 Method: GET
 URL: {{base_url}}/bookings/1/qr-code
@@ -493,7 +472,6 @@ Body: (none)
 ## TULAJDONOSI FUNKCIÓK
 
 ### Tulajdonos Kempingjeihez Tartozó Foglalások
-
 ```
 Method: GET
 URL: {{base_url}}/owner/bookings
@@ -512,7 +490,6 @@ Body: (none)
 ---
 
 ### Foglalás Státusz Módosítása
-
 ```
 Method: PATCH
 URL: {{base_url}}/bookings/1/status
@@ -536,7 +513,6 @@ Body (raw JSON):
 ---
 
 ### QR Kód Beolvasása (Check-in/Check-out) még nem jó
-
 ```
 Method: POST
 URL: {{base_url}}/bookings/scan
@@ -621,6 +597,7 @@ Headers:
 
 ---
 
+<<<<<<< HEAD
 ### Új értékelés létrehozása (Vendég)
 
 **Követelmények:**
@@ -881,3 +858,9 @@ Body (form-data):
 ```
 
 **Hiba válaszok:**
+=======
+### 500 Server Error
+- Backend hiba
+- Ellenőrizd a Laravel log fájlokat: `storage/logs/laravel.log`
+```
+>>>>>>> 563aff900643d7ab563a6b3e0520832d22ae71f0
