@@ -119,7 +119,9 @@ export default {
                     </div>
                     <div class="price-row">
                         <div class="price">12 000 Ft / éjszaka</div>
-                        <button class="book" @click="goToSearch">Foglalás</button>
+                    <router-link to="/foglalas">
+                            <button class="book">Foglalás</button>
+                    </router-link>
                     </div>
                 </div>
             </div>
@@ -138,7 +140,9 @@ export default {
                     </div>
                     <div class="price-row">
                         <div class="price">18 500 Ft / éjszaka</div>
-                        <button class="book" @click="goToSearch">Foglalás</button>
+                    <router-link to="/foglalas">
+                            <button class="book">Foglalás</button>
+                    </router-link>
                     </div>
                 </div>
             </div>
@@ -156,7 +160,9 @@ export default {
                     </div>
                     <div class="price-row">
                         <div class="price">8 500 Ft / éjszaka</div>
-                        <button class="book">Foglalás</button>
+                    <router-link to="/foglalas">
+                            <button class="book">Foglalás</button>
+                    </router-link>
                     </div>
                 </div>
             </div>
@@ -225,19 +231,40 @@ export default {
             color: white;
         }
 
-        .container {
-            display: flex;
-            padding: 20px;
-            gap: 20px;
-        }
+.container {
+  display: flex;
+  flex-direction: column; /* mobil: szűrő felül, tartalom alatta */
+  gap: 20px;
+  padding: 20px;
+  padding-left: 20px; /* mobilon kis bal tér */
+  padding-right: 20px;
+}
+
+@media (min-width: 768px) { /* tablet-től nagyobb képernyő */
+  .container {
+    flex-direction: row; /* desktop: szűrő balra, tartalom jobbra */
+    padding-left: 150px; /* nagyobb bal tér */
+    padding-right: 20px;
+  }
+}
+
+@media (min-width: 1200px) { /* nagy monitor */
+  .container {
+    padding-left: 250px; /* extra nagy bal tér */
+  }
+}
+
+
 
         
-        .sidebar {
-            width: 260px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-        }
+.sidebar {
+    width: 260px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    /* Opció: ha a sidebar-t jobbra szeretnéd tolni a bal üres tér miatt */
+    margin-left: 0; 
+}
 
         .sidebar h3 {
             margin-top: 20px;
@@ -269,9 +296,10 @@ export default {
         }
 
         
-        .content {
-            flex: 1;
-        }
+
+.content {
+    flex: 1;
+}
 
         .cards {
             display: grid;
