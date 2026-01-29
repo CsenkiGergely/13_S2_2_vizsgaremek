@@ -12,7 +12,6 @@
 ## AUTENTIKÁCIÓ ENDPOINTS
 
 ### Regisztráció
-
 ```
 Method: POST
 URL: {{base_url}}/register
@@ -45,7 +44,6 @@ Body (raw JSON):
 ---
 
 ### Bejelentkezés
-
 ```
 Method: POST
 URL: {{base_url}}/login
@@ -70,11 +68,11 @@ Body (raw JSON):
   },
   "token": "2|xyz789..."
 }
+```
 
 ---
 
 ### Kijelentkezés
-
 ```
 Method: POST
 URL: {{base_url}}/logout
@@ -96,7 +94,6 @@ Body: (none)
 ---
 
 ### Elfelejtett Jelszó
-
 ```
 Method: POST
 URL: {{base_url}}/forgot-password
@@ -120,7 +117,6 @@ Body (raw JSON):
 ---
 
 ### Jelszó Visszaállítás
-
 ```
 Method: POST
 URL: {{base_url}}/reset-password
@@ -147,7 +143,6 @@ Body (raw JSON):
 ---
 
 ### Partner Státuszra Váltás
-
 ```
 Method: POST
 URL: {{base_url}}/upgrade-to-partner
@@ -179,7 +174,6 @@ Body (raw JSON):
 ---
 
 ### Bejelentkezett User Adatai
-
 ```
 Method: GET
 URL: {{base_url}}/user
@@ -206,7 +200,6 @@ Body: (none)
 ## KEMPINGEK ENDPOINTS
 
 ### Összes Kemping Listázása
-
 ```
 Method: GET
 URL: {{base_url}}/campings
@@ -224,7 +217,6 @@ Body: (none)
 ---
 
 ### Kemping Keresés Szűréssel
-
 ```
 Method: GET
 URL: {{base_url}}/campings?search=balaton&min_price=1500&max_price=4000
@@ -237,7 +229,6 @@ Body: (none)
 ---
 
 ### Egy Kemping Részletei
-
 ```
 Method: GET
 URL: {{base_url}}/campings/1
@@ -250,7 +241,6 @@ Body: (none)
 ---
 
 ### Kemping Helyeinek Listázása
-
 ```
 Method: GET
 URL: {{base_url}}/campings/1/spots
@@ -263,7 +253,6 @@ Body: (none)
 ---
 
 ### Kemping Elérhetőség Ellenőrzése
-
 ```
 Method: GET
 URL: {{base_url}}/campings/1/availability?arrival_date=2026-02-01&departure_date=2026-02-05
@@ -276,7 +265,6 @@ Body: (none)
 ---
 
 ### Kemping Létrehozása (Partner státusz szükséges)
-
 ```
 Method: POST
 URL: {{base_url}}/campings
@@ -304,7 +292,6 @@ Body (raw JSON):
 ---
 
 ### Kemping Módosítása (Tulajdonos)
-
 ```
 Method: PUT
 URL: {{base_url}}/campings/1
@@ -324,7 +311,6 @@ Body (raw JSON):
 ---
 
 ### Kemping Törlése (Tulajdonos)
-
 ```
 Method: DELETE
 URL: {{base_url}}/campings/1
@@ -340,7 +326,6 @@ Body: (none)
 ## FOGLALÁS KERESÉS
 
 ### Kemping Keresés Foglalási Paraméterekkel
-
 ```
 Method: GET
 URL: {{base_url}}/booking/search?location=Balaton&arrival_date=2026-02-01&departure_date=2026-02-05&guests=4
@@ -361,7 +346,6 @@ Body: (none)
 ## FOGLALÁSOK ENDPOINTS
 
 ### Saját Foglalások Listázása
-
 ```
 Method: GET
 URL: {{base_url}}/bookings
@@ -380,7 +364,6 @@ Body: (none)
 ---
 
 ### Egy Foglalás Részletei
-
 ```
 Method: GET
 URL: {{base_url}}/bookings/1
@@ -394,7 +377,6 @@ Body: (none)
 ---
 
 ### Új Foglalás Létrehozása
-
 ```
 Method: POST
 URL: {{base_url}}/bookings
@@ -435,7 +417,6 @@ Body (raw JSON):
 ---
 
 ### Foglalás Módosítása
-
 ```
 Method: PUT
 URL: {{base_url}}/bookings/1
@@ -455,7 +436,6 @@ Body (raw JSON):
 ---
 
 ### Foglalás Törlése
-
 ```
 Method: DELETE
 URL: {{base_url}}/bookings/1
@@ -469,7 +449,6 @@ Body: (none)
 ---
 
 ### Foglalás QR Kód Lekérése
-
 ```
 Method: GET
 URL: {{base_url}}/bookings/1/qr-code
@@ -493,7 +472,6 @@ Body: (none)
 ## TULAJDONOSI FUNKCIÓK
 
 ### Tulajdonos Kempingjeihez Tartozó Foglalások
-
 ```
 Method: GET
 URL: {{base_url}}/owner/bookings
@@ -512,7 +490,6 @@ Body: (none)
 ---
 
 ### Foglalás Státusz Módosítása
-
 ```
 Method: PATCH
 URL: {{base_url}}/bookings/1/status
@@ -536,7 +513,6 @@ Body (raw JSON):
 ---
 
 ### QR Kód Beolvasása (Check-in/Check-out) még nem jó
-
 ```
 Method: POST
 URL: {{base_url}}/bookings/scan
@@ -561,30 +537,330 @@ Body (raw JSON):
     "check_in_time": "2026-02-01T14:30:00.000000Z"
   }
 }
+```
 
 ---
 
-## HIBAELHÁRÍTÁS
+## ÉRTÉKELÉSEK (COMMENTS) ENDPOINTS
 
-### 401 Unauthorized
-- Ellenőrizd, hogy a token helyesen van-e beállítva
-- Ellenőrizd, hogy a token nem járt-e le
-- Próbálj meg újra bejelentkezni
+### Kemping összes értékelésének lekérése
 
-### 403 Forbidden
-- Nincs jogosultságod az adott művelethez
-- Partner státusz szükséges
+```
+Method: GET
+URL: {{base_url}}/campings/1/comments
+Headers:
+  Accept: application/json
+```
 
-### 404 Not Found
-- Rossz endpoint URL
-- Az erőforrás (kemping, foglalás, stb.) nem létezik
+**Várható válasz:**
+```json
+{
+  "camping": "Balaton Kemping",
+  "average_rating": 4.5,
+  "reviews_count": 3,
+  "comments": [
+    {
+      "id": 1,
+      "camping_id": 1,
+      "user_id": 2,
+      "parent_id": null,
+      "rating": 5,
+      "comment": "Nagyszerű kemping, csodálatos környezet!",
+      "upload_date": "2026-01-28",
+      "created_at": "2026-01-28T10:00:00.000000Z",
+      "user": {
+        "id": 2,
+        "name": "Kovács János",
+        "email": "kovacs@example.com"
+      },
+      "replies": [
+        {
+          "id": 2,
+          "camping_id": 1,
+          "user_id": 1,
+          "parent_id": 1,
+          "rating": null,
+          "comment": "Köszönjük az értékelést!",
+          "upload_date": "2026-01-28",
+          "created_at": "2026-01-28T11:00:00.000000Z",
+          "user": {
+            "id": 1,
+            "name": "Kemping Tulajdonos",
+            "email": "owner@example.com"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
-### 422 Validation Error
-- Ellenőrizd a request body mezőit
-- Minden kötelező mező ki van töltve?
-- Az email formátum helyes?
-- A dátumok megfelelő formátumban vannak?
+---
 
+<<<<<<< HEAD
+### Új értékelés létrehozása (Vendég)
+
+**Követelmények:**
+- Be kell jelentkezni
+- Csak olyan vendég értékelhet, aki már foglalt a kempingnél (`checked_in` vagy `completed` státusz)
+- Egy vendég csak egyszer értékelheti ugyanazt a kempinget
+
+```
+Method: POST
+URL: {{base_url}}/campings/1/comments
+Headers:
+  Content-Type: application/json
+  Accept: application/json
+  Authorization: Bearer {{token}}
+
+Body (raw JSON):
+{
+  "rating": 5,
+  "comment": "Nagyszerű kemping, csodálatos környezet és tiszta helyek!"
+}
+```
+
+**Várható válasz (201 Created):**
+```json
+{
+  "message": "Értékelés sikeresen létrehozva!",
+  "comment": {
+    "id": 3,
+    "camping_id": 1,
+    "user_id": 2,
+    "parent_id": null,
+    "rating": 5,
+    "comment": "Nagyszerű kemping, csodálatos környezet és tiszta helyek!",
+    "upload_date": "2026-01-28",
+    "created_at": "2026-01-28T10:00:00.000000Z",
+    "user": {
+      "id": 2,
+      "name": "Kovács János",
+      "email": "kovacs@example.com"
+    }
+  }
+}
+```
+
+**Hibalehetőségek:**
+- 403: Ha a vendég még nem foglalt a kempingnél
+- 422: Ha a vendég már értékelte a kempinget
+
+---
+
+### Válasz értékelésre (Csak Tulajdonos)
+
+**Követelmények:**
+- Be kell jelentkezni
+- Csak a kemping tulajdonosa válaszolhat
+- Csak fő kommentekre lehet válaszolni (nem válaszra válaszolni)
+- Egy tulajdonos csak egyszer válaszolhat ugyanarra a kommentre
+
+```
+Method: POST
+URL: {{base_url}}/comments/1/reply
+Headers:
+  Content-Type: application/json
+  Accept: application/json
+  Authorization: Bearer {{token}}
+
+Body (raw JSON):
+{
+  "comment": "Köszönjük szépen az értékelést! Örülünk, hogy jól érezte magát nálunk!"
+}
+```
+
+**Várható válasz (201 Created):**
+```json
+{
+  "message": "Válasz sikeresen hozzáadva!",
+  "reply": {
+    "id": 4,
+    "camping_id": 1,
+    "user_id": 1,
+    "parent_id": 1,
+    "rating": null,
+    "comment": "Köszönjük szépen az értékelést! Örülünk, hogy jól érezte magát nálunk!",
+    "upload_date": "2026-01-28",
+    "created_at": "2026-01-28T11:00:00.000000Z",
+    "user": {
+      "id": 1,
+      "name": "Kemping Tulajdonos",
+      "email": "owner@example.com"
+    }
+  }
+}
+```
+
+**Hibalehetőségek:**
+- 403: Ha nem a kemping tulajdonosa vagy
+- 422: Ha válaszra próbálsz válaszolni, vagy már válaszoltál erre a kommentre
+
+---
+
+### Saját értékelés szerkesztése
+
+**Követelmények:**
+- Be kell jelentkezni
+- Csak a saját értékelésedet szerkesztheted
+- Fő kommentnél (parent_id = null) a rating is módosítható
+- Válaszoknál csak a comment szöveg módosítható
+
+```
+Method: PUT
+URL: {{base_url}}/comments/1
+Headers:
+  Content-Type: application/json
+  Accept: application/json
+  Authorization: Bearer {{token}}
+
+Body (raw JSON):
+{
+  "rating": 4,
+  "comment": "Szép kemping, csak a wifi lehetne jobb."
+}
+```
+
+**Várható válasz:**
+```json
+{
+  "message": "Értékelés sikeresen frissítve!",
+  "comment": {
+    "id": 1,
+    "camping_id": 1,
+    "user_id": 2,
+    "parent_id": null,
+    "rating": 4,
+    "comment": "Szép kemping, csak a wifi lehetne jobb.",
+    "upload_date": "2026-01-28",
+    "created_at": "2026-01-28T10:00:00.000000Z",
+    "updated_at": "2026-01-28T12:00:00.000000Z",
+    "user": {
+      "id": 2,
+      "name": "Kovács János",
+      "email": "kovacs@example.com"
+    }
+  }
+}
+```
+
+**Hibalehetőségek:**
+- 403: Ha nem a te értékelésed
+
+---
+
+### Értékelés törlése
+
+**Követelmények:**
+- Be kell jelentkezni
+- A saját értékelésedet törölheted VAGY
+- A kemping tulajdonosa törölheti a kempingjére írt értékeléseket
+
+```
+Method: DELETE
+URL: {{base_url}}/comments/1
+Headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+```
+
+**Várható válasz:**
+```json
+{
+  "message": "Értékelés sikeresen törölve!"
+}
+```
+
+**Hibalehetőségek:**
+- 403: Ha nincs jogosultságod törölni
+- 404: Ha nem létezik az értékelés
+
+---
+
+## KEMPING KÉPEK (PHOTOS) ENDPOINTS
+
+### Kemping összes képének lekérése
+
+```
+Method: GET
+URL: {{base_url}}/campings/1/photos
+Headers:
+  Accept: application/json
+```
+
+**Várható válasz:**
+```json
+[
+  {
+    "photo_id": 1,
+    "camping_id": 1,
+    "photo_url": "/storage/campings/1234567890_abc123.jpg",
+    "caption": "Gyönyörű napnyugta a kempingnél",
+    "uploaded_at": "2026-01-28",
+    "created_at": "2026-01-28T10:00:00.000000Z",
+    "updated_at": "2026-01-28T10:00:00.000000Z"
+  },
+  {
+    "photo_id": 2,
+    "camping_id": 1,
+    "photo_url": "/storage/campings/1234567891_def456.png",
+    "caption": "Tágas kempinghelyek",
+    "uploaded_at": "2026-01-28",
+    "created_at": "2026-01-28T11:00:00.000000Z",
+    "updated_at": "2026-01-28T11:00:00.000000Z"
+  }
+]
+```
+
+---
+
+### Kép feltöltése (Csak Tulajdonos)
+
+**⚠️ Követelmények:**
+- Be kell jelentkezni
+- Csak a kemping tulajdonosa tölthet fel képet
+- **Maximum 10 kép / kemping**
+- **Engedélyezett formátumok**: jpg, jpeg, png, webp
+- **Maximum fájlméret**: 10MB (10240 KB)
+
+```
+Method: POST
+URL: {{base_url}}/campings/1/photos
+Headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+
+Body (form-data):
+  photo: [FILE] (képfájl kiválasztása)
+  caption: "Gyönyörű napnyugta a kempingnél" (opcionális)
+```
+
+**⚠️ FONTOS - Postman használat:**
+1. Body tab → `form-data` kiválasztása
+2. `photo` key hozzáadása → Type: `File` → fájl kiválasztása
+3. `caption` key hozzáadása → Type: `Text` → leírás megadása (opcionális)
+
+**Sikeres válasz (201 Created):**
+```json
+{
+  "message": "Kép sikeresen feltöltve",
+  "photo": {
+    "photo_id": 3,
+    "camping_id": 1,
+    "photo_url": "/storage/campings/1738065432_abc123def456.jpg",
+    "caption": "Gyönyörű napnyugta a kempingnél",
+    "uploaded_at": "2026-01-28",
+    "created_at": "2026-01-28T12:00:00.000000Z",
+    "updated_at": "2026-01-28T12:00:00.000000Z"
+  },
+  "remaining_slots": 7
+}
+```
+
+**Hiba válaszok:**
+=======
 ### 500 Server Error
 - Backend hiba
 - Ellenőrizd a Laravel log fájlokat: `storage/logs/laravel.log`
+```
+>>>>>>> 563aff900643d7ab563a6b3e0520832d22ae71f0

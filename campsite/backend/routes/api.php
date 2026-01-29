@@ -8,6 +8,8 @@ use App\Http\Controllers\CampingController;
 use App\Http\Controllers\BookingSearchController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CampingPhotoController;
+use App\Http\Controllers\CampingSpotController;
+use App\Http\Controllers\CommentController;
 
 
 Route::get('/user', function (Request $request) {
@@ -33,6 +35,16 @@ Route::get('/campings/{id}/spots', [CampingController::class, 'getSpots']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
 
+// Értékelések (publikus lekérés)
+Route::get('/campings/{campingId}/comments', [CommentController::class, 'index']);
+
+// Kemping képek (publikus lekérés)
+Route::get('/campings/{campingId}/photos', [CampingPhotoController::class, 'index']);
+
+// Kemping helyek (publikus lekérés)
+Route::get('/campings/{campingId}/spots', [CampingSpotController::class, 'index']);
+Route::get('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'show']);
+
 // Foglalások
 Route::middleware('auth:sanctum')->group(function () {
     // felhasználói foglalások
@@ -52,5 +64,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/campings', [CampingController::class, 'store']);
     Route::put('/campings/{id}', [CampingController::class, 'update']);
     Route::delete('/campings/{id}', [CampingController::class, 'destroy']);
+    
+    // Kemping helyek kezelése (csak tulajdonosoknak)
+    Route::post('/campings/{campingId}/spots', [CampingSpotController::class, 'store']);
+    Route::put('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'update']);
+    Route::delete('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'destroy']);
+    
+    // Kemping képek kezelése (csak tulajdonosoknak)
+    Route::post('/campings/{campingId}/photos', [CampingPhotoController::class, 'upload']);
+    Route::delete('/campings/{campingId}/photos/{photoId}', [CampingPhotoController::class, 'destroy']);
+    
+    // Értékelések kezelése (authentikált felhasználóknak)
+    Route::post('/campings/{campingId}/comments', [CommentController::class, 'store']); // Új értékelés
+    Route::post('/comments/{commentId}/reply', [CommentController::class, 'reply']); // Válasz (csak tulajdonos)
+    Route::put('/comments/{commentId}', [CommentController::class, 'update']); // Saját szerkesztése
+    Route::delete('/comments/{commentId}', [CommentController::class, 'destroy']); // Saját törlése
 });
 
