@@ -44,10 +44,10 @@ const handleSearch = () => {
     <p><span class="highlight">Hatályos:</span> 2026. január 30-tól</p>
 
     <h2>1. Adatkezelő</h2>
-    <p>Név: [Cég / Magánszemély neve]</p>
-    <p>Székhely: [Cím]</p>
-    <p>Email: [Email cím]</p>
-    <p>Telefonszám: [Telefonszám]</p>
+    <p>Név: Butty Máté</p>
+    <p>Székhely: Bácskiskun vármegye</p>
+    <p>Email: butty.mate@diak.szbi-pg.hu</p>
+    <p>Telefonszám: +36 30 123 4567</p>
 
     <h2>2. Gyűjtött adatok köre</h2>
     <ul>
@@ -101,9 +101,9 @@ const handleSearch = () => {
 
     <h2>9. Kapcsolat</h2>
     <p>Adatvédelmi kérdések, panaszok esetén kérjük, lépjen kapcsolatba velünk:</p>
-    <p>Email: [email@example.com]</p>
-    <p>Telefon: [Telefonszám]</p>
-    <p>Postai cím: [Cím]</p>
+    <p>Email: butty.mate@diak.szbi-pg.hu</p>
+    <p>Telefon: +36 30 123 4567</p>
+    <p>Postai cím: Butty Máté lakása</p>
   </div>
 </template>
 
