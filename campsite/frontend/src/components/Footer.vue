@@ -21,15 +21,18 @@
   <!-- 2. oszlop -->
   <div class="footer-column">
     <h3>Gyors linkek</h3>
-    <a href="/">Főoldal</a>
-    <a href="kereses.vue">Keresés</a>
-    <a href="#">Profil</a>
-    <a href="#">Szolgáltatások</a>
-    <a href="#">Online foglalás</a>
-    <a href="#">24/7 ügyfélszolgálat</a>
-    <a href="#">Ingyenes lemondás</a>
-    <a href="#">Értékelések</a>
-    <a href="#">Kapcsolat</a>
+        <router-link to="/">
+      <a href="/">Főoldal</a>
+    </router-link>
+            <router-link to="/kereses">
+      <a href="kereses.vue">Keresés</a>
+    </router-link>
+                <router-link to="/admin">
+     <a href="#">Admin</a>
+    </router-link>
+            <router-link to="/foglalas">
+     <a href="#">Foglalás</a>
+    </router-link>
   </div>
 
   <!-- 3. oszlop -->
@@ -63,9 +66,17 @@
     © 2025 CampSite. Minden jog fenntartva.
   </div>
   <div class="footer-right">
-    <a href="/Adatvedelem.vue">Adatvédelem</a>
+                <router-link to="/adatvedelem">
+     <a href="/Adatvedelem.vue">Adatvédelem</a>
+    </router-link>
+                    <router-link to="/felhasznalo">
     <a href="/FelhasznalasiFeltetelek.vue">Felhasználási feltételek</a>
-    <a href="/Cookie-k.vue">Cookie-k</a>
+    </router-link>
+                    <router-link to="/cookie">
+     <a href="/Cookie-k.vue">Cookie-k</a>
+    </router-link>
+    
+    
   </div>
 </footer>
 
