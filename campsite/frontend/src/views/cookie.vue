@@ -62,8 +62,8 @@ const handleSearch = () => {
 
     <h2>5. Kapcsolat</h2>
     <p>Ha kérdése van a sütik kezelésével kapcsolatban, kérjük, vegye fel velünk a kapcsolatot:</p>
-    <p>Email: [email@example.com]</p>
-    <p>Telefon: [Telefonszám]</p>
+    <p>Email: butty.mate@diak.szbi-pg.hu</p>
+    <p>Telefon: +36 30 123 4567</p>
   </div>
 </template>
 
