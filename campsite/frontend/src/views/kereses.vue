@@ -6,6 +6,7 @@ import api from '../api/axios'
 const route = useRoute()
 const router = useRouter()
 
+const route = useRoute()
 const today = new Date().toISOString().split('T')[0]
 
 const searchForm = ref({
@@ -444,6 +445,34 @@ onMounted(() => {
             font-size: 18px;
             font-weight: bold;
             color: #2f7d32;
+        }
+
+        .loading, .error-message, .no-results {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .error-message {
+            color: #d32f2f;
+            background: #ffebee;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .capacity, .spots {
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .book {
