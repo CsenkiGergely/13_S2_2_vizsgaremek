@@ -1,14 +1,78 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { searchCampings } from '../api/searchService'
 
+const route = useRoute()
 const today = new Date().toISOString().split('T')[0]
 
 const searchForm = ref({
   location: '',
   checkIn: '',
   checkOut: '',
-  adults: 0,
+  adults: 2,
   children: 0
+})
+
+const searchResults = ref([])
+const loading = ref(false)
+const error = ref(null)
+
+const performSearch = async () => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const totalGuests = searchForm.value.adults + searchForm.value.children
+    console.log('Keresési paraméterek:', {
+      location: searchForm.value.location,
+      checkIn: searchForm.value.checkIn,
+      checkOut: searchForm.value.checkOut,
+      guests: totalGuests
+    })
+    
+    const results = await searchCampings({
+      location: searchForm.value.location,
+      checkIn: searchForm.value.checkIn,
+      checkOut: searchForm.value.checkOut,
+      guests: totalGuests
+    })
+    
+    console.log('API válasz:', results)
+    searchResults.value = results.data || []
+  } catch (err) {
+    console.error('Keresési hiba részletei:', err)
+    console.error('Hiba response:', err.response)
+    console.error('Hiba status:', err.response?.status)
+    console.error('Hiba adatok:', err.response?.data)
+    
+    if (err.response?.status === 422) {
+      error.value = 'Érvénytelen keresési adatok. Kérlek ellenőrizd a dátumokat!'
+    } else if (err.response?.status === 500) {
+      error.value = 'Szerverhiba történt. Próbáld újra később!'
+    } else if (!err.response) {
+      error.value = 'Nincs kapcsolat a szerverrel. Ellenőrizd, hogy fut-e a backend!'
+    } else {
+      error.value = 'Hiba történt a keresés során. Próbáld újra!'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  if (route.query.location) searchForm.value.location = route.query.location
+  if (route.query.checkIn) searchForm.value.checkIn = route.query.checkIn
+  if (route.query.checkOut) searchForm.value.checkOut = route.query.checkOut
+  if (route.query.guests) {
+    const guests = parseInt(route.query.guests)
+    searchForm.value.adults = guests
+    searchForm.value.children = 0
+  }
+  
+  if (route.query.checkIn && route.query.checkOut) {
+    performSearch()
+  }
 })
 
 const minCheckOut = computed(() => {
@@ -105,75 +169,62 @@ export default {
     </aside>
 
     <main class="content">
-        <div class="cards">
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?camp" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Balatoni Tóparti Kemping</h4>
-                    <div class="rating">⭐ 4.8 (124)</div>
-                    <div class="location">📍 Balaton, Siófok</div>
-                    <div class="tags">
-                        <span>WiFi</span>
-                        <span>Parkoló</span>
-                        <span>Sátorhely</span>
-                        <span>Étterem</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">12 000 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?mountain" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Mátra Vista Lakókocsi Park</h4>
-                    <div class="rating">⭐ 4.9 (89)</div>
-                    <div class="location">📍 Mátra, Gyöngyös</div>
-                    <div class="tags">
-                        <span>WiFi</span>
-                        <span>Parkoló</span>
-                        <span>Étterem</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">18 500 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?forest" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Őrségi Erdei Kemping</h4>
-                    <div class="rating">⭐ 4.7 (156)</div>
-                    <div class="location">📍 Őrség, Szalafő</div>
-                    <div class="tags">
-                        <span>Parkoló</span>
-                        <span>Sátorhely</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">8 500 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
+        <!-- Betöltés -->
+        <div v-if="loading" class="loading">
+            <p>⏳ Keresés folyamatban...</p>
         </div>
-
-        <div class="view-all">
-            <button>Összes kemping megtekintése</button>
+        
+        <!-- Hiba -->
+        <div v-else-if="error" class="error-message">
+            <p>{{ error }}</p>
+        </div>
+        
+        <!-- Nincs találat -->
+        <div v-else-if="searchResults.length === 0 && !loading" class="no-results">
+            <p>😔 Nincs találat a keresési feltételeknek megfelelően.</p>
+        </div>
+        
+        <!-- Találatok -->
+        <div v-else class="cards">
+            <div class="card" v-for="camping in searchResults" :key="camping.id">
+                <img 
+                    :src="camping.photos && camping.photos.length > 0 
+                        ? camping.photos[0].url 
+                        : 'https://picsum.photos/600/400?camp'" 
+                    :alt="camping.name"
+                />
+                <div class="card-body">
+                    <span class="badge" v-if="camping.is_featured">Kiemelt</span>
+                    <h4>{{ camping.name }}</h4>
+                    <div class="rating" v-if="camping.average_rating">
+                        ⭐ {{ camping.average_rating }} ({{ camping.reviews_count || 0 }})
+                    </div>
+                    <div class="location" v-if="camping.location">
+                        📍 {{ camping.location.city }}
+                    </div>
+                    <div class="tags" v-if="camping.tags && camping.tags.length > 0">
+                        <span v-for="tag in camping.tags.slice(0, 4)" :key="tag.id">
+                            {{ tag.name }}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <div class="capacity">
+                            👥 {{ camping.available_capacity }} fő
+                        </div>
+                        <div class="spots">
+                            🏕️ {{ camping.available_spots_count }} hely
+                        </div>
+                    </div>
+                    <div class="price-row">
+                        <div class="price">
+                            {{ camping.min_price ? camping.min_price.toLocaleString() : '0' }} Ft / éjszaka
+                        </div>
+                        <router-link to="/foglalas">
+                            <button class="book">Foglalás</button>
+                        </router-link>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -372,6 +423,34 @@ export default {
             font-size: 18px;
             font-weight: bold;
             color: #2f7d32;
+        }
+
+        .loading, .error-message, .no-results {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .error-message {
+            color: #d32f2f;
+            background: #ffebee;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .capacity, .spots {
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .book {

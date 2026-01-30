@@ -1,14 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 
+const router = useRouter()
 const today = new Date().toISOString().split('T')[0]
 
 const searchForm = ref({
   location: '',
   checkIn: '',
   checkOut: '',
-  adults: 0,
+  adults: 2,
   children: 0
 })
 
@@ -32,49 +34,26 @@ const decrementChildren = () => {
   if (searchForm.value.children > 0) searchForm.value.children--
 }
 
-const handleSearch = () => {
-  console.log('Keresés:', searchForm.value)
- 
-}
-</script>
-
-<script>
-//ez a keresés gomb ami átvisz a másik oldalra
-/*export default {
-  methods: {
-    goToSearch() {
-      this.$router.push('/kereses')
-    }
+const handleSearch = async () => {
+  if (!searchForm.value.checkIn || !searchForm.value.checkOut) {
+    alert('Kérlek add meg az érkezés és távozás dátumát!')
+    return
   }
-}*/
-
-import axios from 'axios';
-
-export default {
-  name: 'SearchComponent',
-  data() {
-    return {
-      query: '',
-      results: []
-    }
-  },
-  methods: {
-    async search() {
-      if (this.query.length < 2) {
-        this.results = [];
-        return;
-      }
-
-      try {
-        const response = await axios.get('/api/search', {
-          params: { q: this.query }  // a keresőszó a query param
-        });
-        this.results = response.data;
-      } catch (error) {
-        console.error('Hiba a keresés során:', error);
-      }
-    }
+  
+  if (searchForm.value.adults + searchForm.value.children < 1) {
+    alert('Legalább 1 vendéget adj meg!')
+    return
   }
+  
+  router.push({
+    path: '/kereses',
+    query: {
+      location: searchForm.value.location,
+      checkIn: searchForm.value.checkIn,
+      checkOut: searchForm.value.checkOut,
+      guests: searchForm.value.adults + searchForm.value.children
+    }
+  })
 }
 </script>
 <template>
@@ -88,31 +67,54 @@ export default {
       </div>
 
       <div class="search-card" aria-labelledby="search-heading">
-        <form class="grid" id="searchForm" onsubmit="event.preventDefault(); alert('Keresés indítva (demo)')">
+        <form class="grid" id="searchForm" @submit.prevent="handleSearch">
           <div class="location-col">
             <label for="location">📍 Helyszín</label>
-            <input id="location" name="location" type="text" placeholder="Pl. Balaton, Tisza-tó..." />
+            <input 
+              id="location" 
+              name="location" 
+              type="text" 
+              placeholder="Pl. Balaton, Tisza-tó..." 
+              v-model="searchForm.location"
+            />
           </div>
 
           <div>
             <label for="checkIn">📅 Érkezés</label>
-            <input id="checkIn" name="checkIn" type="date" />
+            <input 
+              id="checkIn" 
+              name="checkIn" 
+              type="date" 
+              v-model="searchForm.checkIn"
+              :min="today"
+            />
           </div>
 
           <div>
             <label for="checkOut">📅 Távozás</label>
-            <input id="checkOut" name="checkOut" type="date" />
+            <input 
+              id="checkOut" 
+              name="checkOut" 
+              type="date" 
+              v-model="searchForm.checkOut"
+              :min="minCheckOut"
+            />
           </div>
 
           <div>
-            <label for="guests">👥 Vendégek</label>
-            <input id="guests" name="guests" type="number" min="1" value="2" />
+            <label for="adults">👥 Vendégek</label>
+            <input 
+              id="adults" 
+              name="adults" 
+              type="number" 
+              min="1" 
+              max="10"
+              v-model.number="searchForm.adults"
+            />
           </div>
 
           <div class="submit-col" style="margin-top:.5rem">
-           
-            <button class="btn" @click="goToSearch">🔍 Keresés</button>
-
+            <button type="submit" class="btn">🔍 Keresés</button>
           </div>
         </form>
       </div>
@@ -173,18 +175,18 @@ export default {
       overflow: hidden;
       padding:3.5rem 0;
       color: #fff;
-      /* félátlátszó zöld háttér (állítsd az alfa értéket tetszés szerint 0.0 - 1.0 között) */
+
       background-color: rgba(74,116,52,1);
     }
     .hero::before{
       content: "";
       position: absolute;
       inset: 0;
-      /* a kép URL-jét cseréld le, ha másik képet akarsz */
+
       background-image: url('/img/ground-camping-8260968_1280.jpg');
       background-size: cover;
       background-position: center;
-      /* állítsd az opacity-t a kívánt átlátszóságra (0 = láthatatlan, 1 = teljesen fed) */
+
       opacity: 0.06;
       pointer-events: none;
       z-index: 0;
@@ -267,8 +269,8 @@ export default {
       .location-col{ grid-column: span 2; }
     }
     @media(min-width:1024px){
-      form.grid{ grid-template-columns: repeat(5,1fr); }
-      .location-col{ grid-column: span 2; }
+      form.grid{ grid-template-columns: repeat(3,1fr); }
+      .location-col{ grid-column: span 3; }
       .submit-col{ grid-column: 1 / -1; display:flex; justify-content:center; margin-top:.5rem; }
       .submit-col .btn{ padding: .8rem 3rem; font-size:1rem; }
     }
