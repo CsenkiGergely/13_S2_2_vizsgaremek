@@ -76,7 +76,7 @@ const handleSearch = () => {
 
     <h2>5. Adatok tárolása és védelme</h2>
     <p>A Szolgáltató az adatokat biztonságos szervereken, megfelelő technikai és szervezési intézkedésekkel tárolja. Az adatokhoz hozzáférést kizárólag az arra jogosult munkatársak kapnak.</p>
-    <p>Az adatokat a foglalás teljesítésétől számított [X] évig, illetve a jogszabályok által előírt ideig őrizzük.</p>
+    <p>Az adatokat a foglalás teljesítésétől számított 5 évig, illetve a jogszabályok által előírt ideig őrizzük.</p>
 
     <h2>6. Adatmegosztás</h2>
     <ul>
