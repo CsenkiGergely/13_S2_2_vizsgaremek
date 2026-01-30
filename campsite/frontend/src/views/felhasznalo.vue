@@ -44,7 +44,7 @@ const handleSearch = () => {
     <p><span class="highlight">Hatályos:</span> 2026. január 30-tól</p>
 
     <h2>1. Általános rendelkezések</h2>
-    <p>Ez a weboldal ([Oldal neve]) használatával Ön elfogadja a jelen felhasználási feltételeket. Kérjük, olvassa el figyelmesen, mielőtt igénybe veszi szolgáltatásainkat.</p>
+    <p>Ez a weboldal CampSite használatával Ön elfogadja a jelen felhasználási feltételeket. Kérjük, olvassa el figyelmesen, mielőtt igénybe veszi szolgáltatásainkat.</p>
 
     <h2>2. Szolgáltatás leírása</h2>
     <p>Az oldal lehetővé teszi a camping helyek online foglalását, információk megtekintését és fizetési folyamatok lebonyolítását.</p>
