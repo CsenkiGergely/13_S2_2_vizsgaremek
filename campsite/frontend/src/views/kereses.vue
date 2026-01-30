@@ -96,6 +96,9 @@ export default {
 <label><input type="radio" name="ertekeles"> 4.5+⭐</label>
 <label><input type="radio" name="ertekeles"> 4.0+⭐</label>
 <label><input type="radio" name="ertekeles"> 3.5+⭐</label>
+<label><input type="radio" name="ertekeles"> 3.0+⭐</label>
+<label><input type="radio" name="ertekeles"> 2.5+⭐</label>
+<label><input type="radio" name="ertekeles"> 2.0+⭐</label>
 
         <button class="reset">Szűrők törlése</button>
         <button class="apply">Szűrők alkalmazása</button>

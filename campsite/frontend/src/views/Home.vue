@@ -39,10 +39,40 @@ const handleSearch = () => {
 </script>
 
 <script>
-export default {
+//ez a keresés gomb ami átvisz a másik oldalra
+/*export default {
   methods: {
     goToSearch() {
       this.$router.push('/kereses')
+    }
+  }
+}*/
+
+import axios from 'axios';
+
+export default {
+  name: 'SearchComponent',
+  data() {
+    return {
+      query: '',
+      results: []
+    }
+  },
+  methods: {
+    async search() {
+      if (this.query.length < 2) {
+        this.results = [];
+        return;
+      }
+
+      try {
+        const response = await axios.get('/api/search', {
+          params: { q: this.query }  // a keresőszó a query param
+        });
+        this.results = response.data;
+      } catch (error) {
+        console.error('Hiba a keresés során:', error);
+      }
     }
   }
 }
@@ -97,10 +127,22 @@ export default {
 
    
     <div class="gallery" aria-label="Népszerű régiók képei">
-      <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
-      <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
-      <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
-      <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
+                          <router-link to="/foglalas">
+                                  <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
+                    </router-link>
+                                              <router-link to="/foglalas">
+                                        <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
+                    </router-link>
+                                              <router-link to="/foglalas">
+                                  <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
+                    </router-link>
+                                              <router-link to="/foglalas">
+                                  <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
+                    </router-link>
+
+
+     
+     
     </div>
 
 
