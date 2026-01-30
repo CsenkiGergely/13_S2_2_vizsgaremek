@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
+
+    // Új felhasználó regisztráció
     public function register(Request $request)
     {
         $fields = $request->validate([
@@ -25,6 +27,8 @@ class AuthController extends Controller
 
         return ['user' => $user, 'token' => $token];
     }
+
+    // Felhasználó bejelentkezés
     public function login(Request $request)
     {
         $request->validate([
@@ -45,6 +49,7 @@ class AuthController extends Controller
         return ['user' => $user, 'token' => $token];
     }
 
+    // Felhasználó kijelentkezés
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
@@ -52,6 +57,7 @@ class AuthController extends Controller
         return ['message' => 'Logged out'];
     }
 
+    // Jelszó visszaállítási kérelem
     public function forgotPassword(Request $request)
     {
         $request->validate([
@@ -89,6 +95,7 @@ class AuthController extends Controller
         ], 200);
     }
 
+    // Jelszó átállítása
     public function resetPassword(Request $request)
     {
         $request->validate([
@@ -107,14 +114,13 @@ class AuthController extends Controller
             ], 400);
         }
 
-
         if (!Hash::check($request->token, $passwordReset->token)) {
             return response()->json([
                 'message' => 'Érvénytelen vagy lejárt token.'
             ], 400);
         }
 
-        // Token lejárat ellenőrzése 60p
+        // token lejárat ellenőrzése 60p                       carbon atrakni datetime ra és a db t laravel lekeresre 
         $createdAt = \Carbon\Carbon::parse($passwordReset->created_at);
         if ($createdAt->addMinutes(60)->isPast()) {
             return response()->json([
@@ -122,7 +128,7 @@ class AuthController extends Controller
             ], 400);
         }
 
-
+        // Érvénytelen token vagy email cím
         $user = User::where('email', $request->email)->first();
         if (!$user) {
             return response()->json([
@@ -136,6 +142,27 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Jelszó sikeresen megváltoztatva!'
+        ], 200);
+    }
+
+    // partner státuszra váltás bejelentkezett felhasználónak
+    public function upgradeToPartner(Request $request)
+    {
+        // -> nincs külön nincs jogosultságod üzenet
+        // validáljuk a telefonszámot
+        $fields = $request->validate([
+            'phone_number' => 'required|string|max:20'
+        ]);
+
+        // bejelentkezett user adatainak frissítése
+        $user = $request->user();
+        $user->phone_number = $fields['phone_number'];
+        $user->role = 1; // true
+        $user->save();
+
+        return response()->json([
+            'message' => 'Sikeresen partner státuszra váltottál!',
+            'user' => $user
         ], 200);
     }
 }

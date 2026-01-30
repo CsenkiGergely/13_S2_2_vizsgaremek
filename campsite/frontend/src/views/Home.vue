@@ -104,8 +104,6 @@ export default {
     </div>
 
 
-
-   
     <h2 class="section-title" style="margin-top:2rem">Kiemelt kempingünk</h2>
     <p class="muted">Különlegesen ajánlott hely — családbarát szolgáltatásokkal és gyönyörű panorámával.</p>
 
@@ -126,9 +124,7 @@ export default {
       --card-bg:#ffffff;
     }
 
-  
     *{box-sizing:border-box;margin:0;padding:0}
-
 
     .hero{
       position: relative;
@@ -151,7 +147,7 @@ export default {
       pointer-events: none;
       z-index: 0;
     }
-     .hero .container{
+    .hero .container{
       position: relative;
       z-index: 1;
     }
@@ -169,12 +165,12 @@ export default {
       font-weight:700;
       margin-bottom:0.5rem;
       line-height:1.05;
+      color: white;
     }
     .hero p.lead{
       font-size:1.05rem;
       color: rgba(255,255,255,0.95);
     }
-
     
     .search-card{
       background-color: #fff;
@@ -190,7 +186,13 @@ export default {
       gap:0.75rem;
       align-items:end;
     }
-    label{display:block;font-size:.85rem;font-weight:600;margin-bottom:.35rem;color:#374151}
+    label{
+      display:block;
+      font-size:.85rem;
+      font-weight:600;
+      margin-bottom:.35rem;
+      color:#374151;
+    }
     input[type="text"], input[type="date"], input[type="number"]{
       width:100%;
       padding:.75rem 1rem;
@@ -202,7 +204,6 @@ export default {
     }
     input:focus{
       box-shadow: 0 0 0 4px rgba(74,116,52,0.12);
-      border-color: transparent;
     }
     .btn{
       background-color: #4A7434;
@@ -286,5 +287,31 @@ export default {
       font-size:.95rem;
       text-align:center;
       margin-top:.5rem;
+    }
+
+    .modal {
+      display: none; /* alapból rejtett */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5); /* félátlátszó fekete */
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* A modális tartalom */
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      width: 300px;
+    }
+
+    .close-btn {
+      margin-top: 10px;
+      padding: 5px 10px;
     }
 </style>
