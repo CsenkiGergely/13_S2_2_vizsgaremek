@@ -6,19 +6,41 @@ use App\Models\CampingPhoto;
 use App\Models\Camping;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class CampingPhotoController extends Controller
 {
-    //kép feltöltése 
-
+    /**
+     * Kép feltöltése kempinghez
+     * Csak a kemping tulajdonosa tölthet fel képet
+     * Maximum 10 kép / kemping
+     * Formátumok: jpg, jpeg, png, webp
+     * Maximum fájlméret: 10MB
+     */
     public function upload(Request $request, $campingId)
     {
+        $user = Auth::user();
+        $camping = Camping::findOrFail($campingId);
+
+        // Ellenőrizzük, hogy a user a kemping tulajdonosa-e
+        if ($camping->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Csak a kemping tulajdonosa tölthet fel képeket.'
+            ], 403);
+        }
+
+        // Ellenőrizzük a képek számát
+        $currentPhotosCount = CampingPhoto::where('camping_id', $campingId)->count();
+        if ($currentPhotosCount >= 10) {
+            return response()->json([
+                'message' => 'Maximum 10 kép tölthető fel egy kempinghez. Kérjük, törölj néhány képet, mielőtt újat töltenél fel.'
+            ], 422);
+        }
+
         $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // max 5MB
+            'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:10240', // max 10MB
             'caption' => 'nullable|string|max:255'
         ]);
-
-        $camping = Camping::findOrFail($campingId);
 
         // Kép mentése
         if ($request->hasFile('photo')) {
@@ -36,7 +58,8 @@ class CampingPhotoController extends Controller
 
             return response()->json([
                 'message' => 'Kép sikeresen feltöltve',
-                'photo' => $photo
+                'photo' => $photo,
+                'remaining_slots' => 10 - ($currentPhotosCount + 1)
             ], 201);
         }
 
@@ -55,27 +78,45 @@ class CampingPhotoController extends Controller
         return response()->json($photos);
     }
 
-    /**
-     * Kép törlése
-     */
+   
+     //Kép törlése
+     
     public function destroy($campingId, $photoId)
     {
+        $user = Auth::user();
+        $camping = Camping::findOrFail($campingId);
+
+        // Ellenőrizzük, hogy a user a kemping tulajdonosa-e
+        if ($camping->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Csak a kemping tulajdonosa törölhet képeket.'
+            ], 403);
+        }
+
         $photo = CampingPhoto::where('camping_id', $campingId)
-            ->where('id', $photoId)
+            ->where('photo_id', $photoId)
             ->firstOrFail();
 
         // Fájl törlése a storage-ból
         $filePath = str_replace('/storage/', '', $photo->photo_url);
-        Storage::disk('public')->delete($filePath);
+        if (Storage::disk('public')->exists($filePath)) {
+            Storage::disk('public')->delete($filePath);
+        }
 
         $photo->delete();
 
-        return response()->json(['message' => 'Kép törölve'], 200);
+        $remainingPhotos = CampingPhoto::where('camping_id', $campingId)->count();
+
+        return response()->json([
+            'message' => 'Kép sikeresen törölve',
+            'remaining_photos' => $remainingPhotos,
+            'remaining_slots' => 10 - $remainingPhotos
+        ], 200);
     }
 
-    /**
-     * Kép URL frissítése (ha már létezik a képfájl)
-     */
+    
+    //Kép URL frissítése (ha már létezik a képfájl)
+     
     public function addByUrl(Request $request, $campingId)
     {
         $request->validate([

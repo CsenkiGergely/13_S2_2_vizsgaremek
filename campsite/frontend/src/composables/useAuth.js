@@ -9,7 +9,7 @@ const error = ref(null)
 
 const isAuthenticated = computed(() => !!token.value)
 
-// registrateion
+// Regisztráció
 const register = async (userData) => {
   loading.value = true
   error.value = null
@@ -40,7 +40,7 @@ const register = async (userData) => {
   }
 }
 
-// bejelentkezés
+// Bejelentkezés
 const login = async (credentials) => {
   loading.value = true
   error.value = null
@@ -51,7 +51,7 @@ const login = async (credentials) => {
       password: credentials.password
     })
     
-    // bejelentkezés check
+    // Bejelentkezés hibakezelés
     if (response.data.message === 'Invalid credentials') {
       error.value = 'Hibás email cím vagy jelszó'
       return { success: false, error: error.value }
@@ -86,14 +86,14 @@ const login = async (credentials) => {
   }
 }
 
-// kijelentkezés
+// Kijelentkezés
 const logout = async () => {
   loading.value = true
   
   try {
     await api.post('/logout')
   } catch (err) {
-    // ha hiba van, akkor is kijelentkeztetjük lokálisan
+    // Hiba esetén is kijelentkezik lokálisan
     console.error('Logout error:', err)
   } finally {
     token.value = null
@@ -104,7 +104,7 @@ const logout = async () => {
   }
 }
 
-// felhasználó adatainak lekérése
+// Felhasználó adatainak lekérése
 const fetchUser = async () => {
   if (!token.value) return null
   
@@ -116,7 +116,7 @@ const fetchUser = async () => {
     localStorage.setItem('user', JSON.stringify(response.data))
     return response.data
   } catch (err) {
-    // ha 401 akkor a token lejárt
+    // Ha a token lejárt
     if (err.response?.status === 401) {
       token.value = null
       user.value = null
@@ -129,7 +129,7 @@ const fetchUser = async () => {
   }
 }
 
-// elfelejtett jelszó
+// Elfelejtett jelszó
 const forgotPassword = async (email) => {
   loading.value = true
   error.value = null
@@ -148,7 +148,7 @@ const forgotPassword = async (email) => {
   }
 }
 
-// jelszó visszaállítás
+// Jelszó átállítása
 const resetPassword = async (data) => {
   loading.value = true
   error.value = null

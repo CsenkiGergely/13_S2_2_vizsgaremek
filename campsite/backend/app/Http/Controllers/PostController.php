@@ -16,11 +16,9 @@ class PostController extends Controller implements HasMiddleware
             new Middleware('auth:sanctum', except: [ 'index', 'show' ])
         ];
     }
-
-
     
     /**
-     * Display a listing of the resource.f
+     * Display a listing of the resource.
      */
     public function index()
     {
