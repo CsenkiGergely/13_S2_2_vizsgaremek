@@ -77,8 +77,8 @@ const handleSearch = () => {
 
     <h2>9. Kapcsolat</h2>
     <p>Felhasználási feltételekkel kapcsolatos kérdések esetén kérjük, lépjen kapcsolatba velünk:</p>
-    <p>Email: [email@example.com]</p>
-    <p>Telefon: [Telefonszám]</p>
+    <p>Email: butty.mate@diak.szbi-pg.hu</p>
+    <p>Telefon: +36 30 123 4567</p>
   </div>
 </template>
 
