@@ -183,15 +183,6 @@
                 "value": "Bearer {{token}}"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone_number\": \"+36301234567\",\n  \"company_name\": \"Balatoni Kempingek Kft.\",\n  \"tax_number\": \"12345678-1-23\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": {
               "raw": "{{base_url}}/upgrade-to-partner",
               "host": ["{{base_url}}"],
@@ -767,7 +758,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"qr_code\": \"scanned_qr_code_data\",\n  \"camping_id\": 1\n}",
+              "raw": "{\n  \"qr_code\": \"scanned_qr_code_data\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -840,7 +831,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"spot_number\": \"A-12\",\n  \"spot_type\": \"tent\",\n  \"capacity\": 4,\n  \"price_per_night\": 5000,\n  \"amenities\": [\"wifi\", \"electricity\"],\n  \"is_available\": true,\n  \"description\": \"Szép hely a tó mellett\"\n}",
+              "raw": "{\n  \"name\": \"A-12\",\n  \"type\": \"tent\",\n  \"capacity\": 4,\n  \"price_per_night\": 5000,\n  \"description\": \"Szép hely a tó mellett\",\n  \"row\": 1,\n  \"column\": 12\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -874,7 +865,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"price_per_night\": 5500,\n  \"is_available\": false,\n  \"description\": \"Átmenetileg karbantartás alatt\"\n}",
+              "raw": "{\n  \"name\": \"A-12 Módosított\",\n  \"price_per_night\": 5500,\n  \"is_available\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -906,230 +897,6 @@
               "raw": "{{base_url}}/campings/1/spots/1",
               "host": ["{{base_url}}"],
               "path": ["campings", "1", "spots", "1"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Camping Photos",
-      "item": [
-        {
-          "name": "Get All Photos for Camping",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/campings/1/photos",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "photos"]
-            }
-          }
-        },
-        {
-          "name": "Upload Photo (Owner)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "photo",
-                  "type": "file",
-                  "src": []
-                },
-                {
-                  "key": "caption",
-                  "value": "Gyönyörű napnyugta a kempingnél",
-                  "type": "text"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/campings/1/photos",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "photos"]
-            }
-          }
-        },
-        {
-          "name": "Delete Photo (Owner)",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/campings/1/photos/1",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "photos", "1"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Comments",
-      "item": [
-        {
-          "name": "Get All Comments for Camping",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/campings/1/comments",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "comments"]
-            }
-          }
-        },
-        {
-          "name": "Create Comment (Guest)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Nagyszerű kemping, csodálatos környezet és tiszta helyek!\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/campings/1/comments",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "comments"]
-            }
-          }
-        },
-        {
-          "name": "Reply to Comment (Owner)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"comment\": \"Köszönjük szépen az értékelést! Örülünk, hogy jól érezte magát nálunk!\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/comments/1/reply",
-              "host": ["{{base_url}}"],
-              "path": ["comments", "1", "reply"]
-            }
-          }
-        },
-        {
-          "name": "Update Comment",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Szép kemping, csak a wifi lehetne jobb.\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/comments/1",
-              "host": ["{{base_url}}"],
-              "path": ["comments", "1"]
-            }
-          }
-        },
-        {
-          "name": "Delete Comment",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/comments/1",
-              "host": ["{{base_url}}"],
-              "path": ["comments", "1"]
             }
           }
         }

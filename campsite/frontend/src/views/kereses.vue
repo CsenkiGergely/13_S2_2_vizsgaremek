@@ -1,5 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import api from '../api/axios'
+
+const route = useRoute()
+const router = useRouter()
 
 const today = new Date().toISOString().split('T')[0]
 
@@ -7,9 +12,16 @@ const searchForm = ref({
   location: '',
   checkIn: '',
   checkOut: '',
-  adults: 0,
+  adults: 2,
   children: 0
 })
+
+const campings = ref([])
+const loading = ref(false)
+const error = ref(null)
+const currentPage = ref(1)
+const totalPages = ref(1)
+const totalResults = ref(0)
 
 const minCheckOut = computed(() => {
   return searchForm.value.checkIn || today
@@ -30,16 +42,73 @@ const incrementChildren = () => {
 const decrementChildren = () => {
   if (searchForm.value.children > 0) searchForm.value.children--
 }
-</script>
-<script>
-export default {
-  methods: {
-    goToSearch() {
-      this.$router.push('/fizetes')
+
+const searchCampings = async (page = 1) => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const params = {
+      page: page
     }
+    
+    if (searchForm.value.location) params.location = searchForm.value.location
+    if (searchForm.value.checkIn) params.arrival_date = searchForm.value.checkIn
+    if (searchForm.value.checkOut) params.departure_date = searchForm.value.checkOut
+    
+    const totalGuests = searchForm.value.adults + searchForm.value.children
+    if (totalGuests > 0) params.guests = totalGuests
+    
+    const response = await api.get('/booking/search', { params })
+    
+    campings.value = response.data.data || []
+    currentPage.value = response.data.current_page || 1
+    totalPages.value = response.data.last_page || 1
+    totalResults.value = response.data.total || 0
+    
+    console.log('Kempingek:', campings.value)
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Hiba történt a keresés során'
+    console.error('Keresési hiba:', err)
+  } finally {
+    loading.value = false
   }
 }
 
+const goToBooking = (campingId) => {
+  router.push({
+    path: '/fizetes',
+    query: {
+      camping_id: campingId,
+      arrival_date: searchForm.value.checkIn,
+      departure_date: searchForm.value.checkOut,
+      guests: searchForm.value.adults + searchForm.value.children
+    }
+  })
+}
+
+const changePage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    searchCampings(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+onMounted(() => {
+  // Query paraméterek beolvasása
+  if (route.query.location) searchForm.value.location = route.query.location
+  if (route.query.arrival_date) searchForm.value.checkIn = route.query.arrival_date
+  if (route.query.departure_date) searchForm.value.checkOut = route.query.departure_date
+  if (route.query.guests) {
+    const guests = parseInt(route.query.guests)
+    searchForm.value.adults = guests || 2
+  }
+  
+  // Ha vannak keresési paraméterek, keresés indítása
+  if (searchForm.value.checkIn && searchForm.value.checkOut) {
+    searchCampings()
+  }
+})
 </script>
 <template>
 
@@ -96,84 +165,87 @@ export default {
 <label><input type="radio" name="ertekeles"> 4.5+⭐</label>
 <label><input type="radio" name="ertekeles"> 4.0+⭐</label>
 <label><input type="radio" name="ertekeles"> 3.5+⭐</label>
-<label><input type="radio" name="ertekeles"> 3.0+⭐</label>
-<label><input type="radio" name="ertekeles"> 2.5+⭐</label>
-<label><input type="radio" name="ertekeles"> 2.0+⭐</label>
 
         <button class="reset">Szűrők törlése</button>
         <button class="apply">Szűrők alkalmazása</button>
     </aside>
 
     <main class="content">
-        <div class="cards">
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?camp" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Balatoni Tóparti Kemping</h4>
-                    <div class="rating">⭐ 4.8 (124)</div>
-                    <div class="location">📍 Balaton, Siófok</div>
-                    <div class="tags">
-                        <span>WiFi</span>
-                        <span>Parkoló</span>
-                        <span>Sátorhely</span>
-                        <span>Étterem</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">12 000 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?mountain" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Mátra Vista Lakókocsi Park</h4>
-                    <div class="rating">⭐ 4.9 (89)</div>
-                    <div class="location">📍 Mátra, Gyöngyös</div>
-                    <div class="tags">
-                        <span>WiFi</span>
-                        <span>Parkoló</span>
-                        <span>Étterem</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">18 500 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?forest" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Őrségi Erdei Kemping</h4>
-                    <div class="rating">⭐ 4.7 (156)</div>
-                    <div class="location">📍 Őrség, Szalafő</div>
-                    <div class="tags">
-                        <span>Parkoló</span>
-                        <span>Sátorhely</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">8 500 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
+        <!-- Loading state -->
+        <div v-if="loading" class="loading-state">
+            <p>⏳ Kempingek keresése...</p>
         </div>
 
-        <div class="view-all">
-            <button>Összes kemping megtekintése</button>
+        <!-- Error state -->
+        <div v-else-if="error" class="error-state">
+            <p>❌ {{ error }}</p>
+        </div>
+
+        <!-- Empty state -->
+        <div v-else-if="campings.length === 0" class="empty-state">
+            <p>🏕️ Nincs találat a megadott keresési feltételekkel</p>
+            <p class="muted-text">Próbáld meg módosítani a dátumokat vagy helyszínt</p>
+        </div>
+
+        <!-- Results -->
+        <div v-else>
+            <div class="results-info">
+                <p>{{ totalResults }} kemping találat</p>
+            </div>
+
+            <div class="cards">
+                <div v-for="camping in campings" :key="camping.id" class="card">
+                    <img 
+                        :src="camping.photos && camping.photos[0] ? camping.photos[0].photo_url : 'https://picsum.photos/600/400?camping'"
+                        :alt="camping.name"
+                    >
+                    <div class="card-body">
+                        <span v-if="camping.is_featured" class="badge">Kiemelt</span>
+                        <h4>{{ camping.name }}</h4>
+                        <div class="rating">
+                            ⭐ {{ camping.average_rating ? camping.average_rating.toFixed(1) : 'N/A' }}
+                            <span v-if="camping.reviews_count">({{ camping.reviews_count }})</span>
+                        </div>
+                        <div class="location">
+                            📍 {{ camping.location?.city || '' }}, {{ camping.location?.county || '' }}
+                        </div>
+                        <div class="tags">
+                            <span v-for="tag in camping.tags?.slice(0, 4)" :key="tag.id">
+                                {{ tag.name }}
+                            </span>
+                        </div>
+                        <div class="capacity-info">
+                            <span>👥 {{ camping.available_capacity }} fő</span>
+                            <span>🏕️ {{ camping.available_spots_count }} hely</span>
+                        </div>
+                        <div class="price-row">
+                            <div class="price">
+                                {{ camping.min_price?.toLocaleString() }} - {{ camping.max_price?.toLocaleString() }} Ft / éjszaka
+                            </div>
+                            <button class="book" @click="goToBooking(camping.id)">Foglalás</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="totalPages > 1" class="pagination">
+                <button 
+                    @click="changePage(currentPage - 1)" 
+                    :disabled="currentPage === 1"
+                    class="page-btn"
+                >
+                    ← Előző
+                </button>
+                <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
+                <button 
+                    @click="changePage(currentPage + 1)" 
+                    :disabled="currentPage === totalPages"
+                    class="page-btn"
+                >
+                    Következő →
+                </button>
+            </div>
         </div>
     </main>
 
@@ -401,8 +473,69 @@ export default {
             margin-top: -24px;
         }
 
-          input[type=range] {
-    width: 200px;
-    accent-color: #4CAF50;
-  }
+        input[type=range] {
+            width: 200px;
+            accent-color: #4CAF50;
+        }
+
+        /* Loading, Error, Empty states */
+        .loading-state, .error-state, .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 18px;
+        }
+
+        .error-state {
+            color: #d32f2f;
+        }
+
+        .muted-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .results-info {
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: #2f7d32;
+        }
+
+        .capacity-info {
+            font-size: 13px;
+            color: #666;
+            margin: 10px 0;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 40px;
+            padding: 20px;
+        }
+
+        .page-btn {
+            padding: 10px 20px;
+            background: #2f7d32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .page-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            font-weight: 600;
+            font-size: 16px;
+        }
 </style>
