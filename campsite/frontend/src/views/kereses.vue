@@ -6,7 +6,6 @@ import api from '../api/axios'
 const route = useRoute()
 const router = useRouter()
 
-const route = useRoute()
 const today = new Date().toISOString().split('T')[0]
 
 const searchForm = ref({
