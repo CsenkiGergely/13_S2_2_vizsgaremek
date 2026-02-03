@@ -53,11 +53,11 @@ export default {
 
 
 <h3>Helyszín típusa</h3>
-<label><input type="radio" name="helyszin"> 🌅Tóparti</label>
-<label><input type="radio" name="helyszin"> 🏔️Hegyi</label>
-<label><input type="radio" name="helyszin"> 🏕️Erdei</label>
-<label><input type="radio" name="helyszin"> 🏜️Sivatagi</label>
-<label><input type="radio" name="helyszin"> 🏞️Tengerparti</label>
+<label><input type="checkbox" name="helyszin"> 🌅Tóparti</label>
+<label><input type="checkbox" name="helyszin"> 🏔️Hegyi</label>
+<label><input type="checkbox" name="helyszin"> 🏕️Erdei</label>
+<label><input type="checkbox" name="helyszin"> 🏜️Sivatagi</label>
+<label><input type="checkbox" name="helyszin"> 🏞️Tengerparti</label>
 
         <h3>Szolgáltatások</h3>
         <div class="sor">
