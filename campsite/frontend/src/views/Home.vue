@@ -33,8 +33,7 @@ const decrementChildren = () => {
 }
 
 const handleSearch = () => {
-  console.log('Keresés:', searchForm.value)
- 
+  console.log('Keresés indítva')
 }
 </script>
 
@@ -111,7 +110,13 @@ export default {
 
           <div class="submit-col" style="margin-top:.5rem">
            
-            <button class="btn" @click="goToSearch">🔍 Keresés</button>
+            <button
+  class="btn"
+  data-cy="search-btn"
+  @click="handleSearch"
+>
+  🔍 Keresés
+</button>
 
           </div>
         </form>
