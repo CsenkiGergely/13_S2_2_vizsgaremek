@@ -21,8 +21,9 @@ class AuthController extends Controller
             'password' => 'required|confirmed'
         ]);
 
+        error_log("validáció sikeres");
         $user = User::create($fields);
-
+        error_log("szerverfül elkészült");
         $token = $user->createToken($request->name);
 
         return ['user' => $user, 'token' => $token];

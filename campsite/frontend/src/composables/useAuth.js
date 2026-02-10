@@ -46,6 +46,7 @@ const login = async (credentials) => {
   error.value = null
   
   try {
+    console.log("useAuth")
     const response = await api.post('/login', {
       email: credentials.email,
       password: credentials.password
