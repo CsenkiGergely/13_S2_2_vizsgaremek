@@ -1,35 +1,32 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-const today = new Date().toISOString().split('T')[0]
+const route = useRoute()
+const router = useRouter()
 
-const searchForm = ref({
-  location: '',
-  checkIn: '',
-  checkOut: '',
-  adults: 0,
-  children: 0
+const allCampsites = ref([
+  { id: 1, name: 'Balatoni Tóparti Kemping', location: 'Balaton, Siófok', rating: 4.8, reviews: 124, price: 12000, image: 'https://picsum.photos/600/400?camp', tags: ['WiFi', 'Parkoló', 'Sátorhely', 'Étterem'], featured: true },
+  { id: 2, name: 'Mátra Vista Lakókocsi Park', location: 'Mátra, Gyöngyös', rating: 4.9, reviews: 89, price: 18500, image: 'https://picsum.photos/600/400?mountain', tags: ['WiFi', 'Parkoló', 'Étterem'], featured: true },
+  { id: 3, name: 'Őrségi Erdei Kemping', location: 'Őrség, Szalafő', rating: 4.7, reviews: 156, price: 8500, image: 'https://picsum.photos/600/400?forest', tags: ['Parkoló', 'Sátorhely'], featured: true },
+  { id: 4, name: 'Budapesti Városi Kemping', location: 'Budapest, Zugló', rating: 4.5, reviews: 98, price: 15000, image: 'https://picsum.photos/600/400?city', tags: ['WiFi', 'Parkoló'], featured: false }
+])
+
+const searchQuery = ref('')
+
+const filteredCampsites = computed(() => {
+  if (!searchQuery.value) return allCampsites.value
+  const q = searchQuery.value.toLowerCase()
+  return allCampsites.value.filter(c => 
+    c.name.toLowerCase().includes(q) || c.location.toLowerCase().includes(q)
+  )
 })
 
-const minCheckOut = computed(() => {
-  return searchForm.value.checkIn || today
+onMounted(() => {
+  if (route.query.location) {
+    searchQuery.value = route.query.location
+  }
 })
-
-const incrementAdults = () => {
-  if (searchForm.value.adults < 10) searchForm.value.adults++
-}
-
-const decrementAdults = () => {
-  if (searchForm.value.adults > 1) searchForm.value.adults--
-}
-
-const incrementChildren = () => {
-  if (searchForm.value.children < 10) searchForm.value.children++
-}
-
-const decrementChildren = () => {
-  if (searchForm.value.children > 0) searchForm.value.children--
-}
 </script>
 <script>
 export default {
@@ -39,17 +36,13 @@ export default {
     }
   }
 }
-
 </script>
 <template>
-
-
 <div class="container">
-
-    <aside class="sidebar">
-        <h2>Ár éjszakánként</h2>
-<input type="range" min="0" max="100" value="50" id="slider">
-<p>5 000 Ft</p> <p class="line">25 000 Ft</p>
+  <aside class="sidebar">
+    <h2>Ár éjszakánként</h2>
+    <input type="range" min="0" max="100" value="50" id="slider">
+    <p>5 000 Ft</p> <p class="line">25 000 Ft</p>
 
 
 <h3>Helyszín típusa</h3>
@@ -104,79 +97,45 @@ export default {
         <button class="apply">Szűrők alkalmazása</button>
     </aside>
 
-    <main class="content">
-        <div class="cards">
+<main class="content">
+    <div class="search-header" style="margin-bottom:20px">
+      <input 
+        v-model="searchQuery" 
+        type="text" 
+        placeholder="Keresés (pl. Budapest, Balaton...)" 
+        style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc"
+      />
+    </div>
 
-            <div class="card">
-                <img src="https://picsum.photos/600/400?camp" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Balatoni Tóparti Kemping</h4>
-                    <div class="rating">⭐ 4.8 (124)</div>
-                    <div class="location">📍 Balaton, Siófok</div>
-                    <div class="tags">
-                        <span>WiFi</span>
-                        <span>Parkoló</span>
-                        <span>Sátorhely</span>
-                        <span>Étterem</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">12 000 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?mountain" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Mátra Vista Lakókocsi Park</h4>
-                    <div class="rating">⭐ 4.9 (89)</div>
-                    <div class="location">📍 Mátra, Gyöngyös</div>
-                    <div class="tags">
-                        <span>WiFi</span>
-                        <span>Parkoló</span>
-                        <span>Étterem</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">18 500 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?forest" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Őrségi Erdei Kemping</h4>
-                    <div class="rating">⭐ 4.7 (156)</div>
-                    <div class="location">📍 Őrség, Szalafő</div>
-                    <div class="tags">
-                        <span>Parkoló</span>
-                        <span>Sátorhely</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">8 500 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
+    <div class="cards">
+      <div v-for="camp in filteredCampsites" :key="camp.id" class="card">
+        <img :src="camp.image" :alt="camp.name">
+        <div class="card-body">
+          <span v-if="camp.featured" class="badge">Kiemelt</span>
+          <h4>{{ camp.name }}</h4>
+          <div class="rating">⭐ {{ camp.rating }} ({{ camp.reviews }})</div>
+          <div class="location">📍 {{ camp.location }}</div>
+          <div class="tags">
+            <span v-for="tag in camp.tags" :key="tag">{{ tag }}</span>
+          </div>
+          <div class="price-row">
+            <div class="price">{{ camp.price.toLocaleString() }} Ft / éjszaka</div>
+            <router-link to="/foglalas">
+              <button class="book">Foglalás</button>
+            </router-link>
+          </div>
         </div>
+      </div>
+    </div>
 
-        <div class="view-all">
-            <button>Összes kemping megtekintése</button>
-        </div>
-    </main>
+    <div v-if="filteredCampsites.length === 0" style="text-align:center;margin-top:40px;color:#999">
+      Nincs találat a keresésre: <strong>{{ searchQuery }}</strong>
+    </div>
 
+    <div class="view-all">
+      <button>Összes kemping megtekintése</button>
+    </div>
+  </main>
 </div>
 </template>
 

@@ -1,40 +1,36 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
-
+const router = useRouter()
 const today = new Date().toISOString().split('T')[0]
 
 const searchForm = ref({
   location: '',
   checkIn: '',
   checkOut: '',
-  adults: 0,
+  adults: 1,
   children: 0
 })
 
-const minCheckOut = computed(() => {
-  return searchForm.value.checkIn || today
-})
+const minCheckOut = computed(() => searchForm.value.checkIn || today)
 
-const incrementAdults = () => {
-  if (searchForm.value.adults < 10) searchForm.value.adults++
-}
-
-const decrementAdults = () => {
-  if (searchForm.value.adults > 1) searchForm.value.adults--
-}
-
-const incrementChildren = () => {
-  if (searchForm.value.children < 10) searchForm.value.children++
-}
-
-const decrementChildren = () => {
-  if (searchForm.value.children > 0) searchForm.value.children--
-}
+const incrementAdults = () => { if (searchForm.value.adults < 10) searchForm.value.adults++ }
+const decrementAdults = () => { if (searchForm.value.adults > 1) searchForm.value.adults-- }
+const incrementChildren = () => { if (searchForm.value.children < 10) searchForm.value.children++ }
+const decrementChildren = () => { if (searchForm.value.children > 0) searchForm.value.children-- }
 
 const handleSearch = () => {
-  console.log('Keresés:', searchForm.value)
- 
+  router.push({
+    path: '/kereses',
+    query: {
+      location: searchForm.value.location,
+      checkIn: searchForm.value.checkIn,
+      checkOut: searchForm.value.checkOut,
+      adults: searchForm.value.adults,
+      children: searchForm.value.children
+    }
+  })
 }
 </script>
 
@@ -80,41 +76,37 @@ export default {
 <template>
  
 
-  <div class="hero" role="banner">
-    <div class="container">
-      <div class="title">
-        <h1>Találd meg a tökéletes kempinget</h1>
-        <p class="lead">Fedezd fel a legjobb kempinghelyeket Magyarországon</p>
-      </div>
+    <div class="page-home">
+    <div class="hero" role="banner">
+      <div class="container">
+        <div class="title">
+          <h1>Találd meg a tökéletes kempinget</h1>
+          <p class="lead">Fedezd fel a legjobb kempinghelyeket Magyarországon</p>
+        </div>
 
-      <div class="search-card" aria-labelledby="search-heading">
-        <form class="grid" id="searchForm" onsubmit="event.preventDefault(); alert('Keresés indítva (demo)')">
-          <div class="location-col">
-            <label for="location">📍 Helyszín</label>
-            <input id="location" name="location" type="text" placeholder="Pl. Balaton, Tisza-tó..." />
-          </div>
-
-          <div>
-            <label for="checkIn">📅 Érkezés</label>
-            <input id="checkIn" name="checkIn" type="date" />
-          </div>
-
-          <div>
-            <label for="checkOut">📅 Távozás</label>
-            <input id="checkOut" name="checkOut" type="date" />
-          </div>
-
-          <div>
-            <label for="guests">👥 Vendégek</label>
-            <input id="guests" name="guests" type="number" min="1" value="2" />
-          </div>
-
-          <div class="submit-col" style="margin-top:.5rem">
-           
-            <button class="btn" @click="goToSearch">🔍 Keresés</button>
-
-          </div>
-        </form>
+        <div class="search-card">
+          <form class="grid" @submit.prevent="handleSearch">
+            <div class="location-col">
+              <label for="location">📍 Helyszín</label>
+              <input id="location" v-model="searchForm.location" type="text" placeholder="Pl. Balaton, Budapest..." />
+            </div>
+            <div>
+              <label for="checkIn">📅 Érkezés</label>
+              <input id="checkIn" v-model="searchForm.checkIn" type="date" :min="today" />
+            </div>
+            <div>
+              <label for="checkOut">📅 Távozás</label>
+              <input id="checkOut" v-model="searchForm.checkOut" type="date" :min="minCheckOut" />
+            </div>
+            <div>
+              <label for="guests">👥 Vendégek</label>
+              <input id="guests" v-model.number="searchForm.adults" type="number" min="1" />
+            </div>
+            <div class="submit-col" style="margin-top:.5rem">
+              <button class="btn" type="submit">🔍 Keresés</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
