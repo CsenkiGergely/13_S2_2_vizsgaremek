@@ -42,142 +42,135 @@ export default {
 
 </script>
 <template>
-
-
-<div class="container">
-
+    <div class="container">
     <aside class="sidebar">
         <h2>Ár éjszakánként</h2>
-<input type="range" min="0" max="100" value="50" id="slider">
-<p>5 000 Ft</p> <p class="line">25 000 Ft</p>
+        <input type="range" min="0" max="100" value="50" id="slider">
+        <p>5 000 Ft</p> <p class="line">25 000 Ft</p>
 
-
-<h3>Helyszín típusa</h3>
-<label><input type="radio" name="helyszin"> 🌅Tóparti</label>
-<label><input type="radio" name="helyszin"> 🏔️Hegyi</label>
-<label><input type="radio" name="helyszin"> 🏕️Erdei</label>
-<label><input type="radio" name="helyszin"> 🏜️Sivatagi</label>
-<label><input type="radio" name="helyszin"> 🏞️Tengerparti</label>
+        <h3>Helyszín típusa</h3>
+        <label><input type="radio" name="helyszin"> 🌅Tóparti</label>
+        <label><input type="radio" name="helyszin"> 🏔️Hegyi</label>
+        <label><input type="radio" name="helyszin"> 🏕️Erdei</label>
+        <label><input type="radio" name="helyszin"> 🏜️Sivatagi</label>
+        <label><input type="radio" name="helyszin"> 🏞️Tengerparti</label>
 
         <h3>Szolgáltatások</h3>
         <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/wifi-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Wifi</label>
-</div>
+          <input type="checkbox" id="opcio1">
+          <img src="/img/wifi-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+          <label for="opcio1">Wifi</label>
+        </div>
         <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/tent-9-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Sátorhelyek</label>
-</div>
+          <input type="checkbox" id="opcio1">
+          <img src="/img/tent-9-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+          <label for="opcio1">Sátorhelyek</label>
+        </div>
         <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/mountain-outlined-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Túraútvonalak</label>
-</div>
-       <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/fork-knife-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Étterem</label>
-</div>
-       <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/car-side-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Lakókocsi csatlakozó</label>
-</div>
+          <input type="checkbox" id="opcio1">
+          <img src="/img/mountain-outlined-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+          <label for="opcio1">Túraútvonalak</label>
+        </div>
+        <div class="sor">
+          <input type="checkbox" id="opcio1">
+          <img src="/img/fork-knife-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+          <label for="opcio1">Étterem</label>
+        </div>
+               <div class="sor">
+          <input type="checkbox" id="opcio1">
+          <img src="/img/car-side-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+          <label for="opcio1">Lakókocsi csatlakozó</label>
+        </div>
 
-       <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/car-side-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Parkoló</label>
-</div>
+        <div class="sor">
+          <input type="checkbox" id="opcio1">
+          <img src="/img/car-side-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
+          <label for="opcio1">Parkoló</label>
+        </div>
 
-<h3>Minimum értékelés</h3>
-<label><input type="radio" name="ertekeles"> 4.5+⭐</label>
-<label><input type="radio" name="ertekeles"> 4.0+⭐</label>
-<label><input type="radio" name="ertekeles"> 3.5+⭐</label>
-<label><input type="radio" name="ertekeles"> 3.0+⭐</label>
-<label><input type="radio" name="ertekeles"> 2.5+⭐</label>
-<label><input type="radio" name="ertekeles"> 2.0+⭐</label>
+        <h3>Minimum értékelés</h3>
+        <label><input type="radio" name="ertekeles"> 4.5+⭐</label>
+        <label><input type="radio" name="ertekeles"> 4.0+⭐</label>
+        <label><input type="radio" name="ertekeles"> 3.5+⭐</label>
+        <label><input type="radio" name="ertekeles"> 3.0+⭐</label>
+        <label><input type="radio" name="ertekeles"> 2.5+⭐</label>
+        <label><input type="radio" name="ertekeles"> 2.0+⭐</label>
 
         <button class="reset">Szűrők törlése</button>
         <button class="apply">Szűrők alkalmazása</button>
     </aside>
 
     <main class="content">
-        <div class="cards">
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?camp" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Balatoni Tóparti Kemping</h4>
-                    <div class="rating">⭐ 4.8 (124)</div>
-                    <div class="location">📍 Balaton, Siófok</div>
-                    <div class="tags">
-                        <span>WiFi</span>
-                        <span>Parkoló</span>
-                        <span>Sátorhely</span>
-                        <span>Étterem</span>
+            <div class="cards">
+                <div class="card">
+                    <img src="https://picsum.photos/600/400?camp" alt="">
+                    <div class="card-body">
+                        <span class="badge">Kiemelt</span>
+                        <h4>Balatoni Tóparti Kemping</h4>
+                        <div class="rating">⭐ 4.8 (124)</div>
+                        <div class="location">📍 Balaton, Siófok</div>
+                        <div class="tags">
+                            <span>WiFi</span>
+                            <span>Parkoló</span>
+                            <span>Sátorhely</span>
+                            <span>Étterem</span>
+                        </div>
+                        <div class="price-row">
+                            <div class="price">12 000 Ft / éjszaka</div>
+                            <router-link to="/foglalas">
+                                <button class="book">Foglalás</button>
+                            </router-link>
+                        </div>
                     </div>
-                    <div class="price-row">
-                        <div class="price">12 000 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
+                </div>
+            
+                <div class="card">
+                    <img src="https://picsum.photos/600/400?mountain" alt="">
+                    <div class="card-body">
+                        <span class="badge">Kiemelt</span>
+                        <h4>Mátra Vista Lakókocsi Park</h4>
+                        <div class="rating">⭐ 4.9 (89)</div>
+                        <div class="location">📍 Mátra, Gyöngyös</div>
+                        <div class="tags">
+                            <span>WiFi</span>
+                            <span>Parkoló</span>
+                            <span>Étterem</span>
+                        </div>
+                        <div class="price-row">
+                            <div class="price">18 500 Ft / éjszaka</div>
+                            <router-link to="/foglalas">
+                                <button class="book">Foglalás</button>
+                            </router-link>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="card">
+                    <img src="https://picsum.photos/600/400?forest" alt="">
+                    <div class="card-body">
+                        <span class="badge">Kiemelt</span>
+                        <h4>Őrségi Erdei Kemping</h4>
+                        <div class="rating">⭐ 4.7 (156)</div>
+                        <div class="location">📍 Őrség, Szalafő</div>
+                        <div class="tags">
+                            <span>Parkoló</span>
+                            <span>Sátorhely</span>
+                        </div>
+                        <div class="price-row">
+                            <div class="price">8 500 Ft / éjszaka</div>
+                            <router-link to="/foglalas">
+                                <button class="book">Foglalás</button>
+                            </router-link>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <img src="https://picsum.photos/600/400?mountain" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Mátra Vista Lakókocsi Park</h4>
-                    <div class="rating">⭐ 4.9 (89)</div>
-                    <div class="location">📍 Mátra, Gyöngyös</div>
-                    <div class="tags">
-                        <span>WiFi</span>
-                        <span>Parkoló</span>
-                        <span>Étterem</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">18 500 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
+            <div class="view-all">
+                <button>Összes kemping megtekintése</button>
             </div>
-
-            <div class="card">
-                <img src="https://picsum.photos/600/400?forest" alt="">
-                <div class="card-body">
-                    <span class="badge">Kiemelt</span>
-                    <h4>Őrségi Erdei Kemping</h4>
-                    <div class="rating">⭐ 4.7 (156)</div>
-                    <div class="location">📍 Őrség, Szalafő</div>
-                    <div class="tags">
-                        <span>Parkoló</span>
-                        <span>Sátorhely</span>
-                    </div>
-                    <div class="price-row">
-                        <div class="price">8 500 Ft / éjszaka</div>
-                    <router-link to="/foglalas">
-                            <button class="book">Foglalás</button>
-                    </router-link>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="view-all">
-            <button>Összes kemping megtekintése</button>
-        </div>
-    </main>
-
-</div>
+        </main>
+    </div>
 </template>
 
 <style scoped>

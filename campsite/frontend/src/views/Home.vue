@@ -78,8 +78,6 @@ export default {
 }
 </script>
 <template>
- 
-
   <div class="hero" role="banner">
     <div class="container">
       <div class="title">
@@ -110,46 +108,36 @@ export default {
           </div>
 
           <div class="submit-col" style="margin-top:.5rem">
-           
             <button class="btn" @click="goToSearch">🔍 Keresés</button>
-
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  
   <main class="content" role="main">
     
     <h2 class="section-title">Népszerű régiók</h2>
     <p class="muted">Válogatásunk a legkedveltebb kempingek közül — kattints a képekre a részletekért.</p>
 
-   
     <div class="gallery" aria-label="Népszerű régiók képei">
-                          <router-link to="/foglalas">
-                                  <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
-                    </router-link>
-                                              <router-link to="/foglalas">
-                                        <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
-                    </router-link>
-                                              <router-link to="/foglalas">
-                                  <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
-                    </router-link>
-                                              <router-link to="/foglalas">
-                                  <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
-                    </router-link>
-
-
-     
-     
+      <router-link to="/foglalas">
+        <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
+      </router-link>
+      <router-link to="/foglalas">
+        <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
+      </router-link>
+      <router-link to="/foglalas">
+        <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
+      </router-link>
+      <router-link to="/foglalas">
+        <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
+      </router-link>
     </div>
-
 
     <h2 class="section-title" style="margin-top:2rem">Kiemelt kempingünk</h2>
     <p class="muted">Különlegesen ajánlott hely — családbarát szolgáltatásokkal és gyönyörű panorámával.</p>
 
-   
     <div class="single-image" aria-hidden="false">
       <img src="/img/night-1189929_1920.jpg" alt="Kiemelt kemping nagy panorámakép"/>
     </div>
