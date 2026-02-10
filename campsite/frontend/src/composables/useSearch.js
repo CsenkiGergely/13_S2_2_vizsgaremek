@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import api from '../api/axios'
 
 const results = ref(localStorage.getItem('searchResults') || null)
