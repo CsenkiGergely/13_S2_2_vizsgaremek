@@ -174,228 +174,221 @@ export default {
 </template>
 
 <style scoped>
- * {
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
+    * {
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    .sor {
+        display: flex;          /* elemek egy sorban */
+        align-items: center;    /* függőlegesen középre igazítja */
+        gap: 10px;              /* távolság az elemek között */
+    }
+
+    .kicsi-kep {
+        width: 15px;   /* kicsinyített kép */
+        height: auto;  /* arány megtartása */
+    }
+
+    body {
+        margin: 0;
+        background: #f6f7f8;
+    }
+
+    header {
+        background: #ffffff;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #ddd;
+    }
+
+    header h1 {
+        color: #2f7d32;
+        font-size: 22px;
+    }
+
+    header .actions button {
+        margin-left: 10px;
+        padding: 8px 14px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+    }
+
+    .login {
+        background: #e0e0e0;
+    }
+
+    .register {
+        background: #2f7d32;
+        color: white;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column; /* mobil: szűrő felül, tartalom alatta */
+        gap: 20px;
+        padding: 20px;
+        padding-left: 20px; /* mobilon kis bal tér */
+        padding-right: 20px;
+    }
+
+    @media (min-width: 768px) { /* tablet-től nagyobb képernyő */
+        .container {
+            flex-direction: row; /* desktop: szűrő balra, tartalom jobbra */
+            padding-left: 150px; /* nagyobb bal tér */
+            padding-right: 20px;
         }
+    }
 
-.sor {
-  display: flex;          /* elemek egy sorban */
-  align-items: center;    /* függőlegesen középre igazítja */
-  gap: 10px;              /* távolság az elemek között */
-}
-
-.kicsi-kep {
-  width: 15px;   /* kicsinyített kép */
-  height: auto;  /* arány megtartása */
-}
-
-
-        body {
-            margin: 0;
-            background: #f6f7f8;
+    @media (min-width: 1200px) { /* nagy monitor */
+        .container {
+            padding-left: 250px; /* extra nagy bal tér */
         }
+    }
 
-        header {
-            background: #ffffff;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #ddd;
-        }
+    .sidebar {
+        width: 260px;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-left: 0;
+    }
 
-        header h1 {
-            color: #2f7d32;
-            font-size: 22px;
-        }
+    .sidebar h3 {
+        margin-top: 20px;
+        font-size: 15px;
+    }
 
-        header .actions button {
-            margin-left: 10px;
-            padding: 8px 14px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-        }
+    .sidebar label {
+        display: block;
+        margin: 6px 0;
+        font-size: 14px;
+    }
 
-        .login {
-            background: #e0e0e0;
-        }
+    .sidebar button {
+        width: 100%;
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+    }
 
-        .register {
-            background: #2f7d32;
-            color: white;
-        }
+    .apply {
+        background: #2f7d32;
+        color: white;
+    }
 
-.container {
-  display: flex;
-  flex-direction: column; /* mobil: szűrő felül, tartalom alatta */
-  gap: 20px;
-  padding: 20px;
-  padding-left: 20px; /* mobilon kis bal tér */
-  padding-right: 20px;
-}
+    .reset {
+        background: #eee;
+    }
 
-@media (min-width: 768px) { /* tablet-től nagyobb képernyő */
-  .container {
-    flex-direction: row; /* desktop: szűrő balra, tartalom jobbra */
-    padding-left: 150px; /* nagyobb bal tér */
-    padding-right: 20px;
-  }
-}
+    .content {
+        flex: 1;
+    }
 
-@media (min-width: 1200px) { /* nagy monitor */
-  .container {
-    padding-left: 250px; /* extra nagy bal tér */
-  }
-}
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
 
+    .card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
 
+    .card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+    }
 
-        
-.sidebar {
-    width: 260px;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    /* Opció: ha a sidebar-t jobbra szeretnéd tolni a bal üres tér miatt */
-    margin-left: 0; 
-}
+    .card-body {
+        padding: 15px;
+    }
 
-        .sidebar h3 {
-            margin-top: 20px;
-            font-size: 15px;
-        }
+    .badge {
+        background: orange;
+        color: white;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        display: inline-block;
+        margin-bottom: 8px;
+    }
 
-        .sidebar label {
-            display: block;
-            margin: 6px 0;
-            font-size: 14px;
-        }
+    .card h4 {
+        margin: 5px 0;
+    }
 
-        .sidebar button {
-            width: 100%;
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-        }
+    .rating {
+        color: #f9a825;
+        font-size: 14px;
+    }
 
-        .apply {
-            background: #2f7d32;
-            color: white;
-        }
+    .location {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 10px;
+    }
 
-        .reset {
-            background: #eee;
-        }
+    .tags span {
+        display: inline-block;
+        background: #eef3ee;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        margin: 3px 3px 0 0;
+    }
 
-        
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+    }
 
-.content {
-    flex: 1;
-}
+    .price {
+        font-size: 18px;
+        font-weight: bold;
+        color: #2f7d32;
+    }
 
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
+    .book {
+        background: #2f7d32;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
 
-        .card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
+    .view-all {
+        margin-top: 30px;
+        text-align: center;
+    }
 
-        .card img {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-        }
+    .view-all button {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        background: white;
+        cursor: pointer;
+    }
 
-        .card-body {
-            padding: 15px;
-        }
+    .line{
+        margin-left: 150px;
+        margin-top: -24px;
+    }
 
-        .badge {
-            background: orange;
-            color: white;
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            display: inline-block;
-            margin-bottom: 8px;
-        }
-
-        .card h4 {
-            margin: 5px 0;
-        }
-
-        .rating {
-            color: #f9a825;
-            font-size: 14px;
-        }
-
-        .location {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        .tags span {
-            display: inline-block;
-            background: #eef3ee;
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            margin: 3px 3px 0 0;
-        }
-
-        .price-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-        }
-
-        .price {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2f7d32;
-        }
-
-        .book {
-            background: #2f7d32;
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .view-all {
-            margin-top: 30px;
-            text-align: center;
-        }
-
-        .view-all button {
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            background: white;
-            cursor: pointer;
-        }
-
-        .line{
-            margin-left: 150px;
-            margin-top: -24px;
-        }
-
-          input[type=range] {
-    width: 200px;
-    accent-color: #4CAF50;
-  }
+    input[type=range] {
+        width: 200px;
+        accent-color: #4CAF50;
+    }
 </style>
