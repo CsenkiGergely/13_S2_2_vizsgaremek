@@ -59,7 +59,12 @@ const handleLogout = async () => {
     <nav class="hidden md:flex items-center space-x-4">
       <a href="#" class="text-gray-700 hover:text-[#4A7434] transition text-base font-medium">Menü</a>
 
-
+  <button 
+    @click="openPhoneLoginModal" 
+    class="bg-[#4A7434] text-white px-3 py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium ml-2"
+  >
+    Legyél partnerünk
+  </button>
 
 <template v-if="!isAuthenticated">
   <button 
@@ -77,12 +82,7 @@ const handleLogout = async () => {
   </button>
 
   <!-- Új telefonos bejelentkezés gomb -->
-  <button 
-    @click="openPhoneLoginModal" 
-    class="bg-[#4A7434] text-white px-3 py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium ml-2"
-  >
-    Legyél partnerünk
-  </button>
+
 </template>
 
       <template v-else>
