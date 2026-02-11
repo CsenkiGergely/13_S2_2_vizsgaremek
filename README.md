@@ -9,5 +9,5 @@ Ez a repository a vizsgaremeket és dokumentációját tartalmazza.
 - **Dicső András** (@DicsoAndras)
 
 ## Határidő
-- **2026. január vége** – Leadható verzió
+- **2026. február vége** – Tesztesetek
 
