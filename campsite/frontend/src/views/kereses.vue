@@ -1,17 +1,9 @@
 <script setup>
-
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import api from '../api/axios'
-
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import axios from 'axios'
 
 const route = useRoute()
-const router = useRouter()
-
-
-const allCampsites = ref([])
-const loading = ref(false)
-const error = ref(null)
 
 const searchQuery = ref('')
 const priceRange = ref(100)
@@ -19,8 +11,10 @@ const selectedLocationTypes = ref([])
 const selectedServices = ref([])
 const minRating = ref(null)
 
-// Debounce timer a kereséshez
-let debounceTimer = null
+// Adatok az API-ból
+const allCampsites = ref([])
+const loading = ref(false)
+const error = ref(null)
 
 // API hívás a kempingek betöltéséhez
 const fetchCampsites = async () => {
@@ -53,7 +47,8 @@ const fetchCampsites = async () => {
     allCampsites.value = response.data
   } catch (err) {
     console.error('Hiba a kempingek betöltésekor:', err)
-    error.value = 'Nem sikerült betölteni a kempingeket. Próbáld újra később.'
+    error.value = 'Nem sikerült betölteni a kempingeket. Ellenőrizd, hogy a backend fut-e!'
+    allCampsites.value = []
   } finally {
     loading.value = false
   }
@@ -68,15 +63,15 @@ const resetFilters = () => {
   selectedServices.value = []
   minRating.value = null
   fetchCampsites()
-
 }
 
-// Debounced keresés - csak a searchQuery-nél
+// Watch a szűrőkre - debounce a searchQuery-nél
+let debounceTimer = null
 watch(searchQuery, () => {
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
     fetchCampsites()
-  }, 500) // 500ms késleltetés
+  }, 500)
 })
 
 // Többi szűrő azonnal hívja az API-t
@@ -84,15 +79,26 @@ watch([priceRange, selectedLocationTypes, selectedServices, minRating], () => {
   fetchCampsites()
 }, { deep: true })
 
-
 onMounted(() => {
+  // Beolvassuk a query paramétereket a Home oldalról
   if (route.query.location) {
     searchQuery.value = route.query.location
   }
+  if (route.query.checkIn) {
+    console.log('Check-in dátum:', route.query.checkIn)
+  }
+  if (route.query.checkOut) {
+    console.log('Check-out dátum:', route.query.checkOut)
+  }
+  if (route.query.guests) {
+    console.log('Vendégek száma:', route.query.guests)
+  }
+  
+  // Betöltjük az adatokat
   fetchCampsites()
-
 })
 </script>
+
 <template>
 <div class="page-container">
   <!-- Hero keresési blokk (ugyanaz mint a Home oldalon) -->
@@ -104,7 +110,7 @@ onMounted(() => {
       </div>
 
       <div class="search-card">
-        <form class="grid" @submit.prevent="fetchCampsites">
+        <form class="grid" @submit.prevent="">
           <div class="location-col">
             <label for="location">📍 Helyszín</label>
             <input id="location" v-model="searchQuery" type="text" placeholder="Pl. Balaton, Budapest..." />
@@ -189,27 +195,26 @@ onMounted(() => {
 
 <main class="content">
     <div v-if="loading" style="text-align:center;margin-top:40px;color:#666">
-      Töltés...
+      ⏳ Töltés...
     </div>
 
-    <div v-else-if="error" style="text-align:center;margin-top:40px;color:#d32f2f">
+    <div v-else-if="error" style="text-align:center;margin-top:40px;padding:20px;color:#d32f2f;background:#ffebee;border-radius:8px">
       {{ error }}
     </div>
 
     <template v-else>
       <div class="cards">
         <div v-for="camp in filteredCampsites" :key="camp.id" class="card">
-          <img :src="camp.image" :alt="camp.name">
+          <img :src="camp.image || 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'" :alt="camp.name">
           <div class="card-body">
-            <span v-if="camp.featured" class="badge">Kiemelt</span>
             <h4>{{ camp.name }}</h4>
-            <div class="rating">⭐ {{ camp.rating }} ({{ camp.reviews }})</div>
+            <div class="rating" v-if="camp.rating">⭐ {{ camp.rating }} ({{ camp.reviews }})</div>
             <div class="location">📍 {{ camp.location }}</div>
             <div class="tags">
               <span v-for="tag in camp.tags" :key="tag">{{ tag }}</span>
             </div>
             <div class="price-row">
-              <div class="price">{{ camp.price.toLocaleString() }} Ft / éjszaka</div>
+              <div class="price">{{ camp.price ? camp.price.toLocaleString() : '0' }} Ft / éjszaka</div>
               <router-link to="/foglalas">
                 <button class="book">Foglalás</button>
               </router-link>
@@ -218,13 +223,12 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="filteredCampsites.length === 0" style="text-align:center;margin-top:40px;color:#999">
-        Nincs találat a keresésre
+      <div v-if="filteredCampsites.length === 0 && !loading" style="text-align:center;margin-top:40px;color:#999">
+        Nincs találat a keresésre 😔
       </div>
 
-
-      <div class="view-all">
-        <button>Összes kemping megtekintése</button>
+      <div class="view-all" v-if="filteredCampsites.length > 0">
+        <p style="color:#666;margin-top:20px">Összesen {{ filteredCampsites.length }} kemping</p>
       </div>
     </template>
   </main>
@@ -238,13 +242,14 @@ onMounted(() => {
             font-family: Arial, sans-serif;
         }
 
-/* Hero keresési blokk stílusok */
+/* Page container */
 .page-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
+/* Hero keresési blokk stílusok */
 .hero-search {
   background: linear-gradient(135deg, #4A7434 0%, #2f7d32 100%);
   padding: 60px 20px;
