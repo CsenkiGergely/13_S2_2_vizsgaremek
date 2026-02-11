@@ -1,0 +1,27 @@
+*** Settings ***
+Library           SeleniumLibrary
+
+*** Test Cases ***
+Regiszter
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    5
+    Execute JavaScript    document.querySelector('button.text-gray-700').click()
+    Sleep    2
+    Input Text    id=register-name    Gergely
+    Input Text    id=register-email    gergely@example.com
+    Input Text    id=register-password    Csenki12
+    Input Text    id=register-password-confirm    Csenki12
+    Click Element    xpath=//button[contains(@class,"bg-[#4A7434]") and contains(., "Regisztráció")]
+    Sleep    5
+    Close Browser
+
+bejelentkezes
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    2
+    Click Element    xpath=//button[contains(text(),' Bejelentkezés ')]
+    Input Text    id=login-email    gergely@example.com
+    Input Text    id=login-password    Csenki12
+    Click Element    xpath=//button[contains(@class,'4A7434')]
+    Close Browser
