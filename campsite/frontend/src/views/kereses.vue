@@ -3,7 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 
-const route = useRoute()
+
+const router = useRouter()
 
 const searchQuery = ref('')
 const priceRange = ref(100)
