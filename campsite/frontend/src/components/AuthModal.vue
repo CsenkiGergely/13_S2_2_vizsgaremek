@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useRouter } from 'vue-router'
 
-const { login, register, forgotPassword, loading } = useAuth()
+const { login, register, forgotPassword, upgradeToPartner, loading } = useAuth()
 const router = useRouter()
 
 const props = defineProps({
@@ -145,6 +145,7 @@ const handleForgotPassword = async () => {
 // phone login
 const handlePhoneLogin = async () => {
   formError.value = null
+  successMessage.value = null
   const phone = phoneLoginForm.value.phone.trim()
   const phoneRegex = /^\+36\d{2}\s?\d{3}\s?\d{4}$/
   if (!phoneRegex.test(phone)) {
@@ -152,17 +153,17 @@ const handlePhoneLogin = async () => {
     return
   }
 
-  try {
-    const result = await login({ phone })
-    if (result.success) {
-      emit('success', result.user)
+const result = await upgradeToPartner(phone)
+
+  if (result.success) {
+    emit('success', result.user)
+    successMessage.value = result.message || 'Sikeresen partner lettél!'
+    setTimeout(() => {
       closeModal()
       router.push('/admin')
-    } else {
-      formError.value = result.error || 'Hiba a bejelentkezés során.'
-    }
-  } catch {
-    formError.value = 'Hiba a bejelentkezés során.'
+}, 800)
+  } else {
+    formError.value = result.error || 'Hiba történt partner státusz váltás közben.'
   }
 }
 </script>
@@ -193,7 +194,8 @@ const handlePhoneLogin = async () => {
                 <template v-if="isLogin">Bejelentkezés</template>
                 <template v-else-if="isRegister">Regisztráció</template>
                 <template v-else-if="isForgotPassword">Elfelejtett jelszó</template>
-                <template v-else-if="isPhoneLogin">Telefonszámos bejelentkezés</template>
+                <template v-else-if="isPhoneLogin"></template>
+                 <template v-else-if="isPhoneLogin">Partner státusz igénylése</template>
               </h2>
 
               <!-- hiba/siker üzenet -->
@@ -231,7 +233,7 @@ const handlePhoneLogin = async () => {
                     class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition" />
                 </div>
                 <button type="submit" :disabled="loading" class="w-full rounded-lg bg-[#4A7434] px-4 py-3 text-sm font-semibold text-white hover:bg-[#F17E21] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                  Bejelentkezés
+                  Partner leszek
                 </button>
               </form>
 

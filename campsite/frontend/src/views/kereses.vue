@@ -1,254 +1,234 @@
 <script setup>
+
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/axios'
 
+
 const route = useRoute()
 const router = useRouter()
 
-const today = new Date().toISOString().split('T')[0]
 
-const searchForm = ref({
-  location: '',
-  checkIn: '',
-  checkOut: '',
-  adults: 2,
-  children: 0
-})
-
-const campings = ref([])
+const allCampsites = ref([])
 const loading = ref(false)
 const error = ref(null)
-const currentPage = ref(1)
-const totalPages = ref(1)
-const totalResults = ref(0)
 
-const minCheckOut = computed(() => {
-  return searchForm.value.checkIn || today
-})
+const searchQuery = ref('')
+const priceRange = ref(100)
+const selectedLocationTypes = ref([])
+const selectedServices = ref([])
+const minRating = ref(null)
 
-const incrementAdults = () => {
-  if (searchForm.value.adults < 10) searchForm.value.adults++
-}
+// Debounce timer a kereséshez
+let debounceTimer = null
 
-const decrementAdults = () => {
-  if (searchForm.value.adults > 1) searchForm.value.adults--
-}
-
-const incrementChildren = () => {
-  if (searchForm.value.children < 10) searchForm.value.children++
-}
-
-const decrementChildren = () => {
-  if (searchForm.value.children > 0) searchForm.value.children--
-}
-
-const searchCampings = async (page = 1) => {
+// API hívás a kempingek betöltéséhez
+const fetchCampsites = async () => {
   loading.value = true
   error.value = null
   
   try {
-    const params = {
-      page: page
+    const params = {}
+    
+    if (searchQuery.value) {
+      params.search = searchQuery.value
     }
     
-    if (searchForm.value.location) params.location = searchForm.value.location
-    if (searchForm.value.checkIn) params.arrival_date = searchForm.value.checkIn
-    if (searchForm.value.checkOut) params.departure_date = searchForm.value.checkOut
+    const maxPrice = priceRange.value * 300
+    params.max_price = maxPrice
     
-    const totalGuests = searchForm.value.adults + searchForm.value.children
-    if (totalGuests > 0) params.guests = totalGuests
+    if (minRating.value !== null) {
+      params.min_rating = minRating.value
+    }
     
-    const response = await api.get('/booking/search', { params })
+    if (selectedLocationTypes.value.length > 0) {
+      params.location_types = selectedLocationTypes.value.join(',')
+    }
     
-    campings.value = response.data.data || []
-    currentPage.value = response.data.current_page || 1
-    totalPages.value = response.data.last_page || 1
-    totalResults.value = response.data.total || 0
+    if (selectedServices.value.length > 0) {
+      params.services = selectedServices.value.join(',')
+    }
     
-    console.log('Kempingek:', campings.value)
+    const response = await axios.get('http://localhost:8000/api/campsites', { params })
+    allCampsites.value = response.data
   } catch (err) {
-    error.value = err.response?.data?.message || 'Hiba történt a keresés során'
-    console.error('Keresési hiba:', err)
+    console.error('Hiba a kempingek betöltésekor:', err)
+    error.value = 'Nem sikerült betölteni a kempingeket. Próbáld újra később.'
   } finally {
     loading.value = false
   }
 }
 
-const goToBooking = (campingId) => {
-  router.push({
-    path: '/fizetes',
-    query: {
-      camping_id: campingId,
-      arrival_date: searchForm.value.checkIn,
-      departure_date: searchForm.value.checkOut,
-      guests: searchForm.value.adults + searchForm.value.children
-    }
-  })
+const filteredCampsites = computed(() => allCampsites.value)
+
+const resetFilters = () => {
+  searchQuery.value = ''
+  priceRange.value = 100
+  selectedLocationTypes.value = []
+  selectedServices.value = []
+  minRating.value = null
+  fetchCampsites()
+
 }
 
-const changePage = (page) => {
-  if (page >= 1 && page <= totalPages.value) {
-    searchCampings(page)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-}
+// Debounced keresés - csak a searchQuery-nél
+watch(searchQuery, () => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    fetchCampsites()
+  }, 500) // 500ms késleltetés
+})
+
+// Többi szűrő azonnal hívja az API-t
+watch([priceRange, selectedLocationTypes, selectedServices, minRating], () => {
+  fetchCampsites()
+}, { deep: true })
+
 
 onMounted(() => {
-  // Query paraméterek beolvasása
-  if (route.query.location) searchForm.value.location = route.query.location
-  if (route.query.arrival_date) searchForm.value.checkIn = route.query.arrival_date
-  if (route.query.departure_date) searchForm.value.checkOut = route.query.departure_date
-  if (route.query.guests) {
-    const guests = parseInt(route.query.guests)
-    searchForm.value.adults = guests || 2
+  if (route.query.location) {
+    searchQuery.value = route.query.location
   }
-  
-  // Ha vannak keresési paraméterek, keresés indítása
-  if (searchForm.value.checkIn && searchForm.value.checkOut) {
-    searchCampings()
-  }
+  fetchCampsites()
+
 })
 </script>
 <template>
+<div class="page-container">
+  <!-- Hero keresési blokk (ugyanaz mint a Home oldalon) -->
+  <div class="hero-search">
+    <div class="search-container">
+      <div class="search-title">
+        <h1>Találd meg a tökéletes kempinget</h1>
+        <p class="lead">Fedezd fel a legjobb kempinghelyeket Magyarországon</p>
+      </div>
 
+      <div class="search-card">
+        <form class="grid" @submit.prevent="fetchCampsites">
+          <div class="location-col">
+            <label for="location">📍 Helyszín</label>
+            <input id="location" v-model="searchQuery" type="text" placeholder="Pl. Balaton, Budapest..." />
+          </div>
+          <div>
+            <label for="checkIn">📅 Érkezés</label>
+            <input id="checkIn" type="date" />
+          </div>
+          <div>
+            <label for="checkOut">📅 Távozás</label>
+            <input id="checkOut" type="date" />
+          </div>
+          <div>
+            <label for="guests">👥 Vendégek</label>
+            <input id="guests" type="number" min="1" value="1" />
+          </div>
+          <div class="submit-col" style="margin-top:.5rem">
+            <button class="btn" type="submit">🔍 Keresés</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
+  <!-- Szűrők és eredmények -->
 <div class="container">
 
-    <aside class="sidebar">
-        <h2>Ár éjszakánként</h2>
-<input type="range" min="0" max="100" value="50" id="slider">
-<p>5 000 Ft</p> <p class="line">25 000 Ft</p>
+  <aside class="sidebar">
+    <h2>Ár éjszakánként</h2>
+    <input type="range" min="0" max="100" v-model="priceRange" id="slider">
+    <p>0 Ft</p> <p class="line">{{ (priceRange * 300).toLocaleString() }} Ft</p>
 
+    <h3>Helyszín típusa</h3>
+    <label><input type="checkbox" value="Tóparti" v-model="selectedLocationTypes"> 🌅 Tóparti</label>
+    <label><input type="checkbox" value="Hegyi" v-model="selectedLocationTypes"> 🏔️ Hegyi</label>
+    <label><input type="checkbox" value="Erdei" v-model="selectedLocationTypes"> 🏕️ Erdei</label>
+    <label><input type="checkbox" value="Sivatagi" v-model="selectedLocationTypes"> 🏜️ Sivatagi</label>
+    <label><input type="checkbox" value="Tengerparti" v-model="selectedLocationTypes"> 🏞️ Tengerparti</label>
 
-<h3>Helyszín típusa</h3>
-<label><input type="radio" name="helyszin"> 🌅Tóparti</label>
-<label><input type="radio" name="helyszin"> 🏔️Hegyi</label>
-<label><input type="radio" name="helyszin"> 🏕️Erdei</label>
-<label><input type="radio" name="helyszin"> 🏜️Sivatagi</label>
-<label><input type="radio" name="helyszin"> 🏞️Tengerparti</label>
+    <h3>Szolgáltatások</h3>
+    <div class="sor">
+      <input type="checkbox" id="wifi" value="WiFi" v-model="selectedServices">
+      <img src="/img/wifi-svgrepo-com.svg" alt="WiFi" class="kicsi-kep">
+      <label for="wifi">WiFi</label>
+    </div>
+    <div class="sor">
+      <input type="checkbox" id="sator" value="Sátorhely" v-model="selectedServices">
+      <img src="/img/tent-9-svgrepo-com.svg" alt="Sátorhely" class="kicsi-kep">
+      <label for="sator">Sátorhely</label>
+    </div>
+    <div class="sor">
+      <input type="checkbox" id="tura" value="Túraútvonalak" v-model="selectedServices">
+      <img src="/img/mountain-outlined-svgrepo-com.svg" alt="Túraútvonalak" class="kicsi-kep">
+      <label for="tura">Túraútvonalak</label>
+    </div>
+    <div class="sor">
+      <input type="checkbox" id="etterem" value="Étterem" v-model="selectedServices">
+      <img src="/img/fork-knife-svgrepo-com.svg" alt="Étterem" class="kicsi-kep">
+      <label for="etterem">Étterem</label>
+    </div>
+    <div class="sor">
+      <input type="checkbox" id="lakokocsi" value="Lakókocsi csatlakozó" v-model="selectedServices">
+      <img src="/img/car-side-svgrepo-com.svg" alt="Lakókocsi" class="kicsi-kep">
+      <label for="lakokocsi">Lakókocsi csatlakozó</label>
+    </div>
+    <div class="sor">
+      <input type="checkbox" id="parkolo" value="Parkoló" v-model="selectedServices">
+      <img src="/img/car-side-svgrepo-com.svg" alt="Parkoló" class="kicsi-kep">
+      <label for="parkolo">Parkoló</label>
+    </div>
 
-        <h3>Szolgáltatások</h3>
-        <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/wifi-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Wifi</label>
-</div>
-        <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/tent-9-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Sátorhelyek</label>
-</div>
-        <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/mountain-outlined-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Túraútvonalak</label>
-</div>
-       <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/fork-knife-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Étterem</label>
-</div>
-       <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/car-side-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Lakókocsi csatlakozó</label>
-</div>
+    <h3>Minimum értékelés</h3>
+    <label><input type="radio" name="ertekeles" :value="4.5" v-model="minRating"> 4.5+⭐</label>
+    <label><input type="radio" name="ertekeles" :value="4.0" v-model="minRating"> 4.0+⭐</label>
+    <label><input type="radio" name="ertekeles" :value="3.5" v-model="minRating"> 3.5+⭐</label>
+    <label><input type="radio" name="ertekeles" :value="3.0" v-model="minRating"> 3.0+⭐</label>
+    <label><input type="radio" name="ertekeles" :value="2.5" v-model="minRating"> 2.5+⭐</label>
+    <label><input type="radio" name="ertekeles" :value="2.0" v-model="minRating"> 2.0+⭐</label>
 
-       <div class="sor">
-  <input type="checkbox" id="opcio1">
-  <img src="/img/car-side-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-  <label for="opcio1">Parkoló</label>
-</div>
+    <button class="reset" @click="resetFilters">Szűrők törlése</button>
+  </aside>
 
-<h3>Minimum értékelés</h3>
-<label><input type="radio" name="ertekeles"> 4.5+⭐</label>
-<label><input type="radio" name="ertekeles"> 4.0+⭐</label>
-<label><input type="radio" name="ertekeles"> 3.5+⭐</label>
+<main class="content">
+    <div v-if="loading" style="text-align:center;margin-top:40px;color:#666">
+      Töltés...
+    </div>
 
-        <button class="reset">Szűrők törlése</button>
-        <button class="apply">Szűrők alkalmazása</button>
-    </aside>
+    <div v-else-if="error" style="text-align:center;margin-top:40px;color:#d32f2f">
+      {{ error }}
+    </div>
 
-    <main class="content">
-        <!-- Loading state -->
-        <div v-if="loading" class="loading-state">
-            <p>⏳ Kempingek keresése...</p>
-        </div>
-
-        <!-- Error state -->
-        <div v-else-if="error" class="error-state">
-            <p>❌ {{ error }}</p>
-        </div>
-
-        <!-- Empty state -->
-        <div v-else-if="campings.length === 0" class="empty-state">
-            <p>🏕️ Nincs találat a megadott keresési feltételekkel</p>
-            <p class="muted-text">Próbáld meg módosítani a dátumokat vagy helyszínt</p>
-        </div>
-
-        <!-- Results -->
-        <div v-else>
-            <div class="results-info">
-                <p>{{ totalResults }} kemping találat</p>
+    <template v-else>
+      <div class="cards">
+        <div v-for="camp in filteredCampsites" :key="camp.id" class="card">
+          <img :src="camp.image" :alt="camp.name">
+          <div class="card-body">
+            <span v-if="camp.featured" class="badge">Kiemelt</span>
+            <h4>{{ camp.name }}</h4>
+            <div class="rating">⭐ {{ camp.rating }} ({{ camp.reviews }})</div>
+            <div class="location">📍 {{ camp.location }}</div>
+            <div class="tags">
+              <span v-for="tag in camp.tags" :key="tag">{{ tag }}</span>
             </div>
-
-            <div class="cards">
-                <div v-for="camping in campings" :key="camping.id" class="card">
-                    <img 
-                        :src="camping.photos && camping.photos[0] ? camping.photos[0].photo_url : 'https://picsum.photos/600/400?camping'"
-                        :alt="camping.name"
-                    >
-                    <div class="card-body">
-                        <span v-if="camping.is_featured" class="badge">Kiemelt</span>
-                        <h4>{{ camping.name }}</h4>
-                        <div class="rating">
-                            ⭐ {{ camping.average_rating ? camping.average_rating.toFixed(1) : 'N/A' }}
-                            <span v-if="camping.reviews_count">({{ camping.reviews_count }})</span>
-                        </div>
-                        <div class="location">
-                            📍 {{ camping.location?.city || '' }}, {{ camping.location?.county || '' }}
-                        </div>
-                        <div class="tags">
-                            <span v-for="tag in camping.tags?.slice(0, 4)" :key="tag.id">
-                                {{ tag.name }}
-                            </span>
-                        </div>
-                        <div class="capacity-info">
-                            <span>👥 {{ camping.available_capacity }} fő</span>
-                            <span>🏕️ {{ camping.available_spots_count }} hely</span>
-                        </div>
-                        <div class="price-row">
-                            <div class="price">
-                                {{ camping.min_price?.toLocaleString() }} - {{ camping.max_price?.toLocaleString() }} Ft / éjszaka
-                            </div>
-                            <button class="book" @click="goToBooking(camping.id)">Foglalás</button>
-                        </div>
-                    </div>
-                </div>
+            <div class="price-row">
+              <div class="price">{{ camp.price.toLocaleString() }} Ft / éjszaka</div>
+              <router-link to="/foglalas">
+                <button class="book">Foglalás</button>
+              </router-link>
             </div>
-
-            <!-- Pagination -->
-            <div v-if="totalPages > 1" class="pagination">
-                <button 
-                    @click="changePage(currentPage - 1)" 
-                    :disabled="currentPage === 1"
-                    class="page-btn"
-                >
-                    ← Előző
-                </button>
-                <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-                <button 
-                    @click="changePage(currentPage + 1)" 
-                    :disabled="currentPage === totalPages"
-                    class="page-btn"
-                >
-                    Következő →
-                </button>
-            </div>
+          </div>
         </div>
-    </main>
+      </div>
 
+      <div v-if="filteredCampsites.length === 0" style="text-align:center;margin-top:40px;color:#999">
+        Nincs találat a keresésre
+      </div>
+
+
+      <div class="view-all">
+        <button>Összes kemping megtekintése</button>
+      </div>
+    </template>
+  </main>
+</div>
 </div>
 </template>
 
@@ -257,6 +237,95 @@ onMounted(() => {
             box-sizing: border-box;
             font-family: Arial, sans-serif;
         }
+
+/* Hero keresési blokk stílusok */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.hero-search {
+  background: linear-gradient(135deg, #4A7434 0%, #2f7d32 100%);
+  padding: 60px 20px;
+  color: white;
+}
+
+.search-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.search-title h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.search-title .lead {
+  font-size: 1.1rem;
+  opacity: 0.95;
+  margin-bottom: 2rem;
+}
+
+.search-card {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+.search-card .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  align-items: end;
+}
+
+.search-card label {
+  display: block;
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.search-card input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+  color: #333;
+  background: white;
+}
+
+.search-card input::placeholder {
+  color: #999;
+}
+
+.search-card input:focus {
+  outline: none;
+  border-color: #4A7434;
+}
+
+.search-card .btn {
+  background: #4A7434;
+  color: white;
+  padding: 12px 32px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+  width: 100%;
+}
+
+.search-card .btn:hover {
+  background: #F17E21;
+}
 
 .sor {
   display: flex;          /* elemek egy sorban */
@@ -337,8 +406,12 @@ onMounted(() => {
     background: white;
     padding: 20px;
     border-radius: 10px;
-    /* Opció: ha a sidebar-t jobbra szeretnéd tolni a bal üres tér miatt */
-    margin-left: 0; 
+    margin-left: 0;
+    position: sticky;
+    top: 20px;
+    align-self: flex-start;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
 }
 
         .sidebar h3 {
