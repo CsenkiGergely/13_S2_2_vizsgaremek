@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+
 const router = useRouter()
 const today = new Date().toISOString().split('T')[0]
 
@@ -9,7 +10,9 @@ const searchForm = ref({
   location: '',
   checkIn: '',
   checkOut: '',
-  adults: 1,
+
+  adults: 2,
+
   children: 0
 })
 
@@ -20,61 +23,33 @@ const decrementAdults = () => { if (searchForm.value.adults > 1) searchForm.valu
 const incrementChildren = () => { if (searchForm.value.children < 10) searchForm.value.children++ }
 const decrementChildren = () => { if (searchForm.value.children > 0) searchForm.value.children-- }
 
-const handleSearch = () => {
+
+const handleSearch = async () => {
+  if (!searchForm.value.checkIn || !searchForm.value.checkOut) {
+    alert('Kérlek add meg az érkezés és távozás dátumát!')
+    return
+
+  }
+  
+  if (searchForm.value.adults + searchForm.value.children < 1) {
+    alert('Legalább 1 vendéget adj meg!')
+    return
+  }
+  
   router.push({
     path: '/kereses',
     query: {
       location: searchForm.value.location,
       checkIn: searchForm.value.checkIn,
       checkOut: searchForm.value.checkOut,
-      adults: searchForm.value.adults,
-      children: searchForm.value.children
+      guests: searchForm.value.adults + searchForm.value.children
     }
   })
 }
 </script>
-
-<script>
-//ez a keresés gomb ami átvisz a másik oldalra
-/*export default {
-  methods: {
-    goToSearch() {
-      this.$router.push('/kereses')
-    }
-  }
-}*/
-
-import axios from 'axios';
-
-export default {
-  name: 'SearchComponent',
-  data() {
-    return {
-      query: '',
-      results: []
-    }
-  },
-  methods: {
-    async search() {
-      if (this.query.length < 2) {
-        this.results = [];
-        return;
-      }
-
-      try {
-        const response = await axios.get('/api/search', {
-          params: { q: this.query }  // a keresőszó a query param
-        });
-        this.results = response.data;
-      } catch (error) {
-        console.error('Hiba a keresés során:', error);
-      }
-    }
-  }
-}
-</script>
 <template>
  
+
 
     <div class="page-home">
     <div class="hero" role="banner">
@@ -165,18 +140,18 @@ export default {
       overflow: hidden;
       padding:3.5rem 0;
       color: #fff;
-      /* félátlátszó zöld háttér (állítsd az alfa értéket tetszés szerint 0.0 - 1.0 között) */
+
       background-color: rgba(74,116,52,1);
     }
     .hero::before{
       content: "";
       position: absolute;
       inset: 0;
-      /* a kép URL-jét cseréld le, ha másik képet akarsz */
+
       background-image: url('/img/ground-camping-8260968_1280.jpg');
       background-size: cover;
       background-position: center;
-      /* állítsd az opacity-t a kívánt átlátszóságra (0 = láthatatlan, 1 = teljesen fed) */
+
       opacity: 0.06;
       pointer-events: none;
       z-index: 0;
@@ -259,8 +234,8 @@ export default {
       .location-col{ grid-column: span 2; }
     }
     @media(min-width:1024px){
-      form.grid{ grid-template-columns: repeat(5,1fr); }
-      .location-col{ grid-column: span 2; }
+      form.grid{ grid-template-columns: repeat(3,1fr); }
+      .location-col{ grid-column: span 3; }
       .submit-col{ grid-column: 1 / -1; display:flex; justify-content:center; margin-top:.5rem; }
       .submit-col .btn{ padding: .8rem 3rem; font-size:1rem; }
     }

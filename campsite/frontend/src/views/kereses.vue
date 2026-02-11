@@ -1,10 +1,13 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api/axios'
+
 
 const route = useRoute()
 const router = useRouter()
+
 
 const allCampsites = ref([])
 const loading = ref(false)
@@ -65,6 +68,7 @@ const resetFilters = () => {
   selectedServices.value = []
   minRating.value = null
   fetchCampsites()
+
 }
 
 // Debounced keresés - csak a searchQuery-nél
@@ -80,11 +84,13 @@ watch([priceRange, selectedLocationTypes, selectedServices, minRating], () => {
   fetchCampsites()
 }, { deep: true })
 
+
 onMounted(() => {
   if (route.query.location) {
     searchQuery.value = route.query.location
   }
   fetchCampsites()
+
 })
 </script>
 <template>
@@ -125,6 +131,7 @@ onMounted(() => {
 
   <!-- Szűrők és eredmények -->
 <div class="container">
+
   <aside class="sidebar">
     <h2>Ár éjszakánként</h2>
     <input type="range" min="0" max="100" v-model="priceRange" id="slider">
@@ -214,6 +221,7 @@ onMounted(() => {
       <div v-if="filteredCampsites.length === 0" style="text-align:center;margin-top:40px;color:#999">
         Nincs találat a keresésre
       </div>
+
 
       <div class="view-all">
         <button>Összes kemping megtekintése</button>
@@ -511,6 +519,34 @@ onMounted(() => {
             color: #2f7d32;
         }
 
+        .loading, .error-message, .no-results {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .error-message {
+            color: #d32f2f;
+            background: #ffebee;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .capacity, .spots {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
         .book {
             background: #2f7d32;
             color: white;
@@ -538,8 +574,69 @@ onMounted(() => {
             margin-top: -24px;
         }
 
-          input[type=range] {
-    width: 200px;
-    accent-color: #4CAF50;
-  }
+        input[type=range] {
+            width: 200px;
+            accent-color: #4CAF50;
+        }
+
+        /* Loading, Error, Empty states */
+        .loading-state, .error-state, .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 18px;
+        }
+
+        .error-state {
+            color: #d32f2f;
+        }
+
+        .muted-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .results-info {
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: #2f7d32;
+        }
+
+        .capacity-info {
+            font-size: 13px;
+            color: #666;
+            margin: 10px 0;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 40px;
+            padding: 20px;
+        }
+
+        .page-btn {
+            padding: 10px 20px;
+            background: #2f7d32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .page-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            font-weight: 600;
+            font-size: 16px;
+        }
 </style>
