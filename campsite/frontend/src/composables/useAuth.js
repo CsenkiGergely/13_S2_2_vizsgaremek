@@ -1,20 +1,22 @@
 import { ref, computed } from 'vue'
 import api from '../api/axios'
 
-const user = ref(JSON.parse(localStorage.getItem('user')) || null)
-const token = ref(localStorage.getItem('auth_token') || null)
-const loading = ref(false)
-const error = ref(null)
+const user = ref(JSON.parse(localStorage.getItem('user')) || null) // aktuális felhasználó objektuma (ha van)
+const token = ref(localStorage.getItem('auth_token') || null) // auth token string
+const loading = ref(false) // általános betöltés állapot
+const error = ref(null) // utolsó hibaüzenet
 
-
+// Gyors ellenőrzés, hogy be van-e jelentkezve a felhasználó
 const isAuthenticated = computed(() => !!token.value)
 
 // Regisztráció
+// userData: { name, email, password, password_confirmation }
 const register = async (userData) => {
   loading.value = true
   error.value = null
   
   try {
+    // Kérést küld a backend /register végpontjára
     const response = await api.post('/register', {
       name: userData.name,
       email: userData.email,
@@ -22,17 +24,21 @@ const register = async (userData) => {
       password_confirmation: userData.password_confirmation
     })
     
+    // Backend válasza várhatóan tartalmaz user és token mezőket
     const { user: userData2, token: newToken } = response.data
     
+    // Laravel Sanctum esetén lehet plainTextToken, egyébként csak token
     const plainToken = newToken.plainTextToken || newToken
     token.value = plainToken
     user.value = userData2
     
+    // Lokális tárolás a session megőrzéséhez oldalfrissítés után is
     localStorage.setItem('auth_token', plainToken)
     localStorage.setItem('user', JSON.stringify(userData2))
     
     return { success: true, user: userData2 }
   } catch (err) {
+    // Hibák egyszerűsített összegyűjtése a UI számára
     error.value = err.response?.data?.message || err.response?.data?.errors || 'Regisztrációs hiba történt'
     return { success: false, error: error.value }
   } finally {
@@ -46,29 +52,33 @@ const login = async (credentials) => {
   error.value = null
   
   try {
+    console.log("useAuth")
+    // POST a /login végpontra
     const response = await api.post('/login', {
       email: credentials.email,
       password: credentials.password
     })
     
-    // Bejelentkezés hibakezelés
+    // Ha a backend explicit "Invalid credentials" üzenetet ad vissza
     if (response.data.message === 'Invalid credentials') {
       error.value = 'Hibás email cím vagy jelszó'
       return { success: false, error: error.value }
     }
     
+    // Sikeres bejelentkezés: user és token várható
     const { user: userData, token: newToken } = response.data
     
     token.value = newToken
     user.value = userData
     
+    // Mentés lokálisan a következő oldalletöltéshez
     localStorage.setItem('auth_token', newToken)
     localStorage.setItem('user', JSON.stringify(userData))
     
     return { success: true, user: userData }
   } catch (err) {
+    // 422 validációs hibák kezelése, különös tekintettel email/jelszó mezőkre
     if (err.response?.status === 422) {
-
       const errors = err.response?.data?.errors
       if (errors?.email) {
         error.value = errors.email[0]
@@ -78,6 +88,7 @@ const login = async (credentials) => {
         error.value = 'Hibás adatok'
       }
     } else {
+      // Egyéb hibák: backend üzenet vagy általános hibaüzenet
       error.value = err.response?.data?.message || 'Bejelentkezési hiba történt'
     }
     return { success: false, error: error.value }
@@ -120,13 +131,14 @@ const upgradeToPartner = async (phoneNumber) => {
   }
 }
 // Kijelentkezés
+// Megpróbálunk a szerver felé logout-olni, de lokálisan mindig eltávolítjuk az adatokat
 const logout = async () => {
   loading.value = true
   
   try {
     await api.post('/logout')
   } catch (err) {
-    // Hiba esetén is kijelentkezik lokálisan
+    // Ha a hálózati kérés meghiúsul, az így sem akadályozza a lokális kijelentkezést
     console.error('Logout error:', err)
   } finally {
     token.value = null
@@ -137,19 +149,21 @@ const logout = async () => {
   }
 }
 
-// Felhasználó adatainak lekérése
+// Felhasználó adatainak lekérése a szerverről
+// Visszatér a felhasználó objektummal vagy null-lal ha nincs token vagy hiba történt
 const fetchUser = async () => {
   if (!token.value) return null
   
   loading.value = true
   
   try {
+    // Kérést küldünk a /user végpontra, amely auth-olt adatokat ad vissza
     const response = await api.get('/user')
     user.value = response.data
     localStorage.setItem('user', JSON.stringify(response.data))
     return response.data
   } catch (err) {
-    // Ha a token lejárt
+    // Ha a token lejárt vagy érvénytelen, tisztítjuk a lokális állapotot
     if (err.response?.status === 401) {
       token.value = null
       user.value = null
@@ -162,7 +176,7 @@ const fetchUser = async () => {
   }
 }
 
-// Elfelejtett jelszó
+// Elfelejtett jelszó: emailet küld a backendre (password reset link)
 const forgotPassword = async (email) => {
   loading.value = true
   error.value = null
@@ -174,6 +188,7 @@ const forgotPassword = async (email) => {
       message: response.data.message || 'Jelszó visszaállító linket elküldtük az email címedre.' 
     }
   } catch (err) {
+    // Hibák lehetnek általános üzenetben vagy mezőspecifikus validációs hibákban
     error.value = err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Hiba történt. Próbáld újra később.'
     return { success: false, error: error.value }
   } finally {
@@ -181,18 +196,20 @@ const forgotPassword = async (email) => {
   }
 }
 
-// Jelszó átállítása
+// Jelszó átállítása a reset formról érkező adatokkal (token, email, password, password_confirmation)
 const resetPassword = async (data) => {
   loading.value = true
   error.value = null
   
   try {
+    // Küldjük a reset adatokat a szervernek
     const response = await api.post('/reset-password', data)
     return { 
       success: true, 
       message: response.data.message || 'Jelszó sikeresen megváltoztatva!' 
     }
   } catch (err) {
+    // Kezeljük a lehetséges hibaválaszokat: általános üzenet vagy mezőspecifikus hibák
     error.value = err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Hiba történt. Próbáld újra később.'
     return { success: false, error: error.value }
   } finally {

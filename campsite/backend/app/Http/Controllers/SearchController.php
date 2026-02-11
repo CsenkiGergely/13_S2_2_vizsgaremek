@@ -9,8 +9,9 @@ class SearchController extends Controller
 {
     public function search(Request $request)
     {
+        error_log("bejutott");
         $query = $request->input('q');
-
+        error_log($query);
         $results = Item::where('title', 'like', "%{$query}%")
                        ->orWhere('description', 'like', "%{$query}%")
                        ->get();
