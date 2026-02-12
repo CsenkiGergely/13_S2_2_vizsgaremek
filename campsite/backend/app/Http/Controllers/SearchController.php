@@ -3,18 +3,38 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Item;
+use App\Models\Camping;
 
 class SearchController extends Controller
 {
+    /**
+     * Keresés kempingek között név, leírás és helyszín alapján
+     */
     public function search(Request $request)
     {
-        error_log("bejutott");
         $query = $request->input('q');
-        error_log($query);
-        $results = Item::where('title', 'like', "%{$query}%")
-                       ->orWhere('description', 'like', "%{$query}%")
-                       ->get();
+
+        if (!$query) {
+            return response()->json([]);
+        }
+
+        $results = Camping::with(['location', 'photos', 'tags'])
+            ->where('camping_name', 'ILIKE', "%{$query}%")
+            ->orWhere('description', 'ILIKE', "%{$query}%")
+            ->orWhereHas('location', function ($q) use ($query) {
+                $q->where('city', 'ILIKE', "%{$query}%");
+            })
+            ->get()
+            ->map(function ($camping) {
+                return [
+                    'id' => $camping->id,
+                    'name' => $camping->camping_name,
+                    'description' => $camping->description,
+                    'location' => $camping->location?->city,
+                    'image' => $camping->photos->first()?->photo_url,
+                    'tags' => $camping->tags->pluck('tag'),
+                ];
+            });
 
         return response()->json($results);
     }

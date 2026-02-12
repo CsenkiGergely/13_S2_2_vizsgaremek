@@ -117,6 +117,9 @@ class CampingPhotoController extends Controller
     
     //Kép URL frissítése (ha már létezik a képfájl)
      
+    /**
+     * Kép hozzáadása URL alapján (csak tulajdonos)
+     */
     public function addByUrl(Request $request, $campingId)
     {
         $request->validate([
@@ -126,6 +129,13 @@ class CampingPhotoController extends Controller
 
         $camping = Camping::findOrFail($campingId);
 
+        // Ellenőrizzük, hogy a user a kemping tulajdonosa-e
+        if ($camping->user_id !== Auth::id()) {
+            return response()->json([
+                'message' => 'Csak a kemping tulajdonosa adhat hozzá képeket.'
+            ], 403);
+        }
+
         $photo = CampingPhoto::create([
             'camping_id' => $camping->id,
             'photo_url' => $request->photo_url,
@@ -134,7 +144,7 @@ class CampingPhotoController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Kép URL hozzáadva',
+            'message' => 'Kép URL hozzáadva.',
             'photo' => $photo
         ], 201);
     }
