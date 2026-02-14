@@ -97,6 +97,39 @@ const login = async (credentials) => {
   }
 }
 
+const upgradeToPartner = async (phoneNumber) => {
+  loading.value = true
+  error.value = null
+
+  try {
+    const normalizedPhone = phoneNumber.replace(/\s+/g, '')
+    const response = await api.post('/upgrade-to-partner', {
+      phone_number: normalizedPhone
+    })
+
+    const updatedUser = response.data.user
+    user.value = updatedUser
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+
+    return {
+      success: true,
+      user: updatedUser,
+      message: response.data.message || 'Sikeres partner státusz váltás.'
+    }
+  } catch (err) {
+    if (err.response?.status === 401) {
+      error.value = 'A partner státuszhoz előbb be kell jelentkezned.'
+    } else if (err.response?.status === 422) {
+      error.value = err.response?.data?.errors?.phone_number?.[0] || 'Érvénytelen telefonszám.'
+    } else {
+      error.value = err.response?.data?.message || 'Hiba történt partner státusz váltás közben.'
+    }
+
+    return { success: false, error: error.value }
+  } finally {
+    loading.value = false
+  }
+}
 // Kijelentkezés
 // Megpróbálunk a szerver felé logout-olni, de lokálisan mindig eltávolítjuk az adatokat
 const logout = async () => {
@@ -197,6 +230,7 @@ export function useAuth() {
     logout,
     fetchUser,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    upgradeToPartner
   }
 }

@@ -10,6 +10,52 @@ use App\Models\Booking;
 
 class CampingController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/campings",
+     *     tags={"Campings"},
+     *     summary="Get all campings with filters",
+     *     description="Get paginated list of campings with optional search and price filters",
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Search by camping name or description",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="min_price",
+     *         in="query",
+     *         description="Minimum price per night",
+     *         required=false,
+     *         @OA\Schema(type="number")
+     *     ),
+     *     @OA\Parameter(
+     *         name="max_price",
+     *         in="query",
+     *         description="Maximum price per night",
+     *         required=false,
+     *         @OA\Schema(type="number")
+     *     ),
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Page number",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=1)
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Successful operation",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="data", type="array", @OA\Items(type="object")),
+     *             @OA\Property(property="current_page", type="integer"),
+     *             @OA\Property(property="last_page", type="integer"),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )
+     * )
+     */
     public function getCampings(Request $request)
     {
         // lekérés lapozzással 2/ oldalanként (teszt)
@@ -48,7 +94,26 @@ class CampingController extends Controller
         return response()->json($campings);
     }
 
-    // 1. Egy kemping részletes adatai (ID alapján)
+    /**
+     * @OA\Get(
+     *     path="/campings/{id}",
+     *     tags={"Campings"},
+     *     summary="Get camping details",
+     *     description="Get detailed information about a specific camping",
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Camping details",
+     *         @OA\JsonContent(type="object")
+     *     ),
+     *     @OA\Response(response=404, description="Camping not found")
+     * )
+     */
     public function show($id)
     {
         // Kemping megkeresése az összes kapcsolatával
@@ -77,7 +142,42 @@ class CampingController extends Controller
         return response()->json($camping, 200);
     }
 
-    // új kemping létrehozása owner
+    /**
+     * @OA\Post(
+     *     path="/campings",
+     *     tags={"Campings"},
+     *     summary="Create new camping",
+     *     description="Create a new camping (partner role required)",
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"camping_name","owner_first_name","owner_last_name","description","city","zip_code","street_address"},
+     *             @OA\Property(property="camping_name", type="string"),
+     *             @OA\Property(property="owner_first_name", type="string"),
+     *             @OA\Property(property="owner_last_name", type="string"),
+     *             @OA\Property(property="description", type="string"),
+     *             @OA\Property(property="company_name", type="string"),
+     *             @OA\Property(property="tax_id", type="string"),
+     *             @OA\Property(property="billing_address", type="string"),
+     *             @OA\Property(property="city", type="string"),
+     *             @OA\Property(property="zip_code", type="string"),
+     *             @OA\Property(property="street_address", type="string"),
+     *             @OA\Property(property="latitude", type="number"),
+     *             @OA\Property(property="longitude", type="number")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Camping created successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string"),
+     *             @OA\Property(property="camping", type="object")
+     *         )
+     *     ),
+     *     @OA\Response(response=403, description="Partner role required")
+     * )
+     */
     public function store(Request $request)
     {
         

@@ -12,7 +12,33 @@ use Illuminate\Support\Facades\DB;
 class AuthController extends Controller
 {
 
-    // Új felhasználó regisztráció
+    /**
+     * @OA\Post(
+     *     path="/register",
+     *     tags={"Authentication"},
+     *     summary="User registration",
+     *     description="Register a new user account",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"name","email","password","password_confirmation"},
+     *             @OA\Property(property="name", type="string", example="John Doe"),
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="password123"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="password123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Registration successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="user", type="object"),
+     *             @OA\Property(property="token", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function register(Request $request)
     {
         $fields = $request->validate([
@@ -29,7 +55,31 @@ class AuthController extends Controller
         return ['user' => $user, 'token' => $token];
     }
 
-    // Felhasználó bejelentkezés
+    /**
+     * @OA\Post(
+     *     path="/login",
+     *     tags={"Authentication"},
+     *     summary="User login",
+     *     description="Login with email and password",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password"},
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="password123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Login successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="user", type="object"),
+     *             @OA\Property(property="token", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Invalid credentials")
+     * )
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -50,7 +100,22 @@ class AuthController extends Controller
         return ['user' => $user, 'token' => $token];
     }
 
-    // Felhasználó kijelentkezés
+    /**
+     * @OA\Post(
+     *     path="/logout",
+     *     tags={"Authentication"},
+     *     summary="User logout",
+     *     description="Logout and revoke all tokens",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Logout successful",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="message", type="string", example="Logged out")
+     *         )
+     *     )
+     * )
+     */
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
