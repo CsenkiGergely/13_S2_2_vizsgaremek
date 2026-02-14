@@ -12,7 +12,7 @@ class SearchController extends Controller
         error_log("bejutott");
         $query = $request->input('q');
         error_log($query);
-        $results = Item::where('title', 'like', "%{$query}%")
+        $results = Item::where('camping_name', 'like', "%{$query}%")
                        ->orWhere('description', 'like', "%{$query}%")
                        ->get();
 

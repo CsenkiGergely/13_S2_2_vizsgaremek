@@ -36,21 +36,21 @@ const handleSearch = () => {
   console.log('Keresés:', searchForm.value)
  
 }
+const goToSearch = () => {
+      console.log('Keresés gombra kattintva, átirányítás a keresési oldalra');
+      var local = document.getElementById('location').value;
+      console.log('Keresési helyszín:', local);
+      //this.$router.push('/kereses')
+    }
 </script>
 
 <script>
 //ez a keresés gomb ami átvisz a másik oldalra
-/*export default {
-  methods: {
-    goToSearch() {
-      this.$router.push('/kereses')
-    }
-  }
-}*/
 
 import axios from 'axios';
 
 export default {
+  
   name: 'SearchComponent',
   data() {
     return {
@@ -108,7 +108,7 @@ export default {
           </div>
 
           <div class="submit-col" style="margin-top:.5rem">
-            <button class="btn" @click="goToSearch">🔍 Keresés</button>
+            <button class="btn" @click="goToSearch()">🔍 Keresés</button>
           </div>
         </form>
       </div>

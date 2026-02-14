@@ -32,13 +32,13 @@ const decrementChildren = () => {
 }
 </script>
 <script>
-export default {
+/*export default {
   methods: {
     goToSearch() {
       this.$router.push('/fizetes')
     }
   }
-}
+}*/
 
 </script>
 <template>
