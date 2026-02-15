@@ -636,7 +636,7 @@ class BookingController extends Controller
         // Megnézzük, hogy a mai nap benne van-e a foglalási időszakban
         $today = date('Y-m-d');
         
-        if ($today < $booking->arrival_date) {
+        if ($today <= $booking->arrival_date) {
             return response()->json([
                 'valid' => false,
                 'message' => 'Ez a foglalás csak ' . $booking->arrival_date . '-től érvényes.',
@@ -644,7 +644,7 @@ class BookingController extends Controller
             ], 422);
         }
         
-        if ($today > $booking->departure_date) {
+        if ($today >= $booking->departure_date) {
             return response()->json([
                 'valid' => false,
                 'message' => 'Ez a foglalás ' . $booking->departure_date . '-ig volt érvényes.',
