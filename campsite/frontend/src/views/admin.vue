@@ -1,5 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useBooking } from '../composables/useBooking'
+
+const { bookings, getAllBookings } = useBooking()
 
 const today = new Date().toISOString().split('T')[0]
 
@@ -36,6 +39,10 @@ const handleSearch = () => {
 }
 
 const activeTab = ref('dashboard')
+
+onMounted(() => {
+  getAllBookings()
+})
 </script>
 
 <template>
@@ -138,37 +145,17 @@ const activeTab = ref('dashboard')
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>001</strong></td>
-              <td>Kovács János</td>
-              <td>A-15</td>
-              <td>2024-01-15</td>
-              <td>2024-01-18</td>
-              <td>4 fő</td>
-              <td><span class="badge active-badge">Aktív</span></td>
-              <td><strong>45 000 Ft</strong></td>
-              <td><button class="btn">👁 Részletek</button></td>
-            </tr>
-            <tr>
-              <td><strong>002</strong></td>
-              <td>Nagy Anna</td>
-              <td>B-8</td>
-              <td>2024-01-16</td>
-              <td>2024-01-19</td>
-              <td>2 fő</td>
-              <td><span class="badge confirmed">Megerősített</span></td>
-              <td><strong>32 000 Ft</strong></td>
-              <td><button class="btn">👁 Részletek</button></td>
-            </tr>
-            <tr>
-              <td><strong>003</strong></td>
-              <td>Szabó Péter</td>
-              <td>C-3</td>
-              <td>2024-01-10</td>
-              <td>2024-01-14</td>
-              <td>3 fő</td>
-              <td><span class="badge finished">Befejezett</span></td>
-              <td><strong>38 000 Ft</strong></td>
+            <tr v-for="booking in bookings" :key="booking.id">
+              <td><strong>{{ booking.id }}</strong></td>
+              <td>{{ booking.guestName }}</td>
+              <td>{{ booking.spot }}</td>
+              <td>{{ booking.checkIn }}</td>
+              <td>{{ booking.checkOut }}</td>
+              <td>{{ booking.guests }}</td>
+              <td><span :class="['badge', booking.status === 'active' ? 'active-badge' : booking.status === 'confirmed' ? 'confirmed' : 'finished']">
+                {{ booking.status === 'active' ? 'Aktív' : booking.status === 'confirmed' ? 'Megerősített' : 'Befejezett' }}
+              </span></td>
+              <td><strong>{{ booking.price }}</strong></td>
               <td><button class="btn">👁 Részletek</button></td>
             </tr>
           </tbody>
