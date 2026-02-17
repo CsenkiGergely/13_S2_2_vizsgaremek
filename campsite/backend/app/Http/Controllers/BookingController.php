@@ -45,7 +45,7 @@ class BookingController extends Controller
     public function getAllBookings(Request $request)
     {
         $bookings = Booking::with(['user', 'camping.location', 'campingSpot'])
-            ->orderBy('arrival_date', 'desc')
+            ->orderBy('id', 'asc')
             ->paginate(20);
 
         return response()->json($bookings);

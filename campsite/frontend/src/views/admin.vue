@@ -1,6 +1,9 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useBooking } from '../composables/useBooking'
+import dayjs from 'dayjs';
+import "dayjs/locale/hu";
+dayjs.locale("hu");
 
 const { bookings, getAllBookings } = useBooking()
 
@@ -115,11 +118,12 @@ onMounted(() => {
               <td><strong>{{ booking.id }}</strong></td>
               <td>{{ booking.guestName }}</td>
               <td>{{ booking.spot }}</td>
-              <td>{{ booking.checkIn }}</td>
-              <td>{{ booking.checkOut }}</td>
+              <td>{{ dayjs(booking.checkIn).format("YYYY. MMMM D.") }}</td>
+              <td>{{ dayjs(booking.checkOut).format("YYYY. MMMM D.") }}</td>
               <td>{{ booking.guests }}</td>
               <td><span :class="['badge', booking.status === 'active' ? 'active-badge' : booking.status === 'confirmed' ? 'confirmed' : 'finished']">
                 {{ booking.status === 'active' ? 'Aktív' : booking.status === 'confirmed' ? 'Megerősített' : 'Befejezett' }}
+                <!-- "pending","confirmed","checked_in","completed","cancelled" -->
               </span></td>
               <td><strong>{{ booking.price }}</strong></td>
               <td><button class="btn">👁 Részletek</button></td>
@@ -203,8 +207,9 @@ onMounted(() => {
   body {
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-    background: #fafafa;
-    color: #0f172a;
+    background: #f6f7fb;
+    padding: 30px;
+    color: #1f2937;
   }
 
   .container {
@@ -222,32 +227,31 @@ onMounted(() => {
   .subtitle {
     color: #6b7280;
     margin-bottom: 20px;
-        margin-top: 4px;
-
+    margin-top: 4px;
   }
-
 
   .tabs {
     margin-top: 20px;
-    background: #f1f5f9;
     display: inline-flex;
-    border-radius: 999px;
+    background: #eef0f4;
+    border-radius: 10px;
     padding: 4px;
     gap: 4px;
+    margin-bottom: 25px;
   }
 
   .tab {
     padding: 8px 14px;
-    border-radius: 999px;
     font-size: 14px;
     cursor: pointer;
-    color: #334155;
+    border-radius: 8px;
+    color: #374151;
   }
 
   .tab.active {
     background: white;
-    box-shadow: 0 1px 2px rgba(0,0,0,.05);
     font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
   }
 
   .stats {
@@ -259,17 +263,23 @@ onMounted(() => {
 
   .card {
     background: white;
-    border-radius: 14px;
-    padding: 18px 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.05);
     border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .06);
   }
 
   .card small { color: #64748b; }
 
   .card h2 {
-    margin: 6px 0 2px;
+    margin: 6px 0 5px;
     font-size: 26px;
+  }
+
+  .card p {
+    margin-bottom: 20px;
+    color: #6b7280;
+    font-size: 14px;
   }
 
   .trend {
@@ -285,29 +295,38 @@ onMounted(() => {
     padding: 22px;
   }
 
-  .section h3 { margin: 0; }
-  .section p { margin: 4px 0 18px; color: #64748b; }
+  .section h3 { margin: 0;}
 
-  .booking {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
+  .section p {
+    margin: 4px 0 18px;
+    color: #64748b;
+  }
+
+  @media (max-width: 640px) {
+    .booking {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      display: flex;
+      justify-content: space-between;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
   }
 
   .booking:last-child { margin-bottom: 0; }
 
   .name { font-weight: 600; }
+
   .place { color: #64748b; font-size: 14px; }
 
   .right { text-align: right; }
 
   .price { font-weight: 600; }
 
- .badge {
+  .badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -318,119 +337,49 @@ onMounted(() => {
     font-weight: 500;
   }
 
-  .active { background: #dcfce7; color: #166534; }
-  .confirmed { background: #dbeafe; color: #1e40af; }
-  .done { background: #f1f5f9; color: #334155; }
-
-  @media (max-width: 640px) {
-    .booking { flex-direction: column; align-items: flex-start; gap: 10px; }
-    .right { text-align: left; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
   }
 
-
-
-  body {
-    background: #f6f7fb;
-    margin: 0;
-    padding: 30px;
-    color: #1f2937;
+  th {
+    text-align: left;
+    color: #6b7280;
+    font-weight: 500;
+    padding-bottom: 10px;
   }
 
-  h1 {
-    margin-bottom: 5px;
+  td {
+    padding: 14px 0;
+    border-top: 1px solid #dbeafe;
   }
 
+  .active-badge {
+    background: #dbeafe;
+    color: #166534;
+  }
 
-        .tabs {
-            display: inline-flex;
-            background: #eef0f4;
-            border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 25px;
-        }
+  .confirmed {
+    background: #dbeafe;
+    color: #1e40af;
+  }
 
-        .tab {
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            color: #374151;
-        }
+  .finished {
+    background: #f3f4f6;
+    color: #374151;
+  }
 
-        .tab.active {
-            background: #fff;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
-            font-weight: 600;
-        }
+  .btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+  }
 
-        .card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, .06);
-        }
-
-        .card h2 {
-            margin-bottom: 5px;
-        }
-
-        .card p {
-            margin-bottom: 20px;
-            color: #6b7280;
-            font-size: 14px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        th {
-            text-align: left;
-            color: #6b7280;
-            font-weight: 500;
-            padding-bottom: 10px;
-        }
-
-        td {
-            padding: 14px 0;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .badge {
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 500;
-            display: inline-block;
-        }
-
-        .active-badge {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .confirmed {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .finished {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        .btn {
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            background: #fff;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .btn:hover {
-            background: #f9fafb;
-        }
-  </style>
+  .btn:hover {
+    background: #f9fafb;
+  }
+</style>
