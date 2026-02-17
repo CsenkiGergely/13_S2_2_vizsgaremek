@@ -195,160 +195,152 @@ onMounted(() => {
 
 
 <style scoped>
+  * {
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    background: #fafafa;
+    color: #0f172a;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    color: #3f6212;
+  }
+
+  .subtitle {
+    color: #6b7280;
+    margin-bottom: 20px;
+        margin-top: 4px;
+
+  }
+
+
+  .tabs {
+    margin-top: 20px;
+    background: #f1f5f9;
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .tab {
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #334155;
+  }
+
+  .tab.active {
+    background: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    font-weight: 600;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 28px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    border: 1px solid #e5e7eb;
+  }
+
+  .card small { color: #64748b; }
+
+  .card h2 {
+    margin: 6px 0 2px;
+    font-size: 26px;
+  }
+
+  .trend {
+    font-size: 13px;
+    color: #16a34a;
+  }
+
+  .section {
+    margin-top: 28px;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 22px;
+  }
+
+  .section h3 { margin: 0; }
+  .section p { margin: 4px 0 18px; color: #64748b; }
+
+  .booking {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+
+  .booking:last-child { margin-bottom: 0; }
+
+  .name { font-weight: 600; }
+  .place { color: #64748b; font-size: 14px; }
+
+  .right { text-align: right; }
+
+  .price { font-weight: 600; }
+
+ .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .active { background: #dcfce7; color: #166534; }
+  .confirmed { background: #dbeafe; color: #1e40af; }
+  .done { background: #f1f5f9; color: #334155; }
+
+  @media (max-width: 640px) {
+    .booking { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .right { text-align: left; }
+  }
 
 
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: #fafafa;
-      color: #0f172a;
-    }
+  body {
+    background: #f6f7fb;
+    margin: 0;
+    padding: 30px;
+    color: #1f2937;
+  }
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 32px 20px 60px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 28px;
-      color: #3f6212;
-    }
-
-    .subtitle {
-      color: #64748b;
-      margin-top: 4px;
-    }
-
-    /* Tabs */
-    .tabs {
-      margin-top: 20px;
-      background: #f1f5f9;
-      display: inline-flex;
-      border-radius: 999px;
-      padding: 4px;
-      gap: 4px;
-    }
-
-    .tab {
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 14px;
-      cursor: pointer;
-      color: #334155;
-    }
-
-    .tab.active {
-      background: white;
-      box-shadow: 0 1px 2px rgba(0,0,0,.05);
-      font-weight: 600;
-    }
-
-    /* Stats */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-top: 28px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 14px;
-      padding: 18px 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.05);
-      border: 1px solid #e5e7eb;
-    }
-
-    .card small { color: #64748b; }
-
-    .card h2 {
-      margin: 6px 0 2px;
-      font-size: 26px;
-    }
-
-    .trend {
-      font-size: 13px;
-      color: #16a34a;
-    }
-
-    /* Recent bookings */
-    .section {
-      margin-top: 28px;
-      background: white;
-      border-radius: 16px;
-      border: 1px solid #e5e7eb;
-      padding: 22px;
-    }
-
-    .section h3 { margin: 0; }
-    .section p { margin: 4px 0 18px; color: #64748b; }
-
-    .booking {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-    }
-
-    .booking:last-child { margin-bottom: 0; }
-
-    .name { font-weight: 600; }
-    .place { color: #64748b; font-size: 14px; }
-
-    .right { text-align: right; }
-
-    .price { font-weight: 600; }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .active { background: #dcfce7; color: #166534; }
-    .confirmed { background: #dbeafe; color: #1e40af; }
-    .done { background: #f1f5f9; color: #334155; }
-
-    @media (max-width: 640px) {
-      .booking { flex-direction: column; align-items: flex-start; gap: 10px; }
-      .right { text-align: left; }
-    }
+  h1 {
+    margin-bottom: 5px;
+  }
 
 
-            * {
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
-
-        body {
-            background: #f6f7fb;
-            margin: 0;
-            padding: 30px;
-            color: #1f2937;
-        }
-
-        h1 {
-            margin-bottom: 5px;
-        }
-
-        .subtitle {
-            color: #6b7280;
-            margin-bottom: 20px;
-        }
-
-        /* Tabs */
         .tabs {
             display: inline-flex;
             background: #eef0f4;
@@ -371,8 +363,6 @@ onMounted(() => {
             font-weight: 600;
         }
 
-
-        /* Card */
         .card {
             background: #fff;
             border-radius: 12px;
@@ -390,7 +380,6 @@ onMounted(() => {
             font-size: 14px;
         }
 
-        /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -409,7 +398,6 @@ onMounted(() => {
             border-top: 1px solid #e5e7eb;
         }
 
-        /* Badges */
         .badge {
             padding: 4px 10px;
             border-radius: 999px;
@@ -433,7 +421,6 @@ onMounted(() => {
             color: #374151;
         }
 
-        /* Button */
         .btn {
             padding: 6px 12px;
             border-radius: 8px;
