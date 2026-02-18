@@ -1,41 +1,17 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useBooking } from '../composables/useBooking'
+import dayjs from 'dayjs';
+import "dayjs/locale/hu";
+dayjs.locale("hu");
 
-const today = new Date().toISOString().split('T')[0]
-
-const searchForm = ref({
-  location: '',
-  checkIn: '',
-  checkOut: '',
-  adults: 0,
-  children: 0
-})
-
-const minCheckOut = computed(() => {
-  return searchForm.value.checkIn || today
-})
-
-const incrementAdults = () => {
-  if (searchForm.value.adults < 10) searchForm.value.adults++
-}
-
-const decrementAdults = () => {
-  if (searchForm.value.adults > 1) searchForm.value.adults--
-}
-
-const incrementChildren = () => {
-  if (searchForm.value.children < 10) searchForm.value.children++
-}
-
-const decrementChildren = () => {
-  if (searchForm.value.children > 0) searchForm.value.children--
-}
-
-const handleSearch = () => {
-  console.log('Keresés:', searchForm.value)
-}
+const { bookings, getAllBookings } = useBooking()
 
 const activeTab = ref('dashboard')
+
+onMounted(() => {
+  getAllBookings()
+})
 </script>
 
 <template>
@@ -138,37 +114,17 @@ const activeTab = ref('dashboard')
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>001</strong></td>
-              <td>Kovács János</td>
-              <td>A-15</td>
-              <td>2024-01-15</td>
-              <td>2024-01-18</td>
-              <td>4 fő</td>
-              <td><span class="badge active-badge">Aktív</span></td>
-              <td><strong>45 000 Ft</strong></td>
-              <td><button class="btn">👁 Részletek</button></td>
-            </tr>
-            <tr>
-              <td><strong>002</strong></td>
-              <td>Nagy Anna</td>
-              <td>B-8</td>
-              <td>2024-01-16</td>
-              <td>2024-01-19</td>
-              <td>2 fő</td>
-              <td><span class="badge confirmed">Megerősített</span></td>
-              <td><strong>32 000 Ft</strong></td>
-              <td><button class="btn">👁 Részletek</button></td>
-            </tr>
-            <tr>
-              <td><strong>003</strong></td>
-              <td>Szabó Péter</td>
-              <td>C-3</td>
-              <td>2024-01-10</td>
-              <td>2024-01-14</td>
-              <td>3 fő</td>
-              <td><span class="badge finished">Befejezett</span></td>
-              <td><strong>38 000 Ft</strong></td>
+            <tr v-for="booking in bookings" :key="booking.id">
+              <td><strong>{{ booking.id }}</strong></td>
+              <td>{{ booking.guestName }}</td>
+              <td>{{ booking.spot }}</td>
+              <td>{{ dayjs(booking.checkIn).format("YYYY. MMMM D.") }}</td>
+              <td>{{ dayjs(booking.checkOut).format("YYYY. MMMM D.") }}</td>
+              <td>{{ booking.guests }}</td>
+              <td><span :class="['badge', booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'confirmed' : booking.status === 'checked_in' ? 'checked_in' : booking.status === 'finished' ? 'finished' : booking.status === 'cancelled' ? 'cancelled' : '']">
+                {{ booking.status === 'pending' ? 'Függőben van' : booking.status === 'confirmed' ? 'Megerősített' : booking.status === 'checked_in' ? 'Bejelentkezett' : booking.status === 'finished' ? 'Befejezett' : booking.status === 'cancelled' ? 'Lemondott' : ''}}
+              </span></td>
+              <td><strong>{{ booking.price }}</strong></td>
               <td><button class="btn">👁 Részletek</button></td>
             </tr>
           </tbody>
@@ -242,255 +198,198 @@ const activeTab = ref('dashboard')
 
 
 <style scoped>
+  * {
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
 
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    background: #f6f7fb;
+    padding: 30px;
+    color: #1f2937;
+  }
 
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: #fafafa;
-      color: #0f172a;
-    }
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    color: #3f6212;
+  }
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 32px 20px 60px;
-    }
+  .subtitle {
+    color: #6b7280;
+    margin-bottom: 20px;
+    margin-top: 4px;
+  }
 
-    h1 {
-      margin: 0;
-      font-size: 28px;
-      color: #3f6212;
-    }
+  .tabs {
+    margin-top: 20px;
+    display: inline-flex;
+    background: #eef0f4;
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 25px;
+  }
 
-    .subtitle {
-      color: #64748b;
-      margin-top: 4px;
-    }
+  .tab {
+    padding: 8px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 8px;
+    color: #374151;
+  }
 
-    /* Tabs */
-    .tabs {
-      margin-top: 20px;
-      background: #f1f5f9;
-      display: inline-flex;
-      border-radius: 999px;
-      padding: 4px;
-      gap: 4px;
-    }
+  .tab.active {
+    background: white;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+  }
 
-    .tab {
-      padding: 8px 14px;
-      border-radius: 999px;
-      font-size: 14px;
-      cursor: pointer;
-      color: #334155;
-    }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 28px;
+  }
 
-    .tab.active {
-      background: white;
-      box-shadow: 0 1px 2px rgba(0,0,0,.05);
-      font-weight: 600;
-    }
+  .card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .06);
+  }
 
-    /* Stats */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-top: 28px;
-    }
+  .card small { color: #64748b; }
 
-    .card {
-      background: white;
-      border-radius: 14px;
-      padding: 18px 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.05);
-      border: 1px solid #e5e7eb;
-    }
+  .card h2 {
+    margin: 6px 0 5px;
+    font-size: 26px;
+  }
 
-    .card small { color: #64748b; }
+  .card p {
+    margin-bottom: 20px;
+    color: #6b7280;
+    font-size: 14px;
+  }
 
-    .card h2 {
-      margin: 6px 0 2px;
-      font-size: 26px;
-    }
+  .trend {
+    font-size: 13px;
+    color: #16a34a;
+  }
 
-    .trend {
-      font-size: 13px;
-      color: #16a34a;
-    }
+  .section {
+    margin-top: 28px;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 22px;
+  }
 
-    /* Recent bookings */
-    .section {
-      margin-top: 28px;
-      background: white;
-      border-radius: 16px;
-      border: 1px solid #e5e7eb;
-      padding: 22px;
-    }
+  .section h3 { margin: 0;}
 
-    .section h3 { margin: 0; }
-    .section p { margin: 4px 0 18px; color: #64748b; }
+  .section p {
+    margin: 4px 0 18px;
+    color: #64748b;
+  }
 
+  @media (max-width: 640px) {
     .booking {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
       border: 1px solid #e5e7eb;
       border-radius: 12px;
       padding: 14px 16px;
       margin-bottom: 12px;
     }
+  }
 
-    .booking:last-child { margin-bottom: 0; }
+  .booking:last-child { margin-bottom: 0; }
 
-    .name { font-weight: 600; }
-    .place { color: #64748b; font-size: 14px; }
+  .name { font-weight: 600; }
 
-    .right { text-align: right; }
+  .place { color: #64748b; font-size: 14px; }
 
-    .price { font-weight: 600; }
+  .right { text-align: right; }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 500;
-    }
+  .price { font-weight: 600; }
 
-    .active { background: #dcfce7; color: #166534; }
-    .confirmed { background: #dbeafe; color: #1e40af; }
-    .done { background: #f1f5f9; color: #334155; }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+  }
 
-    @media (max-width: 640px) {
-      .booking { flex-direction: column; align-items: flex-start; gap: 10px; }
-      .right { text-align: left; }
-    }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
 
+  th {
+    text-align: left;
+    color: #6b7280;
+    font-weight: 500;
+    padding-bottom: 10px;
+  }
 
-            * {
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
+  td {
+    padding: 14px 0;
+    border-top: 1px solid #dbeafe;
+  }
 
-        body {
-            background: #f6f7fb;
-            margin: 0;
-            padding: 30px;
-            color: #1f2937;
-        }
+  .pending {
+    background: #f3f4f6;
+    color: #82a2d4;
+  }
 
-        h1 {
-            margin-bottom: 5px;
-        }
+  .confirmed {
+    background: #dbeafe;
+    color: #1e40af;
+  }
 
-        .subtitle {
-            color: #6b7280;
-            margin-bottom: 20px;
-        }
+  .checked_in {
+    background: #dbeafe;
+    color: #30b965;
+  }
 
-        /* Tabs */
-        .tabs {
-            display: inline-flex;
-            background: #eef0f4;
-            border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 25px;
-        }
+  .finished {
+    background: #f3f4f6;
+    color: #374151;
+  }
 
-        .tab {
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            color: #374151;
-        }
-
-        .tab.active {
-            background: #fff;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
-            font-weight: 600;
-        }
+  .cancelled {
+    background: #f3f4f6;
+    color: #ff0000;
+  }
 
 
-        /* Card */
-        .card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, .06);
-        }
+  .btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+  }
 
-        .card h2 {
-            margin-bottom: 5px;
-        }
-
-        .card p {
-            margin-bottom: 20px;
-            color: #6b7280;
-            font-size: 14px;
-        }
-
-        /* Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        th {
-            text-align: left;
-            color: #6b7280;
-            font-weight: 500;
-            padding-bottom: 10px;
-        }
-
-        td {
-            padding: 14px 0;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        /* Badges */
-        .badge {
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 500;
-            display: inline-block;
-        }
-
-        .active-badge {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .confirmed {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .finished {
-            background: #f3f4f6;
-            color: #374151;
-        }
-
-        /* Button */
-        .btn {
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            background: #fff;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .btn:hover {
-            background: #f9fafb;
-        }
-  </style>
+  .btn:hover {
+    background: #f9fafb;
+  }
+</style>

@@ -8,24 +8,19 @@ use App\Http\Controllers\CampingController;
 use App\Http\Controllers\BookingSearchController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CampingPhotoController;
-use App\Http\Controllers\Api\CampsiteController;
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\CampingSpotController;
 
 use App\Http\Controllers\SearchController;
 
 Route::get('/search', [SearchController::class, 'search']);
-
-// Campsites API
-Route::get('/campsites', [CampsiteController::class, 'index']);
-Route::get('/campsites/{id}', [CampsiteController::class, 'show']);
-
-
-
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
 Route::apiResource('posts', PostController::class);
+Route::post('/posts', [PostController::class, 'index']);
 
 // Auth
 Route::post('/register', [AuthController::class, 'register']);
@@ -43,6 +38,7 @@ Route::get('/campings/{id}', [CampingController::class, 'show']);
 Route::get('/campings/{id}/spots', [CampingController::class, 'getSpots']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
+Route::get('/bookings/getAll', [BookingController::class, 'getAllBookings']);
 
 // Értékelések (publikus lekérés)
 Route::get('/campings/{campingId}/comments', [CommentController::class, 'index']);

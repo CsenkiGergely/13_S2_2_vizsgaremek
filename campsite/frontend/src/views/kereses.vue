@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 
 
-const router = useRouter()
+const router = useRoute()
 
 const searchQuery = ref('')
 const priceRange = ref(100)
@@ -82,17 +82,17 @@ watch([priceRange, selectedLocationTypes, selectedServices, minRating], () => {
 
 onMounted(() => {
   // Beolvassuk a query paramétereket a Home oldalról
-  if (route.query.location) {
-    searchQuery.value = route.query.location
+  if (router.query.location) {
+    searchQuery.value = router.query.location
   }
-  if (route.query.checkIn) {
-    console.log('Check-in dátum:', route.query.checkIn)
+  if (router.query.checkIn) {
+    console.log('Check-in dátum:', router.query.checkIn)
   }
-  if (route.query.checkOut) {
-    console.log('Check-out dátum:', route.query.checkOut)
+  if (router.query.checkOut) {
+    console.log('Check-out dátum:', router.query.checkOut)
   }
-  if (route.query.guests) {
-    console.log('Vendégek száma:', route.query.guests)
+  if (router.query.guests) {
+    console.log('Vendégek száma:', router.query.guests)
   }
   
   // Betöltjük az adatokat

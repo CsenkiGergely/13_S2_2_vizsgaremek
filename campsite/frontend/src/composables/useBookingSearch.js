@@ -1,7 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import api from '../api/axios'
 
-const results = ref(localStorage.getItem('searchResults') || null)
+const stored = localStorage.getItem('bookingSearchResults')
+const results = ref(stored ? JSON.parse(stored) : null)
 const loading = ref(false)
 
 const search = async (searchData) => {
@@ -10,18 +11,22 @@ const search = async (searchData) => {
   try {
     const response = await api.get('/booking/search', {
       params: searchData
-      })
-  } catch(error) {
-    console.error('Search error:', error)
+    })
+    results.value = response.data
+    localStorage.setItem('bookingSearchResults', JSON.stringify(results.value))
+    return results.value
+  } catch (error) {
+    console.error('Booking search error:', error)
+    throw error
   } finally {
     loading.value = false
   }
 }
 
-
-
 export function useBookingSearch() {
   return {
-    bookingsearch
+    results,
+    loading,
+    search
   }
 }
