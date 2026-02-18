@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
-
+const route = useRoute()
 const router = useRouter()
 
 const searchQuery = ref('')
