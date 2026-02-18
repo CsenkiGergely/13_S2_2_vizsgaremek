@@ -21,8 +21,6 @@ const routes = [
   { path: '/fizetes', name: 'Fizetes', component: Fizetes }
 ]
 
-
-
 const router = createRouter({
   history: createWebHistory(),
   routes
