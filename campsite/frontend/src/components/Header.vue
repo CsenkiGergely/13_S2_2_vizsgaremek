@@ -61,7 +61,7 @@ const handleLogout = async () => {
 
   <button 
     @click="openPhoneLoginModal" 
-    class="bg-[#4A7434] text-white px-3 py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium ml-2"
+    class=" text-gray-700 px-3 py-1.5 rounded-lg hover:text-[#4A7434] text-base font-medium ml-2"
   >
     Legyél partnerünk
   </button>
