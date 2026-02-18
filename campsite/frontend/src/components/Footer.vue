@@ -34,7 +34,7 @@
      <a href="#">Foglalás</a>
     </router-link>
                 <router-link to="/fizetes">
-     <a href="#">fizetes0</a>
+     <a href="#">Fizetés</a>
     </router-link>
   </div>
 
