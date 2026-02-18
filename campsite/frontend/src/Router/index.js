@@ -6,6 +6,7 @@ import Foglalas from '../views/foglalas.vue'
 import Adatvedelem from '../views/adatvedel.vue'
 import Felhasznalo from '../views/felhasznalo.vue'
 import Cookie from '../views/cookie.vue'
+import Fizetes from '../views/fizetes.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -14,7 +15,8 @@ const routes = [
   { path: '/foglalas', name: 'Foglalas', component: Foglalas },
   { path: '/adatvedelem', name: 'Adatvedelem', component: Adatvedelem },
   { path: '/cookie', name: 'Cookie', component: Cookie },
-  { path: '/felhasznalo', name: 'Felhasznalo', component: Felhasznalo }
+  { path: '/felhasznalo', name: 'Felhasznalo', component: Felhasznalo },
+   { path: '/fizetes', name: 'Fizetes', component: Fizetes }
 ]
 
 
