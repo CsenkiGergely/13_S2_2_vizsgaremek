@@ -11,50 +11,7 @@ use App\Models\Booking;
 class CampingController extends Controller
 {
     /**
-     * @OA\Get(
-     *     path="/campings",
-     *     tags={"Campings"},
-     *     summary="Get all campings with filters",
-     *     description="Get paginated list of campings with optional search and price filters",
-     *     @OA\Parameter(
-     *         name="search",
-     *         in="query",
-     *         description="Search by camping name or description",
-     *         required=false,
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Parameter(
-     *         name="min_price",
-     *         in="query",
-     *         description="Minimum price per night",
-     *         required=false,
-     *         @OA\Schema(type="number")
-     *     ),
-     *     @OA\Parameter(
-     *         name="max_price",
-     *         in="query",
-     *         description="Maximum price per night",
-     *         required=false,
-     *         @OA\Schema(type="number")
-     *     ),
-     *     @OA\Parameter(
-     *         name="page",
-     *         in="query",
-     *         description="Page number",
-     *         required=false,
-     *         @OA\Schema(type="integer", default=1)
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object")),
-     *             @OA\Property(property="current_page", type="integer"),
-     *             @OA\Property(property="last_page", type="integer"),
-     *             @OA\Property(property="total", type="integer")
-     *         )
-     *     )
-     * )
+     * Kempingek listázása szűrőkkel
      */
     public function getCampings(Request $request)
     {
@@ -80,7 +37,7 @@ class CampingController extends Controller
             });
         });
 
-        $campings = $camping->paginate(2); // 2 egyszerre
+        $campings = $camping->paginate(12); // 12 kemping oldalanként
         
         // árak és értékelések hozzáadása minden kempinghez
         $campings->getCollection()->transform(function ($camp) {
@@ -95,24 +52,7 @@ class CampingController extends Controller
     }
 
     /**
-     * @OA\Get(
-     *     path="/campings/{id}",
-     *     tags={"Campings"},
-     *     summary="Get camping details",
-     *     description="Get detailed information about a specific camping",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Camping details",
-     *         @OA\JsonContent(type="object")
-     *     ),
-     *     @OA\Response(response=404, description="Camping not found")
-     * )
+     * Kemping részleteinek lekérdezése
      */
     public function show($id)
     {
@@ -143,40 +83,7 @@ class CampingController extends Controller
     }
 
     /**
-     * @OA\Post(
-     *     path="/campings",
-     *     tags={"Campings"},
-     *     summary="Create new camping",
-     *     description="Create a new camping (partner role required)",
-     *     security={{"sanctum":{}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"camping_name","owner_first_name","owner_last_name","description","city","zip_code","street_address"},
-     *             @OA\Property(property="camping_name", type="string"),
-     *             @OA\Property(property="owner_first_name", type="string"),
-     *             @OA\Property(property="owner_last_name", type="string"),
-     *             @OA\Property(property="description", type="string"),
-     *             @OA\Property(property="company_name", type="string"),
-     *             @OA\Property(property="tax_id", type="string"),
-     *             @OA\Property(property="billing_address", type="string"),
-     *             @OA\Property(property="city", type="string"),
-     *             @OA\Property(property="zip_code", type="string"),
-     *             @OA\Property(property="street_address", type="string"),
-     *             @OA\Property(property="latitude", type="number"),
-     *             @OA\Property(property="longitude", type="number")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Camping created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string"),
-     *             @OA\Property(property="camping", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(response=403, description="Partner role required")
-     * )
+     * Új kemping létrehozása
      */
     public function store(Request $request)
     {
@@ -250,13 +157,7 @@ class CampingController extends Controller
         // csak owner 
         if ($camping->user_id != $request->user()->id) {
             return response()->json([
-                'message' => 'Nincs jogosultságod ennek a kempingnek a módosításához!',
-                'debug' => [
-                    'camping_user_id' => $camping->user_id,
-                    'camping_user_id_type' => gettype($camping->user_id),
-                    'current_user_id' => $request->user()->id,
-                    'current_user_id_type' => gettype($request->user()->id)
-                ]
+                'message' => 'Nincs jogosultságod ennek a kempingnek a módosításához!'
             ], 403);
         }
 
@@ -425,5 +326,99 @@ class CampingController extends Controller
             'end_date' => $endDate->format('Y-m-d'),
             'availability' => $availability
         ], 200);
+    }
+
+    /**
+     * GeoJSON térkép lekérése egy kempinghez
+     */
+    public function getGeojson($id)
+    {
+        $camping = Camping::find($id);
+
+        if (!$camping) {
+            return response()->json(['message' => 'Kemping nem található'], 404);
+        }
+
+        if (!$camping->geojson) {
+            return response()->json(['message' => 'Ehhez a kempinghez nincs térkép feltöltve'], 404);
+        }
+
+        return response()->json([
+            'camping_id' => $camping->id,
+            'camping_name' => $camping->name,
+            'geojson' => $camping->geojson
+        ], 200);
+    }
+
+    /**
+     * GeoJSON térkép feltöltése kempinghez (csak tulajdonos)
+     * A tulajdonos geojson.io-n megrajzolja a térképet és feltölti
+     */
+    public function uploadGeojson(Request $request, $id)
+    {
+        $camping = Camping::find($id);
+
+        if (!$camping) {
+            return response()->json(['message' => 'Kemping nem található'], 404);
+        }
+
+        if ($camping->user_id != $request->user()->id) {
+            return response()->json(['message' => 'Nincs jogosultságod!'], 403);
+        }
+
+        $request->validate([
+            'geojson' => 'required|file|mimes:json,geojson|max:2048',
+        ]);
+
+        $file = $request->file('geojson');
+
+        // Csak .geojson kiterjesztés engedélyezett
+        if ($file->getClientOriginalExtension() !== 'geojson') {
+            return response()->json(['message' => 'Csak .geojson fájl tölthető fel!'], 422);
+        }
+
+        // Fájl tartalom beolvasása
+        $content = file_get_contents($file->getRealPath());
+        $geojson = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json(['message' => 'Érvénytelen JSON formátum a fájlban!'], 422);
+        }
+
+        // Ellenőrzés: FeatureCollection típusú legyen
+        if (!isset($geojson['type']) || $geojson['type'] !== 'FeatureCollection') {
+            return response()->json(['message' => 'A GeoJSON-nak FeatureCollection típusúnak kell lennie!'], 422);
+        }
+
+        $camping->geojson = $geojson;
+        $camping->save();
+
+        return response()->json([
+            'message' => 'Térkép sikeresen feltöltve!',
+            'camping_id' => $camping->id,
+            'camping_name' => $camping->camping_name,
+            'geojson' => $camping->geojson
+        ], 200);
+    }
+
+    /**
+     * GeoJSON térkép törlése (csak tulajdonos)
+     */
+    public function deleteGeojson(Request $request, $id)
+    {
+        $camping = Camping::find($id);
+
+        if (!$camping) {
+            return response()->json(['message' => 'Kemping nem található'], 404);
+        }
+
+        if ($camping->user_id != $request->user()->id) {
+            return response()->json(['message' => 'Nincs jogosultságod!'], 403);
+        }
+
+        $camping->geojson = null;
+        $camping->save();
+
+        return response()->json(['message' => 'Térkép törölve!'], 200);
     }
 }
