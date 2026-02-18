@@ -11,23 +11,6 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
-    /**
-     * @OA\Get(
-     *     path="/bookings",
-     *     tags={"Bookings"},
-     *     summary="Get user bookings",
-     *     description="Get all bookings for authenticated user",
-     *     security={{"sanctum":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Successful operation",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Unauthenticated")
-     * )
-     */
     public function index(Request $request)
     {
 
@@ -51,35 +34,6 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/bookings",
-     *     tags={"Bookings"},
-     *     summary="Create new booking",
-     *     description="Create a new camping reservation",
-     *     security={{"sanctum":{}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"camping_id","camping_spot_id","arrival_date","departure_date","guests"},
-     *             @OA\Property(property="camping_id", type="integer", example=1),
-     *             @OA\Property(property="camping_spot_id", type="integer", example=1),
-     *             @OA\Property(property="arrival_date", type="string", format="date", example="2026-07-10"),
-     *             @OA\Property(property="departure_date", type="string", format="date", example="2026-07-15"),
-     *             @OA\Property(property="guests", type="integer", example=2)
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Booking created successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string"),
-     *             @OA\Property(property="booking", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(response=422, description="Validation error")
-     * )
-     */
     public function store(Request $request)
     {
         // Minden szügséges adat ellenőrzése
@@ -178,32 +132,6 @@ class BookingController extends Controller
         ], 201);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/bookings/{id}",
-     *     tags={"Bookings"},
-     *     summary="Get booking details",
-     *     description="Get detailed information about a specific booking",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Booking details",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="booking", type="object"),
-     *             @OA\Property(property="nights", type="integer"),
-     *             @OA\Property(property="total_price", type="number")
-     *         )
-     *     ),
-     *     @OA\Response(response=404, description="Booking not found"),
-     *     @OA\Response(response=403, description="Unauthorized access")
-     * )
-     */
     public function show(Request $request, $id)
     {
         // Megkeressük a foglalást
@@ -242,40 +170,6 @@ class BookingController extends Controller
         return response()->json($booking);
     }
 
-    /**
-     * @OA\Put(
-     *     path="/bookings/{id}",
-     *     tags={"Bookings"},
-     *     summary="Update booking",
-     *     description="Update an existing booking (only pending bookings)",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             @OA\Property(property="arrival_date", type="string", format="date"),
-     *             @OA\Property(property="departure_date", type="string", format="date"),
-     *             @OA\Property(property="guests", type="integer")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Booking updated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string"),
-     *             @OA\Property(property="booking", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(response=403, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Booking not found"),
-     *     @OA\Response(response=422, description="Validation error or booking not modifiable")
-     * )
-     */
     public function update(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -345,31 +239,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Delete(
-     *     path="/bookings/{id}",
-     *     tags={"Bookings"},
-     *     summary="Cancel booking",
-     *     description="Cancel an existing booking (changes status to cancelled)",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Booking cancelled successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=403, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Booking not found"),
-     *     @OA\Response(response=422, description="Booking already cancelled")
-     * )
-     */
     public function destroy(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -410,38 +279,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Patch(
-     *     path="/bookings/{id}/status",
-     *     tags={"Bookings"},
-     *     summary="Update booking status",
-     *     description="Update booking status (camping owner only)",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"status"},
-     *             @OA\Property(property="status", type="string", enum={"pending","confirmed","checked_in","completed","cancelled"})
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Status updated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string"),
-     *             @OA\Property(property="booking", type="object")
-     *         )
-     *     ),
-     *     @OA\Response(response=403, description="Unauthorized - not camping owner"),
-     *     @OA\Response(response=404, description="Booking not found")
-     * )
-     */
     public function updateStatus(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -479,34 +316,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/bookings/{id}/qr-code",
-     *     tags={"Bookings"},
-     *     summary="Get booking QR code",
-     *     description="Get QR code string for a booking",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="QR code data",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="qr_code", type="string"),
-     *             @OA\Property(property="booking_id", type="integer"),
-     *             @OA\Property(property="camping_name", type="string"),
-     *             @OA\Property(property="arrival_date", type="string"),
-     *             @OA\Property(property="departure_date", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=403, description="Unauthorized"),
-     *     @OA\Response(response=404, description="Booking not found")
-     * )
-     */
     public function getQrCode(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -533,28 +342,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/owner/bookings",
-     *     tags={"Bookings"},
-     *     summary="Get owner bookings",
-     *     description="Get all bookings for campings owned by the user",
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="page",
-     *         in="query",
-     *         required=false,
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="List of bookings for owned campings",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="data", type="array", @OA\Items(type="object"))
-     *         )
-     *     )
-     * )
-     */
     public function ownerBookings(Request $request)
     {
         $user_id = $request->user()->id;
@@ -584,34 +371,6 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/scan-qr",
-     *     tags={"Bookings"},
-     *     summary="Scan QR code",
-     *     description="Verify and check-in booking using QR code",
-     *     security={{"sanctum":{}}},
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"qr_code","camping_id"},
-     *             @OA\Property(property="qr_code", type="string", example="USR1-BKG5-ABC12345"),
-     *             @OA\Property(property="camping_id", type="integer", example=1)
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="QR code validated successfully",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string"),
-     *             @OA\Property(property="booking", type="object"),
-     *             @OA\Property(property="status", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=404, description="Booking not found"),
-     *     @OA\Response(response=422, description="Invalid booking status")
-     * )
-     */
     public function scanQrCode(Request $request)
     {
         $validated = $request->validate([

@@ -121,9 +121,8 @@ onMounted(() => {
               <td>{{ dayjs(booking.checkIn).format("YYYY. MMMM D.") }}</td>
               <td>{{ dayjs(booking.checkOut).format("YYYY. MMMM D.") }}</td>
               <td>{{ booking.guests }}</td>
-              <td><span :class="['badge', booking.status === 'active' ? 'active-badge' : booking.status === 'confirmed' ? 'confirmed' : 'finished']">
-                {{ booking.status === 'active' ? 'Aktív' : booking.status === 'confirmed' ? 'Megerősített' : 'Befejezett' }}
-                <!-- "pending","confirmed","checked_in","completed","cancelled" -->
+              <td><span :class="['badge', booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'confirmed' : booking.status === 'checked_in' ? 'checked_in' : booking.status === 'finished' ? 'finished' : booking.status === 'cancelled' ? 'cancelled' : '']">
+                {{ booking.status === 'pending' ? 'Függőben van' : booking.status === 'confirmed' ? 'Megerősített' : booking.status === 'checked_in' ? 'Bejelentkezett' : booking.status === 'finished' ? 'Befejezett' : booking.status === 'cancelled' ? 'Lemondott' : ''}}
               </span></td>
               <td><strong>{{ booking.price }}</strong></td>
               <td><button class="btn">👁 Részletek</button></td>
@@ -355,9 +354,9 @@ onMounted(() => {
     border-top: 1px solid #dbeafe;
   }
 
-  .active-badge {
-    background: #dbeafe;
-    color: #166534;
+  .pending {
+    background: #f3f4f6;
+    color: #82a2d4;
   }
 
   .confirmed {
@@ -365,10 +364,21 @@ onMounted(() => {
     color: #1e40af;
   }
 
+  .checked_in {
+    background: #dbeafe;
+    color: #30b965;
+  }
+
   .finished {
     background: #f3f4f6;
     color: #374151;
   }
+
+  .cancelled {
+    background: #f3f4f6;
+    color: #ff0000;
+  }
+
 
   .btn {
     padding: 6px 12px;

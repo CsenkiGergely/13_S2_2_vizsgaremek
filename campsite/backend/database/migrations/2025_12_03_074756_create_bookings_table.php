@@ -21,6 +21,7 @@ return new class extends Migration
             $table->date('departure_date');
             $table->string('status', 30)->nullable();
             $table->string('qr_code', 255)->nullable();
+            $table->integer('guests')->default(1);
             $table->timestamps();
 
             $table->index('user_id');
