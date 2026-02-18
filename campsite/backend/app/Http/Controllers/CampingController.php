@@ -80,7 +80,7 @@ class CampingController extends Controller
             });
         });
 
-        $campings = $camping->paginate(2); // 2 egyszerre
+        $campings = $camping->paginate(12); // 12 kemping oldalanként
         
         // árak és értékelések hozzáadása minden kempinghez
         $campings->getCollection()->transform(function ($camp) {

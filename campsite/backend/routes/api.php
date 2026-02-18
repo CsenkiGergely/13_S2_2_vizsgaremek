@@ -8,8 +8,9 @@ use App\Http\Controllers\CampingController;
 use App\Http\Controllers\BookingSearchController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CampingPhotoController;
+use App\Http\Controllers\CampingSpotController;
 use App\Http\Controllers\Api\CampsiteController;
-
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\SearchController;
 
 Route::get('/search', [SearchController::class, 'search']);

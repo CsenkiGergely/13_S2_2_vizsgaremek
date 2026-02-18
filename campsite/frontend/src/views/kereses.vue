@@ -44,8 +44,20 @@ const fetchCampsites = async () => {
       params.services = selectedServices.value.join(',')
     }
     
-    const response = await axios.get('http://localhost:8000/api/campsites', { params })
-    allCampsites.value = response.data
+    const response = await axios.get('http://localhost:8000/api/campings', { params })
+    
+    // Backend adatok transzformálása a frontend formátumra
+    const rawData = response.data.data || response.data
+    allCampsites.value = rawData.map(camping => ({
+      id: camping.id,
+      name: camping.camping_name,
+      image: camping.photos && camping.photos.length > 0 ? camping.photos[0].photo_url : 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800',
+      rating: camping.average_rating || 0,
+      reviews: camping.reviews_count || 0,
+      location: camping.location ? `${camping.location.city}` : 'Ismeretlen',
+      tags: camping.tags ? camping.tags.map(t => t.tag) : [],
+      price: camping.min_price || 0
+    }))
   } catch (err) {
     console.error('Hiba a kempingek betöltésekor:', err)
     error.value = 'Nem sikerült betölteni a kempingeket. Ellenőrizd, hogy a backend fut-e!'
