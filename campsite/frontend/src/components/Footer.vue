@@ -27,14 +27,14 @@
             <router-link to="/kereses">
       <a href="kereses.vue">Keresés</a>
     </router-link>
-                <router-link to="/admin">
-     <a href="#">Admin</a>
+                <router-link to="/Tulajdonos">
+     <a href="#">Tulajdonos</a>
     </router-link>
             <router-link to="/foglalas">
      <a href="#">Foglalás</a>
     </router-link>
                 <router-link to="/fizetes">
-     <a href="#">fizetes</a>
+     <a href="#">fizetes0</a>
     </router-link>
   </div>
 
