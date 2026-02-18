@@ -1,8 +1,3 @@
-<script>
-  import { ref } from 'vue'
-  import { leaflet } from 'leaflet'
-</script>
-
 <template>
   <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
 
@@ -91,8 +86,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+
 
 // Galéria képei (itt lehet a saját képeket betenni)
 const images = [
