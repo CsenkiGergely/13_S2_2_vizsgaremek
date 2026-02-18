@@ -11,16 +11,14 @@ import Fizetes from '../views/fizetes.vue'
 const routes = [
   { path: '/', name: 'Home', component: Home },
   { path: '/kereses', name: 'Kereses', component: Kereses },
-  { path: '/admin', name: 'Admin', component: Admin }, // ez fontos
-  { path: '/foglalas/:id', name: 'Foglalas', component: Foglalas },
+  { path: '/admin', name: 'Admin', component: Admin },
+  { path: '/foglalas', name: 'FoglalasLista', component: Foglalas }, // ID nélküli verzió
+  { path: '/foglalas/:id', name: 'Foglalas', component: Foglalas }, // ID-s verzió
   { path: '/adatvedelem', name: 'Adatvedelem', component: Adatvedelem },
   { path: '/cookie', name: 'Cookie', component: Cookie },
   { path: '/felhasznalo', name: 'Felhasznalo', component: Felhasznalo },
-  { path: '/kemping/:id/helyek', name: 'SpotKezeles', component: SpotKezelés, meta: { requiresAuth: true } },
-  { path: '/verify-email', name: 'VerifyEmail', component: VerifyEmail }
+   { path: '/fizetes', name: 'Fizetes', component: Fizetes },
 ]
-
-
 
 const router = createRouter({
   history: createWebHistory(),
