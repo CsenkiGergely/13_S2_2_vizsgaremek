@@ -13,31 +13,7 @@ class AuthController extends Controller
 {
 
     /**
-     * @OA\Post(
-     *     path="/register",
-     *     tags={"Authentication"},
-     *     summary="User registration",
-     *     description="Register a new user account",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"name","email","password","password_confirmation"},
-     *             @OA\Property(property="name", type="string", example="John Doe"),
-     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="password123"),
-     *             @OA\Property(property="password_confirmation", type="string", format="password", example="password123")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Registration successful",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="user", type="object"),
-     *             @OA\Property(property="token", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=422, description="Validation error")
-     * )
+     * Felhasználó regisztrációja
      */
     public function register(Request $request)
     {
@@ -47,38 +23,37 @@ class AuthController extends Controller
             'password' => 'required|confirmed'
         ]);
 
-        error_log("validáció sikeres");
         $user = User::create($fields);
-        error_log("szerverfül elkészült");
-        $token = $user->createToken($request->name);
 
-        return ['user' => $user, 'token' => $token];
+        // Aktiváló token generálása és mentése
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->email],
+            [
+                'email' => $user->email,
+                'token' => Hash::make($token),
+                'created_at' => now()
+            ]
+        );
+
+        // Aktiváló email küldése
+        $verifyUrl = config('app.frontend_url', 'http://localhost:5173')
+            . '/verify-email?token=' . $token
+            . '&email=' . urlencode($user->email);
+
+        Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
+            $message->to($user->email);
+            $message->subject('Email Megerősítés - CampSite');
+        });
+
+        return response()->json([
+            'message' => 'Sikeres regisztráció! Kérjük erősítsd meg az email címedet a kiküldött levélben található linkre kattintva.'
+        ], 201);
     }
 
     /**
-     * @OA\Post(
-     *     path="/login",
-     *     tags={"Authentication"},
-     *     summary="User login",
-     *     description="Login with email and password",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\JsonContent(
-     *             required={"email","password"},
-     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
-     *             @OA\Property(property="password", type="string", format="password", example="password123")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Login successful",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="user", type="object"),
-     *             @OA\Property(property="token", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=401, description="Invalid credentials")
-     * )
+     * Bejelentkezés
      */
     public function login(Request $request)
     {
@@ -90,37 +65,31 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return [
-                'message' => 'Invalid credentials'
-            ];
+            return response()->json([
+                'message' => 'Hibás email vagy jelszó.'
+            ], 401);
+        }
+
+        // Ellenőrizzük, hogy az email meg van-e erősítve
+        if (!$user->email_verified_at) {
+            return response()->json([
+                'message' => 'Kérjük erősítsd meg az email címedet a belépés előtt.'
+            ], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return ['user' => $user, 'token' => $token];
+        return response()->json(['user' => $user, 'token' => $token]);
     }
 
     /**
-     * @OA\Post(
-     *     path="/logout",
-     *     tags={"Authentication"},
-     *     summary="User logout",
-     *     description="Logout and revoke all tokens",
-     *     security={{"sanctum":{}}},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Logout successful",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Logged out")
-     *         )
-     *     )
-     * )
+     * Kijelentkezés
      */
     public function logout(Request $request)
     {
         $request->user()->tokens()->delete();
 
-        return ['message' => 'Logged out'];
+        return response()->json(['message' => 'Kijelentkeztél.']);
     }
 
     // Jelszó visszaállítási kérelem
@@ -131,10 +100,13 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', $request->email)->first();
+
+        // Biztonsági okokból mindig ugyanazt a választ adjuk,
+        // így nem áruljuk el hogy létezik-e a fiók
         if (!$user) {
             return response()->json([
-                'message' => 'Nem regisztrált vagy nem megfelelő email.'
-            ], 404);
+                'message' => 'Ha ez az email cím regisztrálva van, elküldtük a visszaállító linket.'
+            ]);
         }
 
         $token = Str::random(64);
@@ -157,8 +129,8 @@ class AuthController extends Controller
         });
 
         return response()->json([
-            'message' => 'Jelszó visszaállító linket elküldtük az email címedre.'
-        ], 200);
+            'message' => 'Ha ez az email cím regisztrálva van, elküldtük a visszaállító linket.'
+        ]);
     }
 
     // Jelszó átállítása
@@ -230,5 +202,156 @@ class AuthController extends Controller
             'message' => 'Sikeresen partner státuszra váltottál!',
             'user' => $user
         ], 200);
+    }
+
+    /**
+     * Bejelentkezett felhasználó profil adatainak lekérdezése
+     */
+    public function profile(Request $request)
+    {
+        return response()->json($request->user());
+    }
+
+    /**
+     * Profil szerkesztése és jelszóváltoztatás
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $fields = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'phone_number' => 'nullable|string|max:20',
+            'password' => 'nullable|min:8|confirmed',
+        ]);
+
+        if (isset($fields['name'])) {
+            $user->name = $fields['name'];
+        }
+
+        if (isset($fields['email'])) {
+            $user->email = $fields['email'];
+        }
+
+        if (isset($fields['phone_number'])) {
+            $user->phone_number = $fields['phone_number'];
+        }
+
+        if (!empty($fields['password'])) {
+            $user->password = Hash::make($fields['password']);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profil sikeresen frissítve.',
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * Email cím megerősítése a regisztráció után
+     */
+    public function verifyEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'token' => 'required',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Érvénytelen email cím.'
+            ], 400);
+        }
+
+        // Ha már aktivált
+        if ($user->email_verified_at) {
+            return response()->json([
+                'message' => 'Az email cím már meg van erősítve.'
+            ]);
+        }
+
+        // Token ellenőrzése
+        $record = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$record || !Hash::check($request->token, $record->token)) {
+            return response()->json([
+                'message' => 'Érvénytelen vagy lejárt aktiváló link.'
+            ], 400);
+        }
+
+        // 24 óra lejárat
+        $createdAt = \Carbon\Carbon::parse($record->created_at);
+        if ($createdAt->addHours(24)->isPast()) {
+            return response()->json([
+                'message' => 'Az aktiváló link lejárt. Kérj újat!'
+            ], 400);
+        }
+
+        // Email megerősítése
+        $user->email_verified_at = now();
+        $user->save();
+
+        // Token törlése
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return response()->json([
+            'message' => 'Email sikeresen megerősítve! Most már bejelentkezhetsz.'
+        ]);
+    }
+
+    /**
+     * Aktiváló email újraküldése
+     */
+    public function resendVerification(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Ha ez az email cím regisztrálva van, elküldtük az aktiváló linket.'
+            ]);
+        }
+
+        if ($user->email_verified_at) {
+            return response()->json([
+                'message' => 'Az email cím már meg van erősítve.'
+            ]);
+        }
+
+        // Új token
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->email],
+            [
+                'email' => $user->email,
+                'token' => Hash::make($token),
+                'created_at' => now()
+            ]
+        );
+
+        $verifyUrl = config('app.frontend_url', 'http://localhost:5173')
+            . '/verify-email?token=' . $token
+            . '&email=' . urlencode($user->email);
+
+        Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
+            $message->to($user->email);
+            $message->subject('Email Megerősítés - CampSite');
+        });
+
+        return response()->json([
+            'message' => 'Ha ez az email cím regisztrálva van, elküldtük az aktiváló linket.'
+        ]);
     }
 }

@@ -12,11 +12,12 @@ const routes = [
   { path: '/', name: 'Home', component: Home },
   { path: '/kereses', name: 'Kereses', component: Kereses },
   { path: '/admin', name: 'Admin', component: Admin }, // ez fontos
-  { path: '/foglalas', name: 'Foglalas', component: Foglalas },
+  { path: '/foglalas/:id', name: 'Foglalas', component: Foglalas },
   { path: '/adatvedelem', name: 'Adatvedelem', component: Adatvedelem },
   { path: '/cookie', name: 'Cookie', component: Cookie },
   { path: '/felhasznalo', name: 'Felhasznalo', component: Felhasznalo },
-   { path: '/fizetes', name: 'Fizetes', component: Fizetes }
+  { path: '/kemping/:id/helyek', name: 'SpotKezeles', component: SpotKezelés, meta: { requiresAuth: true } },
+  { path: '/verify-email', name: 'VerifyEmail', component: VerifyEmail }
 ]
 
 
