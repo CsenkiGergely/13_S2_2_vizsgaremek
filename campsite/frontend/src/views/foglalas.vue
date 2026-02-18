@@ -70,7 +70,7 @@
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Foglalt</span>
           <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Kiválasztva</span>
         </div>
-        <div id="campingMap" class="w-full h-80 rounded-lg overflow-hidden border"></div>
+        <div id="campingMap" class="w-full rounded-lg border" style="height: 320px; z-index: 0;"></div>
         <div v-if="selectedSpot" class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <p class="font-semibold">{{ selectedSpot.name }}</p>
           <p class="text-sm text-gray-600">{{ selectedSpot.type }} · Max {{ selectedSpot.capacity }} fő · {{ selectedSpot.price }} Ft/éj</p>
@@ -86,6 +86,8 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
 
 // Galéria képei (itt lehet a saját képeket betenni)
