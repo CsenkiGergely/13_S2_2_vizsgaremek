@@ -17,7 +17,9 @@ const routes = [
   { path: '/adatvedelem', name: 'Adatvedelem', component: Adatvedelem },
   { path: '/cookie', name: 'Cookie', component: Cookie },
   { path: '/felhasznalo', name: 'Felhasznalo', component: Felhasznalo },
-   { path: '/fizetes', name: 'Fizetes', component: Fizetes },
+  { path: '/kemping/:id/helyek', name: 'SpotKezeles', component: SpotKezeles, meta: { requiresAuth: true } },
+  { path: '/verify-email', name: 'VerifyEmail', component: VerifyEmail },
+  { path: '/fizetes', name: 'Fizetes', component: Fizetes }
 ]
 
 const router = createRouter({
