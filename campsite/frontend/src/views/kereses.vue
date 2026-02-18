@@ -6,13 +6,13 @@ import { searchCampings } from '../api/searchService'
 const route = useRoute()
 const today = new Date().toISOString().split('T')[0]
 
-const searchForm = ref({
-  location: '',
-  checkIn: '',
-  checkOut: '',
-  adults: 2,
-  children: 0
-})
+const router = useRoute()
+
+const searchQuery = ref('')
+const priceRange = ref(100)
+const selectedLocationTypes = ref([])
+const selectedServices = ref([])
+const minRating = ref(null)
 
 const searchResults = ref([])
 const loading = ref(false)
@@ -61,13 +61,18 @@ const performSearch = async () => {
 }
 
 onMounted(() => {
-  if (route.query.location) searchForm.value.location = route.query.location
-  if (route.query.checkIn) searchForm.value.checkIn = route.query.checkIn
-  if (route.query.checkOut) searchForm.value.checkOut = route.query.checkOut
-  if (route.query.guests) {
-    const guests = parseInt(route.query.guests)
-    searchForm.value.adults = guests
-    searchForm.value.children = 0
+  // Beolvassuk a query paramétereket a Home oldalról
+  if (router.query.location) {
+    searchQuery.value = router.query.location
+  }
+  if (router.query.checkIn) {
+    console.log('Check-in dátum:', router.query.checkIn)
+  }
+  if (router.query.checkOut) {
+    console.log('Check-out dátum:', router.query.checkOut)
+  }
+  if (router.query.guests) {
+    console.log('Vendégek száma:', router.query.guests)
   }
   
   if (route.query.checkIn && route.query.checkOut) {

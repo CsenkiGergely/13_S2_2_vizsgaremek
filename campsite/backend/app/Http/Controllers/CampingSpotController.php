@@ -57,6 +57,12 @@ class CampingSpotController extends Controller
     // Új kemping hely létrehozása
     public function store(Request $request, $campingId)
     {
+        // Felhasználó ellenőrzése
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Nincs bejelentkezve'], 401);
+        }
+
         // Kemping megkeresése
         $camping = Camping::find($campingId);
 
@@ -65,7 +71,7 @@ class CampingSpotController extends Controller
         }
 
         // csak a tulajdonos hozhat létre helyet
-        if ($camping->user_id != $request->user()->id) {
+        if ($camping->user_id != $user->id) {
             return response()->json(['message' => 'Nincs jogosultságod!'], 403);
         }
 
@@ -107,6 +113,12 @@ class CampingSpotController extends Controller
     // Kemping hely módosítása 
     public function update(Request $request, $campingId, $spotId)
     {
+        // Felhasználó ellenőrzése
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Nincs bejelentkezve'], 401);
+        }
+
         // Kemping megkeresése
         $camping = Camping::find($campingId);
 
@@ -115,7 +127,7 @@ class CampingSpotController extends Controller
         }
 
         // csak a tulajdonos módosíthatja
-        if ($camping->user_id != $request->user()->id) {
+        if ($camping->user_id != $user->id) {
             return response()->json(['message' => 'Nincs jogosultságod!'], 403);
         }
 
@@ -165,6 +177,12 @@ class CampingSpotController extends Controller
     // Kemping hely törlése (csak tulajdonos)
     public function destroy(Request $request, $campingId, $spotId)
     {
+        // Felhasználó ellenőrzése
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Nincs bejelentkezve'], 401);
+        }
+
         // Kemping megkeresése
         $camping = Camping::find($campingId);
 
@@ -173,7 +191,7 @@ class CampingSpotController extends Controller
         }
 
         // csak a tulajdonos törölheti
-        if ($camping->user_id != $request->user()->id) {
+        if ($camping->user_id != $user->id) {
             return response()->json(['message' => 'Nincs jogosultságod!'], 403);
         }
 

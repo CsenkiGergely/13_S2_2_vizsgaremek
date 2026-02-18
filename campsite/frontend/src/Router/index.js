@@ -6,8 +6,7 @@ import Foglalas from '../views/foglalas.vue'
 import Adatvedelem from '../views/adatvedel.vue'
 import Felhasznalo from '../views/felhasznalo.vue'
 import Cookie from '../views/cookie.vue'
-import SpotKezelés from '../views/SpotKezeles.vue'
-import VerifyEmail from '../views/VerifyEmail.vue'
+import Fizetes from '../views/fizetes.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },

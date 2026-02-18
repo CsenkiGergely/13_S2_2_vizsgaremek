@@ -1,21 +1,11 @@
 {
   "info": {
+    "_postman_id": "62d7bea0-6c56-48e3-a99b-4644dd20402e",
     "name": "Campsite API Tests",
     "description": "API tesztek a Campsite alkalmazáshoz",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "51313259"
   },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://127.0.0.1:8000/api",
-      "type": "string"
-    },
-    {
-      "key": "token",
-      "value": "",
-      "type": "string"
-    }
-  ],
   "item": [
     {
       "name": "Auth",
@@ -36,7 +26,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Teszt Felhasználó\",\n  \"email\": \"teszt@example.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}",
+              "raw": "{\n    \"name\": \"Dicső András\",\n    \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n    \"password\": \"staC6UK2345\",\n    \"password_confirmation\": \"staC6UK2345\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -45,13 +35,123 @@
             },
             "url": {
               "raw": "{{base_url}}/register",
-              "host": ["{{base_url}}"],
-              "path": ["register"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "register"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Register",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Dicső András\",\n  \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n  \"password\": \"staC6UK2345\",\n  \"password_confirmation\": \"staC6UK2345\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/register",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "register"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 15:54:29 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"user\": {\n        \"name\": \"Dicső András\",\n        \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n        \"updated_at\": \"2026-02-14T15:54:29.000000Z\",\n        \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n        \"id\": 6\n    },\n    \"token\": {\n        \"accessToken\": {\n            \"name\": \"Dicső András\",\n            \"abilities\": [\n                \"*\"\n            ],\n            \"expires_at\": null,\n            \"tokenable_id\": 6,\n            \"tokenable_type\": \"App\\\\Models\\\\User\",\n            \"updated_at\": \"2026-02-14T15:54:29.000000Z\",\n            \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n            \"id\": 4\n        },\n        \"plainTextToken\": \"4|VLEW6RaFmI2IZDCbrytSYjqFZXYrbUWzOAo3xvlq9a8961cc\"\n    }\n}"
+            }
+          ]
         },
         {
           "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Parse the JSON response",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "// Extract the token from common locations",
+                  "let token = null;",
+                  "",
+                  "if (jsonData.token) {",
+                  "    token = jsonData.token;",
+                  "} else if (jsonData.access_token) {",
+                  "    token = jsonData.access_token;",
+                  "} else if (jsonData.data && jsonData.data.token) {",
+                  "    token = jsonData.data.token;",
+                  "} else if (jsonData.data && jsonData.data.access_token) {",
+                  "    token = jsonData.data.access_token;",
+                  "}",
+                  "",
+                  "// Save the token to collection variable if found",
+                  "if (token) {",
+                  "    pm.collectionVariables.set(\"auth_token\", token);",
+                  "    console.log(\"Authentication token saved to collection variable: \" + token);",
+                  "} else {",
+                  "    console.log(\"Warning: Token not found in response\");",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -66,7 +166,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"teszt@example.com\",\n  \"password\": \"password123\"\n}",
+              "raw": "{\n  \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n  \"password\": \"staC6UK2345\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -75,10 +175,85 @@
             },
             "url": {
               "raw": "{{base_url}}/login",
-              "host": ["{{base_url}}"],
-              "path": ["login"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Login",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n  \"password\": \"staC6UK2345\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/login",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "login"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 15:56:17 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"user\": {\n        \"id\": 6,\n        \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n        \"name\": \"Dicső András\",\n        \"role\": false,\n        \"is_superuser\": false,\n        \"phone_number\": null,\n        \"email_verified_at\": null,\n        \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n        \"updated_at\": \"2026-02-14T15:54:29.000000Z\"\n    },\n    \"token\": \"5|E7nMTo3K7tsqmb28z9bmJ8nd7htL2likaLJYPyeM710503e0\"\n}"
+            }
+          ]
         },
         {
           "name": "Logout",
@@ -100,10 +275,80 @@
             ],
             "url": {
               "raw": "{{base_url}}/logout",
-              "host": ["{{base_url}}"],
-              "path": ["logout"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "logout"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Logout",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/logout",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "logout"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 15:57:37 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Logged out\"\n}"
+            }
+          ]
         },
         {
           "name": "Forgot Password",
@@ -121,7 +366,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"teszt@example.com\"\n}",
+              "raw": "{\n  \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -130,10 +375,15 @@
             },
             "url": {
               "raw": "{{base_url}}/forgot-password",
-              "host": ["{{base_url}}"],
-              "path": ["forgot-password"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "forgot-password"
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Reset Password",
@@ -151,7 +401,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"teszt@example.com\",\n  \"token\": \"reset_token_here\",\n  \"password\": \"newpassword123\",\n  \"password_confirmation\": \"newpassword123\"\n}",
+              "raw": "{\n  \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n  \"token\": \"$2y$12$t2tuhXXWvOZ1SWknYFr8cOGpAwbkCv66M0vaC0bUkeUKjHm96.kDC\",\n  \"password\": \"staC6UK23457\",\n  \"password_confirmation\": \"staC6UK23457\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -160,10 +410,85 @@
             },
             "url": {
               "raw": "{{base_url}}/reset-password",
-              "host": ["{{base_url}}"],
-              "path": ["reset-password"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reset-password"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Reset Password",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n  \"token\": \"$2y$12$oPVn8hyL9mcQ.PnpO1kt9O3i483zTOtkLws.PAiv080ZnYZD.FRm2\",\n  \"password\": \"staC6UK23457\",\n  \"password_confirmation\": \"staC6UK23457\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/reset-password",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "reset-password"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 16:28:59 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Érvénytelen vagy lejárt token.\"\n}"
+            }
+          ]
         },
         {
           "name": "Upgrade to Partner",
@@ -185,7 +510,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone_number\": \"+36301234567\",\n  \"company_name\": \"Balatoni Kempingek Kft.\",\n  \"tax_number\": \"12345678-1-23\"\n}",
+              "raw": "{\n  \"phone_number\": \"+36304644567\",\n  \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n  \"tax_number\": \"17345628-1-23\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -194,10 +519,89 @@
             },
             "url": {
               "raw": "{{base_url}}/upgrade-to-partner",
-              "host": ["{{base_url}}"],
-              "path": ["upgrade-to-partner"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "upgrade-to-partner"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Upgrade to Partner",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"phone_number\": \"+36304644567\",\n  \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n  \"tax_number\": \"17345628-1-23\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/upgrade-to-partner",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "upgrade-to-partner"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 16:38:31 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Sikeresen partner státuszra váltottál!\",\n    \"user\": {\n        \"id\": 6,\n        \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n        \"name\": \"Dicső András\",\n        \"role\": true,\n        \"is_superuser\": false,\n        \"phone_number\": \"+36304644567\",\n        \"email_verified_at\": null,\n        \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n        \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n    }\n}"
+            }
+          ]
         },
         {
           "name": "Get User",
@@ -215,10 +619,76 @@
             ],
             "url": {
               "raw": "{{base_url}}/user",
-              "host": ["{{base_url}}"],
-              "path": ["user"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Get User",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/user",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "user"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 16:39:22 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": 6,\n    \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n    \"name\": \"Dicső András\",\n    \"role\": true,\n    \"is_superuser\": false,\n    \"phone_number\": \"+36304644567\",\n    \"email_verified_at\": null,\n    \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n    \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n}"
+            }
+          ]
         }
       ]
     },
@@ -237,10 +707,15 @@
             ],
             "url": {
               "raw": "{{base_url}}/posts",
-              "host": ["{{base_url}}"],
-              "path": ["posts"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts"
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Get Post by ID",
@@ -254,10 +729,16 @@
             ],
             "url": {
               "raw": "{{base_url}}/posts/1",
-              "host": ["{{base_url}}"],
-              "path": ["posts", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "1"
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Create Post",
@@ -284,10 +765,15 @@
             },
             "url": {
               "raw": "{{base_url}}/posts",
-              "host": ["{{base_url}}"],
-              "path": ["posts"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts"
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Update Post",
@@ -314,10 +800,16 @@
             },
             "url": {
               "raw": "{{base_url}}/posts/1",
-              "host": ["{{base_url}}"],
-              "path": ["posts", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "1"
+              ]
             }
-          }
+          },
+          "response": []
         },
         {
           "name": "Delete Post",
@@ -331,10 +823,16 @@
             ],
             "url": {
               "raw": "{{base_url}}/posts/1",
-              "host": ["{{base_url}}"],
-              "path": ["posts", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "posts",
+                "1"
+              ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
@@ -353,10 +851,72 @@
             ],
             "url": {
               "raw": "{{base_url}}/campings",
-              "host": ["{{base_url}}"],
-              "path": ["campings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Get All Campings",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 17:05:20 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"current_page\": 1,\n    \"data\": [\n        {\n            \"id\": 3,\n            \"user_id\": 4,\n            \"camping_name\": \"Tesztfalva\",\n            \"owner_first_name\": \"András\",\n            \"owner_last_name\": \"Dicső\",\n            \"location_id\": 1,\n            \"description\": \"Majsa\",\n            \"company_name\": \"Teszt.kft\",\n            \"tax_id\": null,\n            \"billing_address\": \"6726\",\n            \"geojson\": null,\n            \"created_at\": \"2026-02-14T10:26:11.000000Z\",\n            \"updated_at\": \"2026-02-14T10:26:11.000000Z\",\n            \"min_price\": null,\n            \"max_price\": null,\n            \"average_rating\": null,\n            \"reviews_count\": 0,\n            \"photos\": [],\n            \"location\": {\n                \"id\": 1,\n                \"city\": \"Majsa\",\n                \"zip_code\": \"6000\",\n                \"street_address\": \"1234 Város, Utca 12\",\n                \"latitude\": null,\n                \"longitude\": null,\n                \"created_at\": \"2026-02-12T20:48:52.000000Z\",\n                \"updated_at\": \"2026-02-12T20:48:52.000000Z\"\n            },\n            \"tags\": []\n        }\n    ],\n    \"first_page_url\": \"http://127.0.0.1:8000/api/campings?page=1\",\n    \"from\": 1,\n    \"last_page\": 1,\n    \"last_page_url\": \"http://127.0.0.1:8000/api/campings?page=1\",\n    \"links\": [\n        {\n            \"url\": null,\n            \"label\": \"&laquo; Previous\",\n            \"page\": null,\n            \"active\": false\n        },\n        {\n            \"url\": \"http://127.0.0.1:8000/api/campings?page=1\",\n            \"label\": \"1\",\n            \"page\": 1,\n            \"active\": true\n        },\n        {\n            \"url\": null,\n            \"label\": \"Next &raquo;\",\n            \"page\": null,\n            \"active\": false\n        }\n    ],\n    \"next_page_url\": null,\n    \"path\": \"http://127.0.0.1:8000/api/campings\",\n    \"per_page\": 2,\n    \"prev_page_url\": null,\n    \"to\": 1,\n    \"total\": 1\n}"
+            }
+          ]
         },
         {
           "name": "Get Camping by ID",
@@ -369,11 +929,75 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/campings/1",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1"]
+              "raw": "{{base_url}}/campings/3",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "3"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Get Camping by ID",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/3",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "3"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 17:06:39 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": 3,\n    \"user_id\": 4,\n    \"camping_name\": \"Tesztfalva\",\n    \"owner_first_name\": \"András\",\n    \"owner_last_name\": \"Dicső\",\n    \"location_id\": 1,\n    \"description\": \"Majsa\",\n    \"company_name\": \"Teszt.kft\",\n    \"tax_id\": null,\n    \"billing_address\": \"6726\",\n    \"geojson\": null,\n    \"created_at\": \"2026-02-14T10:26:11.000000Z\",\n    \"updated_at\": \"2026-02-14T10:26:11.000000Z\",\n    \"min_price\": null,\n    \"max_price\": null,\n    \"average_rating\": null,\n    \"reviews_count\": 0,\n    \"photos\": [],\n    \"location\": {\n        \"id\": 1,\n        \"city\": \"Majsa\",\n        \"zip_code\": \"6000\",\n        \"street_address\": \"1234 Város, Utca 12\",\n        \"latitude\": null,\n        \"longitude\": null,\n        \"created_at\": \"2026-02-12T20:48:52.000000Z\",\n        \"updated_at\": \"2026-02-12T20:48:52.000000Z\"\n    },\n    \"tags\": [],\n    \"spots\": [],\n    \"user\": {\n        \"id\": 4,\n        \"email\": \"teszt1@gmail.com\",\n        \"name\": \"TeszFelhasznalo1\",\n        \"role\": false,\n        \"is_superuser\": false,\n        \"phone_number\": null,\n        \"email_verified_at\": null,\n        \"created_at\": \"2026-02-14T10:17:39.000000Z\",\n        \"updated_at\": \"2026-02-14T10:17:39.000000Z\"\n    },\n    \"entrance_gates\": []\n}"
+            }
+          ]
         },
         {
           "name": "Get Camping Spots",
@@ -386,11 +1010,77 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/campings/1/spots",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "spots"]
+              "raw": "{{base_url}}/campings/3/spots",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "3",
+                "spots"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Get Camping Spots",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/3/spots",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "3",
+                    "spots"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 17:08:09 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"camping_id\": 3,\n    \"camping_name\": \"Tesztfalva\",\n    \"spots\": []\n}"
+            }
+          ]
         },
         {
           "name": "Get Camping Availability",
@@ -403,48 +1093,97 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/campings/1/availability?start_date=2026-02-01&end_date=2026-02-10",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "availability"],
+              "raw": "{{base_url}}/campings/3/availability?start_date=2026-02-20&end_date=2026-02-21",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "3",
+                "availability"
+              ],
               "query": [
                 {
                   "key": "start_date",
-                  "value": "2026-02-01"
+                  "value": "2026-02-20"
                 },
                 {
                   "key": "end_date",
-                  "value": "2026-02-10"
+                  "value": "2026-02-21"
                 }
               ]
             }
-          }
-        },
-        {
-          "name": "Search Bookings",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/booking/search?start_date=2026-02-01&end_date=2026-02-10",
-              "host": ["{{base_url}}"],
-              "path": ["booking", "search"],
-              "query": [
+          },
+          "response": [
+            {
+              "name": "Get Camping Availability",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/3/availability?start_date=2026-02-20&end_date=2026-02-21",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "3",
+                    "availability"
+                  ],
+                  "query": [
+                    {
+                      "key": "start_date",
+                      "value": "2026-02-20"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2026-02-21"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
                 {
-                  "key": "start_date",
-                  "value": "2026-02-01"
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
                 },
                 {
-                  "key": "end_date",
-                  "value": "2026-02-10"
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 17:08:45 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
                 }
-              ]
+              ],
+              "cookie": [],
+              "body": "{\n    \"camping_id\": 3,\n    \"camping_name\": \"Tesztfalva\",\n    \"start_date\": \"2026-02-20\",\n    \"end_date\": \"2026-02-21\",\n    \"availability\": []\n}"
             }
-          }
+          ]
         },
         {
           "name": "Create Camping (Owner)",
@@ -466,7 +1205,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Új Kemping\",\n  \"description\": \"Kemping leírása\",\n  \"location_id\": 1,\n  \"address\": \"1234 Város, Utca 12\",\n  \"phone\": \"+36301234567\",\n  \"email\": \"kemping@example.com\"\n}",
+              "raw": "{\r\n    \"camping_name\":\"Szabadi Kemping\",\r\n    \"owner_first_name\":\"András\",\r\n    \"owner_last_name\":\"Dezső\",\r\n    \"description\":\"Lorem Ipsum\",\r\n    \"company_name\":\"\",\r\n    \"tax_id\":\"\",\r\n    \"billing_address\":\"\",\r\n    \"city\":\"Szabadszállás\",\r\n    \"zip_code\":\"6080\",\r\n    \"street_address\":\"Honvéd út 74\",\r\n    \"location_id\":2,\r\n    \"phone\":\"+36304644567\",\r\n    \"email\":\"disco.andras.dezso@diak.szbi-pg.hu\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -475,10 +1214,89 @@
             },
             "url": {
               "raw": "{{base_url}}/campings",
-              "host": ["{{base_url}}"],
-              "path": ["campings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Create Camping (Owner)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"camping_name\":\"Szabadi Kemping\",\r\n    \"owner_first_name\":\"András\",\r\n    \"owner_last_name\":\"Dezső\",\r\n    \"description\":\"Lorem Ipsum\",\r\n    \"company_name\":\"\",\r\n    \"tax_id\":\"\",\r\n    \"billing_address\":\"\",\r\n    \"city\":\"Szabadszállás\",\r\n    \"zip_code\":\"6080\",\r\n    \"street_address\":\"Honvéd út 76\",\r\n    \"location_id\":2,\r\n    \"phone\":\"+36304644567\",\r\n    \"email\":\"disco.andras.dezso@diak.szbi-pg.hu\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/campings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 17:50:05 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kemping sikeresen létrehozva!\",\n    \"camping\": {\n        \"user_id\": 6,\n        \"location_id\": 3,\n        \"camping_name\": \"Szabadi Kemping\",\n        \"owner_first_name\": \"András\",\n        \"owner_last_name\": \"Dezső\",\n        \"description\": \"Lorem Ipsum\",\n        \"company_name\": null,\n        \"tax_id\": null,\n        \"billing_address\": null,\n        \"updated_at\": \"2026-02-14T17:50:04.000000Z\",\n        \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n        \"id\": 4,\n        \"photos\": [],\n        \"location\": {\n            \"id\": 3,\n            \"city\": \"Szabadszállás\",\n            \"zip_code\": \"6080\",\n            \"street_address\": \"Honvéd út 76\",\n            \"latitude\": null,\n            \"longitude\": null,\n            \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n            \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n        },\n        \"tags\": [],\n        \"spots\": []\n    }\n}"
+            }
+          ]
         },
         {
           "name": "Update Camping (Owner)",
@@ -500,7 +1318,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Módosított Kemping\",\n  \"description\": \"Új leírás\"\n}",
+              "raw": "{\n    \"camping_name\":\"Szabadi Kemping\",\n    \"description\":\"Lorem Ipsum\",\n    \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n    \"tax_id\": \"17345628-1-23\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -508,11 +1326,92 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/campings/1",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1"]
+              "raw": "{{base_url}}/campings/4",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Update Camping (Owner)",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"camping_name\":\"Szabadi Kemping\",\n    \"description\":\"Lorem Ipsum\",\n    \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n    \"tax_id\": \"17345628-1-23\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/campings/4",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 18:14:18 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kemping sikeresen frissítve!\",\n    \"camping\": {\n        \"id\": 4,\n        \"user_id\": 6,\n        \"camping_name\": \"Szabadi Kemping\",\n        \"owner_first_name\": \"András\",\n        \"owner_last_name\": \"Dezső\",\n        \"location_id\": 3,\n        \"description\": \"Lorem Ipsum\",\n        \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n        \"tax_id\": \"17345628-1-23\",\n        \"billing_address\": null,\n        \"geojson\": null,\n        \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n        \"updated_at\": \"2026-02-14T18:14:18.000000Z\",\n        \"photos\": [],\n        \"location\": {\n            \"id\": 3,\n            \"city\": \"Szabadszállás\",\n            \"zip_code\": \"6080\",\n            \"street_address\": \"Honvéd út 76\",\n            \"latitude\": null,\n            \"longitude\": null,\n            \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n            \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n        },\n        \"tags\": [],\n        \"spots\": []\n    }\n}"
+            }
+          ]
         },
         {
           "name": "Delete Camping (Owner)",
@@ -529,59 +1428,85 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/campings/1",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1"]
+              "raw": "{{base_url}}/campings/5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "5"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Delete Camping (Owner)",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/5",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "5"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 18:15:46 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kemping sikeresen törölve!\"\n}"
+            }
+          ]
         }
       ]
     },
     {
       "name": "Bookings",
       "item": [
-        {
-          "name": "Get My Bookings",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/bookings",
-              "host": ["{{base_url}}"],
-              "path": ["bookings"]
-            }
-          }
-        },
-        {
-          "name": "Get Booking by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/bookings/1",
-              "host": ["{{base_url}}"],
-              "path": ["bookings", "1"]
-            }
-          }
-        },
         {
           "name": "Create Booking",
           "request": {
@@ -602,7 +1527,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"camping_spot_id\": 1,\n  \"start_date\": \"2026-02-01\",\n  \"end_date\": \"2026-02-10\",\n  \"guests\": 4\n}",
+              "raw": "{\n    \"camping_id\": 4,\n    \"camping_spot_id\": 1,\n    \"arrival_date\": \"2026-02-20\",\n    \"departure_date\": \"2026-02-21\",\n    \"guests\": 2\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -611,10 +1536,366 @@
             },
             "url": {
               "raw": "{{base_url}}/bookings",
-              "host": ["{{base_url}}"],
-              "path": ["bookings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookings"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Create Booking",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"camping_id\": 4,\n    \"camping_spot_id\": 1,\n    \"arrival_date\": \"2026-02-20\",\n    \"departure_date\": \"2026-02-21\",\n    \"guests\": 2\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/bookings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:31:18 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Foglalás sikeresen létrehozva!\",\n    \"booking\": {\n        \"user_id\": 6,\n        \"camping_id\": 4,\n        \"camping_spot_id\": 1,\n        \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n        \"departure_date\": \"2026-02-21T00:00:00.000000Z\",\n        \"status\": \"pending\",\n        \"updated_at\": \"2026-02-15T09:31:18.000000Z\",\n        \"created_at\": \"2026-02-15T09:31:18.000000Z\",\n        \"id\": 1,\n        \"qr_code\": \"USR6-BKG1-LRVGK7OQ\",\n        \"camping\": {\n            \"id\": 4,\n            \"user_id\": 6,\n            \"camping_name\": \"Szabadi Kemping\",\n            \"owner_first_name\": \"András\",\n            \"owner_last_name\": \"Dezső\",\n            \"location_id\": 3,\n            \"description\": \"Lorem Ipsum\",\n            \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n            \"tax_id\": \"17345628-1-23\",\n            \"billing_address\": null,\n            \"geojson\": null,\n            \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n            \"updated_at\": \"2026-02-14T18:14:18.000000Z\",\n            \"location\": {\n                \"id\": 3,\n                \"city\": \"Szabadszállás\",\n                \"zip_code\": \"6080\",\n                \"street_address\": \"Honvéd út 76\",\n                \"latitude\": null,\n                \"longitude\": null,\n                \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n            },\n            \"photos\": []\n        },\n        \"camping_spot\": {\n            \"spot_id\": 1,\n            \"camping_id\": 4,\n            \"name\": \"A-10\",\n            \"type\": \"tent\",\n            \"capacity\": 2,\n            \"price_per_night\": 2000,\n            \"is_available\": true,\n            \"description\": null,\n            \"row\": null,\n            \"column\": null,\n            \"rating\": null,\n            \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n            \"updated_at\": null\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bookings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookings"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Get My Bookings",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/bookings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:40:45 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"current_page\": 1,\n    \"data\": [\n        {\n            \"id\": 1,\n            \"user_id\": 6,\n            \"camping_id\": 4,\n            \"camping_spot_id\": 1,\n            \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n            \"departure_date\": \"2026-02-21T00:00:00.000000Z\",\n            \"status\": \"completed\",\n            \"qr_code\": \"USR6-BKG1-LRVGK7OQ\",\n            \"created_at\": \"2026-02-15T09:31:18.000000Z\",\n            \"updated_at\": \"2026-02-15T09:31:18.000000Z\",\n            \"camping\": {\n                \"id\": 4,\n                \"user_id\": 6,\n                \"camping_name\": \"Szabadi Kemping\",\n                \"owner_first_name\": \"András\",\n                \"owner_last_name\": \"Dezső\",\n                \"location_id\": 3,\n                \"description\": \"Lorem Ipsum\",\n                \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n                \"tax_id\": \"17345628-1-23\",\n                \"billing_address\": null,\n                \"geojson\": null,\n                \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                \"updated_at\": \"2026-02-14T18:14:18.000000Z\",\n                \"location\": {\n                    \"id\": 3,\n                    \"city\": \"Szabadszállás\",\n                    \"zip_code\": \"6080\",\n                    \"street_address\": \"Honvéd út 76\",\n                    \"latitude\": null,\n                    \"longitude\": null,\n                    \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                    \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n                },\n                \"photos\": []\n            },\n            \"camping_spot\": {\n                \"spot_id\": 1,\n                \"camping_id\": 4,\n                \"name\": \"A-10\",\n                \"type\": \"tent\",\n                \"capacity\": 2,\n                \"price_per_night\": 2000,\n                \"is_available\": true,\n                \"description\": null,\n                \"row\": null,\n                \"column\": null,\n                \"rating\": null,\n                \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n                \"updated_at\": null\n            }\n        }\n    ],\n    \"first_page_url\": \"http://127.0.0.1:8000/api/bookings?page=1\",\n    \"from\": 1,\n    \"last_page\": 1,\n    \"last_page_url\": \"http://127.0.0.1:8000/api/bookings?page=1\",\n    \"links\": [\n        {\n            \"url\": null,\n            \"label\": \"&laquo; Previous\",\n            \"page\": null,\n            \"active\": false\n        },\n        {\n            \"url\": \"http://127.0.0.1:8000/api/bookings?page=1\",\n            \"label\": \"1\",\n            \"page\": 1,\n            \"active\": true\n        },\n        {\n            \"url\": null,\n            \"label\": \"Next &raquo;\",\n            \"page\": null,\n            \"active\": false\n        }\n    ],\n    \"next_page_url\": null,\n    \"path\": \"http://127.0.0.1:8000/api/bookings\",\n    \"per_page\": 10,\n    \"prev_page_url\": null,\n    \"to\": 1,\n    \"total\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Booking by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bookings/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookings",
+                "1"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Get Booking by ID",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/bookings/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "1"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:41:07 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": 1,\n    \"user_id\": 6,\n    \"camping_id\": 4,\n    \"camping_spot_id\": 1,\n    \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n    \"departure_date\": \"2026-02-21T00:00:00.000000Z\",\n    \"status\": \"completed\",\n    \"qr_code\": \"USR6-BKG1-LRVGK7OQ\",\n    \"created_at\": \"2026-02-15T09:31:18.000000Z\",\n    \"updated_at\": \"2026-02-15T09:31:18.000000Z\",\n    \"nights\": 1,\n    \"total_price\": 2000,\n    \"camping\": {\n        \"id\": 4,\n        \"user_id\": 6,\n        \"camping_name\": \"Szabadi Kemping\",\n        \"owner_first_name\": \"András\",\n        \"owner_last_name\": \"Dezső\",\n        \"location_id\": 3,\n        \"description\": \"Lorem Ipsum\",\n        \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n        \"tax_id\": \"17345628-1-23\",\n        \"billing_address\": null,\n        \"geojson\": null,\n        \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n        \"updated_at\": \"2026-02-14T18:14:18.000000Z\",\n        \"location\": {\n            \"id\": 3,\n            \"city\": \"Szabadszállás\",\n            \"zip_code\": \"6080\",\n            \"street_address\": \"Honvéd út 76\",\n            \"latitude\": null,\n            \"longitude\": null,\n            \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n            \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n        },\n        \"photos\": []\n    },\n    \"camping_spot\": {\n        \"spot_id\": 1,\n        \"camping_id\": 4,\n        \"name\": \"A-10\",\n        \"type\": \"tent\",\n        \"capacity\": 2,\n        \"price_per_night\": 2000,\n        \"is_available\": true,\n        \"description\": null,\n        \"row\": null,\n        \"column\": null,\n        \"rating\": null,\n        \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n        \"updated_at\": null\n    },\n    \"user\": {\n        \"id\": 6,\n        \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n        \"name\": \"Dicső András\",\n        \"role\": true,\n        \"is_superuser\": false,\n        \"phone_number\": \"+36304644567\",\n        \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n        \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n        \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Search Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/search?start_date=2026-02-20&end_date=2026-02-21",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2026-02-20"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-02-21"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Search Bookings",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/booking/search?start_date=2026-02-20&end_date=2026-02-21",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "booking",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "start_date",
+                      "value": "2026-02-20"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2026-02-21"
+                    }
+                  ]
+                }
+              },
+              "status": "Unprocessable Content",
+              "code": 422,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 17:09:10 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"The arrival date field is required. (and 2 more errors)\",\n    \"errors\": {\n        \"arrival_date\": [\n            \"The arrival date field is required.\"\n        ],\n        \"departure_date\": [\n            \"The departure date field is required.\"\n        ],\n        \"guests\": [\n            \"The guests field is required.\"\n        ]\n    }\n}"
+            }
+          ]
         },
         {
           "name": "Update Booking",
@@ -636,7 +1917,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"start_date\": \"2026-02-02\",\n  \"end_date\": \"2026-02-11\",\n  \"guests\": 5\n}",
+              "raw": "{\n  \"arrival_date\": \"2026-02-20\",\n  \"departure_date\": \"2026-02-21\",\n  \"guests\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -645,31 +1926,91 @@
             },
             "url": {
               "raw": "{{base_url}}/bookings/1",
-              "host": ["{{base_url}}"],
-              "path": ["bookings", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookings",
+                "1"
+              ]
             }
-          }
-        },
-        {
-          "name": "Delete Booking",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
+          },
+          "response": [
+            {
+              "name": "Update Booking",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"arrival_date\": \"2026-02-20\",\n  \"departure_date\": \"2026-02-21\",\n  \"guests\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/bookings/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "1"
+                  ]
+                }
               },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/bookings/1",
-              "host": ["{{base_url}}"],
-              "path": ["bookings", "1"]
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:45:57 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Foglalás sikeresen módosítva!\",\n    \"booking\": {\n        \"id\": 1,\n        \"user_id\": 6,\n        \"camping_id\": 4,\n        \"camping_spot_id\": 1,\n        \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n        \"departure_date\": \"2026-02-21T00:00:00.000000Z\",\n        \"status\": \"pending\",\n        \"qr_code\": \"USR6-BKG1-LRVGK7OQ\",\n        \"created_at\": \"2026-02-15T09:31:18.000000Z\",\n        \"updated_at\": \"2026-02-15T09:31:18.000000Z\",\n        \"camping\": {\n            \"id\": 4,\n            \"user_id\": 6,\n            \"camping_name\": \"Szabadi Kemping\",\n            \"owner_first_name\": \"András\",\n            \"owner_last_name\": \"Dezső\",\n            \"location_id\": 3,\n            \"description\": \"Lorem Ipsum\",\n            \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n            \"tax_id\": \"17345628-1-23\",\n            \"billing_address\": null,\n            \"geojson\": null,\n            \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n            \"updated_at\": \"2026-02-14T18:14:18.000000Z\",\n            \"location\": {\n                \"id\": 3,\n                \"city\": \"Szabadszállás\",\n                \"zip_code\": \"6080\",\n                \"street_address\": \"Honvéd út 76\",\n                \"latitude\": null,\n                \"longitude\": null,\n                \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n            },\n            \"photos\": []\n        },\n        \"camping_spot\": {\n            \"spot_id\": 1,\n            \"camping_id\": 4,\n            \"name\": \"A-10\",\n            \"type\": \"tent\",\n            \"capacity\": 2,\n            \"price_per_night\": 2000,\n            \"is_available\": true,\n            \"description\": null,\n            \"row\": null,\n            \"column\": null,\n            \"rating\": null,\n            \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n            \"updated_at\": null\n        }\n    }\n}"
             }
-          }
+          ]
         },
         {
           "name": "Get Booking QR Code",
@@ -687,10 +2028,80 @@
             ],
             "url": {
               "raw": "{{base_url}}/bookings/1/qr-code",
-              "host": ["{{base_url}}"],
-              "path": ["bookings", "1", "qr-code"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookings",
+                "1",
+                "qr-code"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Get Booking QR Code",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/bookings/1/qr-code",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "1",
+                    "qr-code"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:47:25 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"qr_code\": \"USR6-BKG1-LRVGK7OQ\",\n    \"booking_id\": 1,\n    \"camping_name\": \"Szabadi Kemping\",\n    \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n    \"departure_date\": \"2026-02-21T00:00:00.000000Z\"\n}"
+            }
+          ]
         },
         {
           "name": "Get Owner Bookings",
@@ -708,10 +2119,78 @@
             ],
             "url": {
               "raw": "{{base_url}}/owner/bookings",
-              "host": ["{{base_url}}"],
-              "path": ["owner", "bookings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "owner",
+                "bookings"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Get Owner Bookings",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/owner/bookings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "owner",
+                    "bookings"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:48:14 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"current_page\": 1,\n    \"data\": [\n        {\n            \"id\": 1,\n            \"user_id\": 6,\n            \"camping_id\": 4,\n            \"camping_spot_id\": 1,\n            \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n            \"departure_date\": \"2026-02-21T00:00:00.000000Z\",\n            \"status\": \"cancelled\",\n            \"qr_code\": \"USR6-BKG1-LRVGK7OQ\",\n            \"created_at\": \"2026-02-15T09:31:18.000000Z\",\n            \"updated_at\": \"2026-02-15T09:46:28.000000Z\",\n            \"user\": {\n                \"id\": 6,\n                \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n                \"name\": \"Dicső András\",\n                \"role\": true,\n                \"is_superuser\": false,\n                \"phone_number\": \"+36304644567\",\n                \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n                \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n                \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n            },\n            \"camping\": {\n                \"id\": 4,\n                \"user_id\": 6,\n                \"camping_name\": \"Szabadi Kemping\",\n                \"owner_first_name\": \"András\",\n                \"owner_last_name\": \"Dezső\",\n                \"location_id\": 3,\n                \"description\": \"Lorem Ipsum\",\n                \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n                \"tax_id\": \"17345628-1-23\",\n                \"billing_address\": null,\n                \"geojson\": null,\n                \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                \"updated_at\": \"2026-02-14T18:14:18.000000Z\",\n                \"location\": {\n                    \"id\": 3,\n                    \"city\": \"Szabadszállás\",\n                    \"zip_code\": \"6080\",\n                    \"street_address\": \"Honvéd út 76\",\n                    \"latitude\": null,\n                    \"longitude\": null,\n                    \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                    \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n                }\n            },\n            \"camping_spot\": {\n                \"spot_id\": 1,\n                \"camping_id\": 4,\n                \"name\": \"A-10\",\n                \"type\": \"tent\",\n                \"capacity\": 2,\n                \"price_per_night\": 2000,\n                \"is_available\": true,\n                \"description\": null,\n                \"row\": null,\n                \"column\": null,\n                \"rating\": null,\n                \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n                \"updated_at\": null\n            }\n        },\n        {\n            \"id\": 2,\n            \"user_id\": 6,\n            \"camping_id\": 4,\n            \"camping_spot_id\": 1,\n            \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n            \"departure_date\": \"2026-02-21T00:00:00.000000Z\",\n            \"status\": \"pending\",\n            \"qr_code\": \"USR6-BKG2-SS8PRY12\",\n            \"created_at\": \"2026-02-15T09:47:03.000000Z\",\n            \"updated_at\": \"2026-02-15T09:47:03.000000Z\",\n            \"user\": {\n                \"id\": 6,\n                \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n                \"name\": \"Dicső András\",\n                \"role\": true,\n                \"is_superuser\": false,\n                \"phone_number\": \"+36304644567\",\n                \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n                \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n                \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n            },\n            \"camping\": {\n                \"id\": 4,\n                \"user_id\": 6,\n                \"camping_name\": \"Szabadi Kemping\",\n                \"owner_first_name\": \"András\",\n                \"owner_last_name\": \"Dezső\",\n                \"location_id\": 3,\n                \"description\": \"Lorem Ipsum\",\n                \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n                \"tax_id\": \"17345628-1-23\",\n                \"billing_address\": null,\n                \"geojson\": null,\n                \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                \"updated_at\": \"2026-02-14T18:14:18.000000Z\",\n                \"location\": {\n                    \"id\": 3,\n                    \"city\": \"Szabadszállás\",\n                    \"zip_code\": \"6080\",\n                    \"street_address\": \"Honvéd út 76\",\n                    \"latitude\": null,\n                    \"longitude\": null,\n                    \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                    \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n                }\n            },\n            \"camping_spot\": {\n                \"spot_id\": 1,\n                \"camping_id\": 4,\n                \"name\": \"A-10\",\n                \"type\": \"tent\",\n                \"capacity\": 2,\n                \"price_per_night\": 2000,\n                \"is_available\": true,\n                \"description\": null,\n                \"row\": null,\n                \"column\": null,\n                \"rating\": null,\n                \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n                \"updated_at\": null\n            }\n        }\n    ],\n    \"first_page_url\": \"http://127.0.0.1:8000/api/owner/bookings?page=1\",\n    \"from\": 1,\n    \"last_page\": 1,\n    \"last_page_url\": \"http://127.0.0.1:8000/api/owner/bookings?page=1\",\n    \"links\": [\n        {\n            \"url\": null,\n            \"label\": \"&laquo; Previous\",\n            \"page\": null,\n            \"active\": false\n        },\n        {\n            \"url\": \"http://127.0.0.1:8000/api/owner/bookings?page=1\",\n            \"label\": \"1\",\n            \"page\": 1,\n            \"active\": true\n        },\n        {\n            \"url\": null,\n            \"label\": \"Next &raquo;\",\n            \"page\": null,\n            \"active\": false\n        }\n    ],\n    \"next_page_url\": null,\n    \"path\": \"http://127.0.0.1:8000/api/owner/bookings\",\n    \"per_page\": 20,\n    \"prev_page_url\": null,\n    \"to\": 2,\n    \"total\": 2\n}"
+            }
+          ]
         },
         {
           "name": "Update Booking Status (Owner)",
@@ -741,11 +2220,94 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/bookings/1/status",
-              "host": ["{{base_url}}"],
-              "path": ["bookings", "1", "status"]
+              "raw": "{{base_url}}/bookings/2/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookings",
+                "2",
+                "status"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Update Booking Status (Owner)",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"confirmed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/bookings/2/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "2",
+                    "status"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:51:37 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Foglalás státusza sikeresen módosítva!\",\n    \"booking\": {\n        \"id\": 2,\n        \"user_id\": 6,\n        \"camping_id\": 4,\n        \"camping_spot_id\": 1,\n        \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n        \"departure_date\": \"2026-02-21T00:00:00.000000Z\",\n        \"status\": \"confirmed\",\n        \"qr_code\": \"USR6-BKG2-SS8PRY12\",\n        \"created_at\": \"2026-02-15T09:47:03.000000Z\",\n        \"updated_at\": \"2026-02-15T09:51:36.000000Z\",\n        \"camping\": {\n            \"id\": 4,\n            \"user_id\": 6,\n            \"camping_name\": \"Szabadi Kemping\",\n            \"owner_first_name\": \"András\",\n            \"owner_last_name\": \"Dezső\",\n            \"location_id\": 3,\n            \"description\": \"Lorem Ipsum\",\n            \"company_name\": \"Szabadszállási Kempingkereső Kft.\",\n            \"tax_id\": \"17345628-1-23\",\n            \"billing_address\": null,\n            \"geojson\": null,\n            \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n            \"updated_at\": \"2026-02-14T18:14:18.000000Z\",\n            \"location\": {\n                \"id\": 3,\n                \"city\": \"Szabadszállás\",\n                \"zip_code\": \"6080\",\n                \"street_address\": \"Honvéd út 76\",\n                \"latitude\": null,\n                \"longitude\": null,\n                \"created_at\": \"2026-02-14T17:50:04.000000Z\",\n                \"updated_at\": \"2026-02-14T17:50:04.000000Z\"\n            }\n        },\n        \"user\": {\n            \"id\": 6,\n            \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n            \"name\": \"Dicső András\",\n            \"role\": true,\n            \"is_superuser\": false,\n            \"phone_number\": \"+36304644567\",\n            \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n            \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n            \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n        },\n        \"camping_spot\": {\n            \"spot_id\": 1,\n            \"camping_id\": 4,\n            \"name\": \"A-10\",\n            \"type\": \"tent\",\n            \"capacity\": 2,\n            \"price_per_night\": 2000,\n            \"is_available\": true,\n            \"description\": null,\n            \"row\": null,\n            \"column\": null,\n            \"rating\": null,\n            \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n            \"updated_at\": null\n        }\n    }\n}"
+            }
+          ]
         },
         {
           "name": "Scan QR Code (Owner)",
@@ -767,7 +2329,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"qr_code\": \"scanned_qr_code_data\",\n  \"camping_id\": 1\n}",
+              "raw": "{\n  \"qr_code\": \"USR6-BKG2-SS8PRY12\",\n  \"camping_id\": 4\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -776,10 +2338,180 @@
             },
             "url": {
               "raw": "{{base_url}}/bookings/scan",
-              "host": ["{{base_url}}"],
-              "path": ["bookings", "scan"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookings",
+                "scan"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Scan QR Code (Owner)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"qr_code\": \"USR6-BKG1-LRVGK7OQ\",\n  \"camping_id\": 4\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/bookings/scan",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "scan"
+                  ]
+                }
+              },
+              "status": "Unprocessable Content",
+              "code": 422,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:54:03 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"valid\": false,\n    \"message\": \"Ez a foglalás le lett mondva.\",\n    \"booking\": {\n        \"id\": 1,\n        \"user_id\": 6,\n        \"camping_id\": 4,\n        \"camping_spot_id\": 1,\n        \"arrival_date\": \"2026-02-20T00:00:00.000000Z\",\n        \"departure_date\": \"2026-02-21T00:00:00.000000Z\",\n        \"status\": \"cancelled\",\n        \"qr_code\": \"USR6-BKG1-LRVGK7OQ\",\n        \"created_at\": \"2026-02-15T09:31:18.000000Z\",\n        \"updated_at\": \"2026-02-15T09:46:28.000000Z\",\n        \"user\": {\n            \"id\": 6,\n            \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n            \"name\": \"Dicső András\",\n            \"role\": true,\n            \"is_superuser\": false,\n            \"phone_number\": \"+36304644567\",\n            \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n            \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n            \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n        },\n        \"camping_spot\": {\n            \"spot_id\": 1,\n            \"camping_id\": 4,\n            \"name\": \"A-10\",\n            \"type\": \"tent\",\n            \"capacity\": 2,\n            \"price_per_night\": 2000,\n            \"is_available\": true,\n            \"description\": null,\n            \"row\": null,\n            \"column\": null,\n            \"rating\": null,\n            \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n            \"updated_at\": null\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Booking",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/bookings/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookings",
+                "1"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Delete Booking",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/bookings/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "1"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:46:28 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Foglalás sikeresen lemondva.\"\n}"
+            }
+          ]
         }
       ]
     },
@@ -787,41 +2519,20 @@
       "name": "Camping Spots",
       "item": [
         {
-          "name": "Get All Spots",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/campings/1/spots",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "spots"]
-            }
-          }
-        },
-        {
-          "name": "Get Spot by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/campings/1/spots/1",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "spots", "1"]
-            }
-          }
-        },
-        {
           "name": "Create Spot (Owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -840,7 +2551,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"spot_number\": \"A-12\",\n  \"spot_type\": \"tent\",\n  \"capacity\": 4,\n  \"price_per_night\": 5000,\n  \"amenities\": [\"wifi\", \"electricity\"],\n  \"is_available\": true,\n  \"description\": \"Szép hely a tó mellett\"\n}",
+              "raw": "{\n    \"name\": \"A-12 Tent Spot\",\n    \"type\": \"tent\",\n    \"capacity\": 4,\n    \"price_per_night\": 5000,\n    \"amenities\": [\"wifi\", \"electricity\"],\n    \"is_available\": true,\n    \"description\": \"Szép hely két nagy fa árnyéka alatt.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -848,11 +2559,262 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/campings/1/spots",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "spots"]
+              "raw": "{{base_url}}/campings/4/spots",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "spots"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Create Spot (Owner)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"A-12 Tent Spot\",\n    \"type\": \"tent\",\n    \"capacity\": 4,\n    \"price_per_night\": 5000,\n    \"amenities\": [\"wifi\", \"electricity\"],\n    \"is_available\": true,\n    \"description\": \"Szép hely két nagy fa árnyéka alatt.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/campings/4/spots",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "spots"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 10:22:56 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kemping hely sikeresen létrehozva!\",\n    \"spot\": {\n        \"camping_id\": \"4\",\n        \"name\": \"A-12 Tent Spot\",\n        \"type\": \"tent\",\n        \"capacity\": 4,\n        \"price_per_night\": 5000,\n        \"description\": \"Szép hely két nagy fa árnyéka alatt.\",\n        \"updated_at\": \"2026-02-15T10:22:56.000000Z\",\n        \"created_at\": \"2026-02-15T10:22:56.000000Z\",\n        \"spot_id\": 2\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Spots",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campings/4/spots",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "spots"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Get All Spots",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/4/spots",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "spots"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 18:34:27 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"camping_id\": 4,\n    \"camping_name\": \"Szabadi Kemping\",\n    \"spots\": []\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Spot by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campings/4/spots/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "spots",
+                "2"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Get Spot by ID",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/4/spots/2",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "spots",
+                    "2"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 10:24:54 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"spot_id\": 2,\n    \"camping_id\": 4,\n    \"name\": \"A-12 Tent Spot\",\n    \"type\": \"tent\",\n    \"capacity\": 4,\n    \"price_per_night\": 5000,\n    \"is_available\": true,\n    \"description\": \"Szép hely két nagy fa árnyéka alatt.\",\n    \"row\": null,\n    \"column\": null,\n    \"rating\": null,\n    \"created_at\": \"2026-02-15T10:22:56.000000Z\",\n    \"updated_at\": \"2026-02-15T10:22:56.000000Z\"\n}"
+            }
+          ]
         },
         {
           "name": "Update Spot (Owner)",
@@ -882,11 +2844,96 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/campings/1/spots/1",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "spots", "1"]
+              "raw": "{{base_url}}/campings/4/spots/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "spots",
+                "1"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Update Spot (Owner)",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"price_per_night\": 5500,\n  \"is_available\": false,\n  \"description\": \"Átmenetileg karbantartás alatt\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/campings/4/spots/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "spots",
+                    "1"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 10:26:01 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kemping hely frissítve!\",\n    \"spot\": {\n        \"spot_id\": 1,\n        \"camping_id\": 4,\n        \"name\": \"A-10\",\n        \"type\": \"tent\",\n        \"capacity\": 2,\n        \"price_per_night\": 5500,\n        \"is_available\": false,\n        \"description\": \"Átmenetileg karbantartás alatt\",\n        \"row\": null,\n        \"column\": null,\n        \"rating\": null,\n        \"created_at\": \"2026-02-14T18:37:03.000000Z\",\n        \"updated_at\": \"2026-02-15T10:26:01.000000Z\"\n    }\n}"
+            }
+          ]
         },
         {
           "name": "Delete Spot (Owner)",
@@ -903,11 +2950,921 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/campings/1/spots/1",
-              "host": ["{{base_url}}"],
-              "path": ["campings", "1", "spots", "1"]
+              "raw": "{{base_url}}/campings/4/spots/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "spots",
+                "2"
+              ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Delete Spot (Owner)",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/4/spots/2",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "spots",
+                    "2"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 10:26:23 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kemping hely törölve!\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Camping Photos",
+      "item": [
+        {
+          "name": "Get All Photos for Camping",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campings/4/photos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "photos"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Get All Photos for Camping",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/4/photos",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "photos"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 18:39:16 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "[]"
+            }
+          ]
+        },
+        {
+          "name": "Upload Photo (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": "postman-cloud:///1f109d50-4b87-4ec0-bedf-4057f9501b30"
+                },
+                {
+                  "key": "caption",
+                  "value": "Gyönyörű napnyugta a kempingnél",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/campings/4/photos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "photos"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Upload Photo (Owner)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "photo",
+                      "type": "file",
+                      "src": "postman-cloud:///1f109d50-4b87-4ec0-bedf-4057f9501b30"
+                    },
+                    {
+                      "key": "caption",
+                      "value": "Gyönyörű napnyugta a kempingnél",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/campings/4/photos",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "photos"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 18:43:28 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kép sikeresen feltöltve\",\n    \"photo\": {\n        \"camping_id\": 4,\n        \"photo_url\": \"/storage/campings/1771094607_6990c24fec533.jpg\",\n        \"caption\": \"Gyönyörű napnyugta a kempingnél\",\n        \"uploaded_at\": \"2026-02-14T00:00:00.000000Z\",\n        \"updated_at\": \"2026-02-14T18:43:28.000000Z\",\n        \"created_at\": \"2026-02-14T18:43:28.000000Z\",\n        \"photo_id\": 1\n    },\n    \"remaining_slots\": 9\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Photo (Owner)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campings/4/photos/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "photos",
+                "1"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Delete Photo (Owner)",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/4/photos/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "photos",
+                    "1"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sat, 14 Feb 2026 18:43:52 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kép sikeresen törölve\",\n    \"remaining_photos\": 0,\n    \"remaining_slots\": 10\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Create Comment (Guest)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Nagyszerű kemping, csodálatos környezet és tiszta helyek!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/campings/4/comments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "comments"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Create Comment (Guest)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Nagyszerű kemping, csodálatos környezet és tiszta helyek!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/campings/4/comments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "comments"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 09:39:19 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Értékelés sikeresen létrehozva!\",\n    \"comment\": {\n        \"camping_id\": \"4\",\n        \"user_id\": 6,\n        \"rating\": 5,\n        \"comment\": \"Nagyszerű kemping, csodálatos környezet és tiszta helyek!\",\n        \"upload_date\": \"2026-02-15T00:00:00.000000Z\",\n        \"updated_at\": \"2026-02-15T09:39:19.000000Z\",\n        \"created_at\": \"2026-02-15T09:39:19.000000Z\",\n        \"id\": 1,\n        \"user\": {\n            \"id\": 6,\n            \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n            \"name\": \"Dicső András\",\n            \"role\": true,\n            \"is_superuser\": false,\n            \"phone_number\": \"+36304644567\",\n            \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n            \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n            \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Comments for Camping",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/campings/4/comments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "campings",
+                "4",
+                "comments"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Get All Comments for Camping",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "bearer {{auth_token}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/campings/4/comments",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "campings",
+                    "4",
+                    "comments"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 10:30:18 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"camping\": \"Szabadi Kemping\",\n    \"average_rating\": 5,\n    \"reviews_count\": 1,\n    \"comments\": [\n        {\n            \"id\": 1,\n            \"camping_id\": 4,\n            \"user_id\": 6,\n            \"parent_id\": null,\n            \"rating\": 5,\n            \"comment\": \"Nagyszerű kemping, csodálatos környezet és tiszta helyek!\",\n            \"upload_date\": \"2026-02-15T00:00:00.000000Z\",\n            \"created_at\": \"2026-02-15T09:39:19.000000Z\",\n            \"updated_at\": \"2026-02-15T09:39:19.000000Z\",\n            \"user\": {\n                \"id\": 6,\n                \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n                \"name\": \"Dicső András\",\n                \"role\": true,\n                \"is_superuser\": false,\n                \"phone_number\": \"+36304644567\",\n                \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n                \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n                \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n            },\n            \"replies\": []\n        }\n    ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Reply to Comment (Owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Köszönjük szépen az értékelést! Örülünk, hogy jól érezte magát nálunk!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/comments/1/reply",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "comments",
+                "1",
+                "reply"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Reply to Comment (Owner)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"comment\": \"Köszönjük szépen az értékelést! Örülünk, hogy jól érezte magát nálunk!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/comments/1/reply",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "comments",
+                    "1",
+                    "reply"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 10:30:56 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Válasz sikeresen hozzáadva!\",\n    \"reply\": {\n        \"camping_id\": 4,\n        \"user_id\": 6,\n        \"parent_id\": \"1\",\n        \"comment\": \"Köszönjük szépen az értékelést! Örülünk, hogy jól érezte magát nálunk!\",\n        \"upload_date\": \"2026-02-15T00:00:00.000000Z\",\n        \"updated_at\": \"2026-02-15T10:30:56.000000Z\",\n        \"created_at\": \"2026-02-15T10:30:56.000000Z\",\n        \"id\": 2,\n        \"user\": {\n            \"id\": 6,\n            \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n            \"name\": \"Dicső András\",\n            \"role\": true,\n            \"is_superuser\": false,\n            \"phone_number\": \"+36304644567\",\n            \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n            \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n            \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Comment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Szép kemping, csak a wifi lehetne jobb.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/comments/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "comments",
+                "1"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Update Comment",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Szép kemping, csak a wifi lehetne jobb.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/comments/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "comments",
+                    "1"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 10:31:27 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Értékelés sikeresen frissítve!\",\n    \"comment\": {\n        \"id\": 1,\n        \"camping_id\": 4,\n        \"user_id\": 6,\n        \"parent_id\": null,\n        \"rating\": 4,\n        \"comment\": \"Szép kemping, csak a wifi lehetne jobb.\",\n        \"upload_date\": \"2026-02-15T00:00:00.000000Z\",\n        \"created_at\": \"2026-02-15T09:39:19.000000Z\",\n        \"updated_at\": \"2026-02-15T10:31:27.000000Z\",\n        \"user\": {\n            \"id\": 6,\n            \"email\": \"disco.andras.dezso@diak.szbi-pg.hu\",\n            \"name\": \"Dicső András\",\n            \"role\": true,\n            \"is_superuser\": false,\n            \"phone_number\": \"+36304644567\",\n            \"email_verified_at\": \"2026-02-14T17:32:14.000000Z\",\n            \"created_at\": \"2026-02-14T15:54:29.000000Z\",\n            \"updated_at\": \"2026-02-14T16:38:31.000000Z\"\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/comments/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "comments",
+                "1"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Delete Comment",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/comments/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "comments",
+                    "1"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "Host",
+                  "value": "127.0.0.1:8000"
+                },
+                {
+                  "key": "Connection",
+                  "value": "close"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "PHP/8.2.30"
+                },
+                {
+                  "key": "Cache-Control",
+                  "value": "no-cache, private"
+                },
+                {
+                  "key": "Date",
+                  "value": "Sun, 15 Feb 2026 10:31:57 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Vary",
+                  "value": "Origin"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Értékelés sikeresen törölve!\"\n}"
+            }
+          ]
         }
       ]
     },
@@ -1134,6 +4091,50 @@
           }
         }
       ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api"
+    },
+    {
+      "key": "auth_token",
+      "value": ""
     }
   ]
 }

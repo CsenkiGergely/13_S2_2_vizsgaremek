@@ -11,9 +11,6 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
-    /**
-     * Felhasználó foglalásainak listázása
-     */
     public function index(Request $request)
     {
 
@@ -28,9 +25,15 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
-    /**
-     * Új foglalás létrehozása
-     */
+    public function getAllBookings(Request $request)
+    {
+        $bookings = Booking::with(['user', 'camping.location', 'campingSpot'])
+            ->orderBy('id', 'asc')
+            ->paginate(20);
+
+        return response()->json($bookings);
+    }
+
     public function store(Request $request)
     {
         // Minden szügséges adat ellenőrzése
@@ -129,9 +132,6 @@ class BookingController extends Controller
         ], 201);
     }
 
-    /**
-     * Foglalás részleteinek lekérdezése
-     */
     public function show(Request $request, $id)
     {
         // Megkeressük a foglalást
@@ -170,9 +170,6 @@ class BookingController extends Controller
         return response()->json($booking);
     }
 
-    /**
-     * Foglalás módosítása
-     */
     public function update(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -242,9 +239,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * Foglalás lemondása
-     */
     public function destroy(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -285,9 +279,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * Foglalás státuszának módosítása (csak kemping tulajdonos)
-     */
     public function updateStatus(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -325,9 +316,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * Foglalás QR kódjának lekérdezése
-     */
     public function getQrCode(Request $request, $id)
     {
         $booking = Booking::find($id);
@@ -354,9 +342,6 @@ class BookingController extends Controller
         ]);
     }
 
-    /**
-     * Tulajdonos kempingjeinek foglalásai
-     */
     public function ownerBookings(Request $request)
     {
         $user_id = $request->user()->id;
@@ -386,9 +371,6 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
-    /**
-     * QR kód beolvasása és bejelentkeztetés
-     */
     public function scanQrCode(Request $request)
     {
         $validated = $request->validate([
@@ -422,7 +404,7 @@ class BookingController extends Controller
         // Megnézzük, hogy a mai nap benne van-e a foglalási időszakban
         $today = date('Y-m-d');
         
-        if ($today < $booking->arrival_date) {
+        if ($today <= $booking->arrival_date) {
             return response()->json([
                 'valid' => false,
                 'message' => 'Ez a foglalás csak ' . $booking->arrival_date . '-től érvényes.',
@@ -430,7 +412,7 @@ class BookingController extends Controller
             ], 422);
         }
         
-        if ($today > $booking->departure_date) {
+        if ($today >= $booking->departure_date) {
             return response()->json([
                 'valid' => false,
                 'message' => 'Ez a foglalás ' . $booking->departure_date . '-ig volt érvényes.',

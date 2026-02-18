@@ -14,6 +14,7 @@ class Booking extends Model
         'departure_date',
         'status',
         'qr_code',
+        'guests',
     ];
 
     protected function casts(): array

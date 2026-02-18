@@ -1,14 +1,16 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Camping;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CampsiteController extends Controller
 {
     /**
-     * Kempingek listázása szűrőkkel
+     * Display a listing of the resource.
      */
     public function index(Request $request)
     {
@@ -36,19 +38,18 @@ class CampsiteController extends Controller
         // Értékelés szűrés (comments átlag rating alapján)
         if ($request->has('min_rating')) {
             $minRating = $request->min_rating;
-            $query->whereHas('comments', function ($commentQuery) use ($minRating) {
+            $query->whereHas('comments', function ($commentQuery) {
                 $commentQuery->whereNotNull('rating');
-            })->withAvg('comments', 'rating')
-              ->having('comments_avg_rating', '>=', $minRating);
+            });
         }
 
-        // Services/tags szűrés
+        // Services/tags szűrés (camping_tags táblából)
         if ($request->has('services')) {
             $services = $request->services;
             if (is_string($services)) {
                 $services = explode(',', $services);
             }
-
+            
             foreach ($services as $service) {
                 $query->whereHas('tags', function ($tagQuery) use ($service) {
                     $tagQuery->where('tag', 'ILIKE', '%' . trim($service) . '%');
@@ -56,13 +57,16 @@ class CampsiteController extends Controller
             }
         }
 
+        // Location types szűrés (ezt hozzá kellene adni a camping_tags-hez vagy külön táblába)
+        // Egyelőre ezt kihagyjuk, mert nincs ilyen mező a jelenlegi struktúrában
+
         $campings = $query->get()->map(function ($camping) {
             return [
                 'id' => $camping->id,
                 'name' => $camping->camping_name,
                 'location' => $camping->location ? $camping->location->city : null,
-                'full_address' => $camping->location
-                    ? "{$camping->location->city}, {$camping->location->street_address}" : null,
+                'full_address' => $camping->location ? 
+                    "{$camping->location->city}, {$camping->location->street_address}" : null,
                 'rating' => $camping->getAverageRating(),
                 'reviews' => $camping->getReviewsCount(),
                 'price' => $camping->spots->min('price_per_night'),
@@ -79,7 +83,7 @@ class CampsiteController extends Controller
     }
 
     /**
-     * Egy kemping részletes adatai
+     * Display the specified resource.
      */
     public function show(string $id)
     {
@@ -90,8 +94,8 @@ class CampsiteController extends Controller
             'id' => $camping->id,
             'name' => $camping->camping_name,
             'location' => $camping->location ? $camping->location->city : null,
-            'full_address' => $camping->location
-                ? "{$camping->location->city}, {$camping->location->zip_code}, {$camping->location->street_address}" : null,
+            'full_address' => $camping->location ? 
+                "{$camping->location->city}, {$camping->location->zip_code}, {$camping->location->street_address}" : null,
             'coordinates' => [
                 'lat' => $camping->location?->latitude,
                 'lng' => $camping->location?->longitude,
