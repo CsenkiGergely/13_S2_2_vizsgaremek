@@ -13,8 +13,9 @@ import VerifyEmail from '../views/VerifyEmail.vue'
 const routes = [
   { path: '/', name: 'Home', component: Home },
   { path: '/kereses', name: 'Kereses', component: Kereses },
-  { path: '/Tulajdonos', name: 'Tulajdonos', component: Tulajdonos }, // ez fontos
-  { path: '/foglalas/', name: 'Foglalas', component: Foglalas },
+  { path: '/Tulajdonos', name: 'Tulajdonos', component: Tulajdonos },
+  { path: '/foglalas', name: 'FoglalasLista', component: Foglalas }, // ID nélküli verzió
+  { path: '/foglalas/:id', name: 'Foglalas', component: Foglalas }, // ID-s verzió
   { path: '/adatvedelem', name: 'Adatvedelem', component: Adatvedelem },
   { path: '/cookie', name: 'Cookie', component: Cookie },
   { path: '/felhasznalo', name: 'Felhasznalo', component: Felhasznalo },

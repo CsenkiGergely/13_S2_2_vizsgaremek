@@ -33,6 +33,9 @@
             <router-link to="/foglalas">
      <a href="#">Foglalás</a>
     </router-link>
+                <router-link to="/fizetes">
+     <a href="#">fizetes0</a>
+    </router-link>
   </div>
 
   <!-- 3. oszlop -->
@@ -75,6 +78,7 @@
                     <router-link to="/cookie">
      <a href="/Cookie-k.vue">Cookie-k</a>
     </router-link>
+    
     
     
   </div>
