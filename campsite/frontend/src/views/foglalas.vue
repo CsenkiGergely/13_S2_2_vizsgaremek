@@ -1,3 +1,8 @@
+<script>
+  import { ref } from 'vue'
+  import { leaflet } from 'leaflet'
+</script>
+
 <template>
   <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row gap-6">
 
