@@ -7,16 +7,12 @@ use App\Models\Camping;
 
 class SearchController extends Controller
 {
+    /**
+     * Keresés kempingek között név, leírás és helyszín alapján
+     */
     public function search(Request $request)
     {
-        error_log("bejutott");
         $query = $request->input('q');
-<<<<<<< Updated upstream
-        error_log($query);
-        $results = Item::where('title', 'like', "%{$query}%")
-                       ->orWhere('description', 'like', "%{$query}%")
-                       ->get();
-=======
         $location = $request->input('location');
         $checkIn = $request->input('checkIn');
         $checkOut = $request->input('checkOut');
@@ -42,7 +38,28 @@ class SearchController extends Controller
             $camp->reviews_count = $camp->getReviewsCount();
             return $camp;
         });
->>>>>>> Stashed changes
+        if (!$query) {
+            return response()->json([]);
+        }
+
+        $results = Camping::with(['location', 'photos', 'tags'])
+            ->where('camping_name', 'ILIKE', "%{$query}%")
+            ->orWhere('description', 'ILIKE', "%{$query}%")
+            ->orWhereHas('location', function ($q) use ($query) {
+                $q->where('city', 'ILIKE', "%{$query}%");
+            })
+            ->get()
+            ->map(function ($camping) {
+                return [
+                    'id' => $camping->id,
+                    'name' => $camping->camping_name,
+                    'description' => $camping->description,
+                    'location' => $camping->location?->city,
+                    'image' => $camping->photos->first()?->photo_url,
+                    'tags' => $camping->tags->pluck('tag'),
+                ];
+            });
+
 
         return response()->json($results);
     }

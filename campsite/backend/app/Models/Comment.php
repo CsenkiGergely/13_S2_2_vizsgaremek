@@ -23,7 +23,7 @@ class Comment extends Model
     }
 
     // Kapcsolatok
-    public function camping()
+    public function campingComments()
     {
         return $this->belongsTo(Camping::class);
     }

@@ -9,8 +9,8 @@ use App\Models\Camping;
 
 class CampingSpotController extends Controller
 {
-    // Egy kemping összes helyének lekérése
-    public function index($campingId)
+    // Egy kemping összes helyének lekérése (foglaltsági állapottal)
+    public function index(Request $request, $campingId)
     {
         $camping = Camping::find($campingId);
 
@@ -19,6 +19,23 @@ class CampingSpotController extends Controller
         }
 
         $spots = CampingSpot::where('camping_id', $campingId)->get();
+
+        // Ha van dátum szűrő, jelöljük melyik hely foglalt
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        $spots->each(function ($spot) use ($startDate, $endDate) {
+            if ($startDate && $endDate) {
+                // Van-e aktív foglalás erre az időszakra
+                $spot->is_booked = $spot->bookings()
+                    ->where('status', '!=', 'cancelled')
+                    ->where('start_date', '<', $endDate)
+                    ->where('end_date', '>', $startDate)
+                    ->exists();
+            } else {
+                $spot->is_booked = false;
+            }
+        });
 
         return response()->json($spots, 200);
     }
@@ -40,6 +57,12 @@ class CampingSpotController extends Controller
     // Új kemping hely létrehozása
     public function store(Request $request, $campingId)
     {
+        // Felhasználó ellenőrzése
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Nincs bejelentkezve'], 401);
+        }
+
         // Kemping megkeresése
         $camping = Camping::find($campingId);
 
@@ -48,7 +71,7 @@ class CampingSpotController extends Controller
         }
 
         // csak a tulajdonos hozhat létre helyet
-        if ($camping->user_id != $request->user()->id) {
+        if ($camping->user_id != $user->id) {
             return response()->json(['message' => 'Nincs jogosultságod!'], 403);
         }
 
@@ -90,6 +113,12 @@ class CampingSpotController extends Controller
     // Kemping hely módosítása 
     public function update(Request $request, $campingId, $spotId)
     {
+        // Felhasználó ellenőrzése
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Nincs bejelentkezve'], 401);
+        }
+
         // Kemping megkeresése
         $camping = Camping::find($campingId);
 
@@ -98,7 +127,7 @@ class CampingSpotController extends Controller
         }
 
         // csak a tulajdonos módosíthatja
-        if ($camping->user_id != $request->user()->id) {
+        if ($camping->user_id != $user->id) {
             return response()->json(['message' => 'Nincs jogosultságod!'], 403);
         }
 
@@ -130,6 +159,12 @@ class CampingSpotController extends Controller
         if ($request->has('is_available')) {
             $spot->is_available = $request->is_available;
         }
+        if ($request->has('row')) {
+            $spot->row = $request->row;
+        }
+        if ($request->has('column')) {
+            $spot->column = $request->column;
+        }
         
         $spot->save();
 
@@ -142,6 +177,12 @@ class CampingSpotController extends Controller
     // Kemping hely törlése (csak tulajdonos)
     public function destroy(Request $request, $campingId, $spotId)
     {
+        // Felhasználó ellenőrzése
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Nincs bejelentkezve'], 401);
+        }
+
         // Kemping megkeresése
         $camping = Camping::find($campingId);
 
@@ -150,7 +191,7 @@ class CampingSpotController extends Controller
         }
 
         // csak a tulajdonos törölheti
-        if ($camping->user_id != $request->user()->id) {
+        if ($camping->user_id != $user->id) {
             return response()->json(['message' => 'Nincs jogosultságod!'], 403);
         }
 

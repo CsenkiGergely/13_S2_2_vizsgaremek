@@ -16,7 +16,15 @@ class Camping extends Model
         'company_name',
         'tax_id',
         'billing_address',
+        'geojson',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'geojson' => 'array',
+        ];
+    }
 
     // Kapcsolatok
     public function user()

@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('company_name', 150)->nullable();
             $table->string('tax_id', 15)->nullable();
             $table->string('billing_address', 255)->nullable();
+            $table->jsonb('geojson')->nullable();
             $table->timestamps();
         });
     }
