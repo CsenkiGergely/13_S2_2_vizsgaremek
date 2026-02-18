@@ -8,9 +8,10 @@ import ResetPassword from './views/ResetPassword.vue'
 const currentView = ref('home')
 
 onMounted(() => {
-  // link alapján dob be a reset jelszó oldalra
+  // link alapján dob be a reset jelszó oldalra (csak ha /reset-password útvonalon vagyunk)
   const urlParams = new URLSearchParams(window.location.search)
-  if (urlParams.has('token') && urlParams.has('email')) {
+  const path = window.location.pathname
+  if (path === '/reset-password' && urlParams.has('token') && urlParams.has('email')) {
     currentView.value = 'reset-password'
   }
 })
