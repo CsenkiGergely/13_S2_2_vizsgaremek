@@ -34,6 +34,14 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
+    public function arak(Request $request)
+    {
+        DB::table('bookings')
+            ->join('', 'rooms.id', '=', 'bookings.room_id')
+            ->selectRaw('DATEDIFF(check_out, check_in) * rooms.price_per_night as total_price')
+            ->get();
+    }
+
     public function store(Request $request)
     {
         // Minden szügséges adat ellenőrzése
