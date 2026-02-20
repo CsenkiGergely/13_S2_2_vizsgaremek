@@ -37,18 +37,31 @@ class AuthController extends Controller
             ]
         );
 
-        // Aktiváló email küldése
-        $verifyUrl = config('app.frontend_url', 'http://localhost:5173')
-            . '/verify-email?token=' . $token
-            . '&email=' . urlencode($user->email);
+        // API token generálása (Sanctum)
+        $authToken = $user->createToken($request->name)->plainTextToken;
 
-        Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
-            $message->to($user->email);
-            $message->subject('Email Megerősítés - CampSite');
-        });
+        // Aktiváló email küldése (ha sikertelen, nem akadályozza a regisztrációt)
+        $emailSent = false;
+        try {
+            $verifyUrl = config('app.frontend_url', 'http://localhost:5173')
+                . '/verify-email?token=' . $token
+                . '&email=' . urlencode($user->email);
+
+            Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
+                $message->to($user->email);
+                $message->subject('Email Megerősítés - CampSite');
+            });
+            $emailSent = true;
+        } catch (\Exception $e) {
+            error_log('Email küldési hiba: ' . $e->getMessage());
+        }
 
         return response()->json([
-            'message' => 'Sikeres regisztráció! Kérjük erősítsd meg az email címedet a kiküldött levélben található linkre kattintva.'
+            'user' => $user,
+            'token' => $authToken,
+            'message' => $emailSent
+                ? 'Sikeres regisztráció! Kérjük erősítsd meg az email címedet a kiküldött levélben található linkre kattintva.'
+                : 'Sikeres regisztráció! (Az email küldés jelenleg nem elérhető.)'
         ], 201);
     }
 
