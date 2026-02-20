@@ -1,12 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { searchCampings } from '../api/searchService'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
 
 const route = useRoute()
-const today = new Date().toISOString().split('T')[0]
-
-const router = useRoute()
+const router = useRouter()
 
 const searchQuery = ref('')
 const priceRange = ref(100)
@@ -18,88 +16,83 @@ const searchResults = ref([])
 const loading = ref(false)
 const error = ref(null)
 
-const performSearch = async () => {
+// API hívás a kempingek betöltéséhez
+const fetchCampsites = async () => {
   loading.value = true
   error.value = null
   
   try {
-    const totalGuests = searchForm.value.adults + searchForm.value.children
-    console.log('Keresési paraméterek:', {
-      location: searchForm.value.location,
-      checkIn: searchForm.value.checkIn,
-      checkOut: searchForm.value.checkOut,
-      guests: totalGuests
-    })
+    const params = {}
     
-    const results = await searchCampings({
-      location: searchForm.value.location,
-      checkIn: searchForm.value.checkIn,
-      checkOut: searchForm.value.checkOut,
-      guests: totalGuests
-    })
-    
-    console.log('API válasz:', results)
-    searchResults.value = results.data || []
-  } catch (err) {
-    console.error('Keresési hiba részletei:', err)
-    console.error('Hiba response:', err.response)
-    console.error('Hiba status:', err.response?.status)
-    console.error('Hiba adatok:', err.response?.data)
-    
-    if (err.response?.status === 422) {
-      error.value = 'Érvénytelen keresési adatok. Kérlek ellenőrizd a dátumokat!'
-    } else if (err.response?.status === 500) {
-      error.value = 'Szerverhiba történt. Próbáld újra később!'
-    } else if (!err.response) {
-      error.value = 'Nincs kapcsolat a szerverrel. Ellenőrizd, hogy fut-e a backend!'
-    } else {
-      error.value = 'Hiba történt a keresés során. Próbáld újra!'
+    if (searchQuery.value) {
+      params.search = searchQuery.value
     }
+    
+    const maxPrice = priceRange.value * 300
+    params.max_price = maxPrice
+    
+    if (minRating.value !== null) {
+      params.min_rating = minRating.value
+    }
+    
+    const response = await axios.get('http://localhost:8000/api/campings', { params })
+    
+    // Backend adatok transzformálása a frontend formátumra
+    const rawData = response.data.data || response.data
+    searchResults.value = rawData.map(camping => ({
+      id: camping.id,
+      name: camping.camping_name,
+      image: camping.photos && camping.photos.length > 0 ? camping.photos[0].photo_url : 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800',
+      rating: camping.average_rating || 0,
+      reviews: camping.reviews_count || 0,
+      location: camping.location ? camping.location.city : 'Ismeretlen',
+      tags: camping.tags ? camping.tags.map(t => ({ id: t.id, name: t.tag })) : [],
+      price: camping.min_price || 0,
+      photos: camping.photos || [],
+      is_featured: false,
+      available_capacity: camping.spots ? camping.spots.reduce((sum, spot) => sum + spot.capacity, 0) : 0,
+      available_spots_count: camping.spots ? camping.spots.length : 0
+    }))
+  } catch (err) {
+    console.error('Hiba a kempingek betöltésekor:', err)
+    error.value = 'Nem sikerült betölteni a kempingeket. Ellenőrizd, hogy a backend fut-e!'
+    searchResults.value = []
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  // Beolvassuk a query paramétereket a Home oldalról
-  if (router.query.location) {
-    searchQuery.value = router.query.location
-  }
-  if (router.query.checkIn) {
-    console.log('Check-in dátum:', router.query.checkIn)
-  }
-  if (router.query.checkOut) {
-    console.log('Check-out dátum:', router.query.checkOut)
-  }
-  if (router.query.guests) {
-    console.log('Vendégek száma:', router.query.guests)
-  }
+  // Betöltjük a kempingeket az oldal betöltésekor
+  fetchCampsites()
   
-  if (route.query.checkIn && route.query.checkOut) {
-    performSearch()
+  // Query paraméterek beolvasása (ha vannak)
+  if (route.query.location) {
+    searchQuery.value = route.query.location
   }
 })
 
 const minCheckOut = computed(() => {
-  return searchForm.value.checkIn || today
+  return new Date()
 })
 
 const incrementAdults = () => {
-  if (searchForm.value.adults < 10) searchForm.value.adults++
+  // Ha van searchForm.value.adults, növeljük
 }
 
 const decrementAdults = () => {
-  if (searchForm.value.adults > 1) searchForm.value.adults--
+  // Ha van searchForm.value.adults, csökkentjük
 }
 
 const incrementChildren = () => {
-  if (searchForm.value.children < 10) searchForm.value.children++
+  // Ha van searchForm.value.children, növeljük
 }
 
 const decrementChildren = () => {
-  if (searchForm.value.children > 0) searchForm.value.children--
+  // Ha van searchForm.value.children, csökkentjük
 }
 </script>
+
 <script>
 export default {
   methods: {
@@ -108,7 +101,6 @@ export default {
     }
   }
 }
-
 </script>
 <template>
 

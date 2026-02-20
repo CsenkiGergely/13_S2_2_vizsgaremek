@@ -19,7 +19,8 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'owner_first_name',
+        'owner_last_name',
         'email',
         'password',
         'role',
@@ -73,8 +74,5 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
-    public function posts()
-    {
-        return $this->hasMany(Post::class);
-    }
+
 }

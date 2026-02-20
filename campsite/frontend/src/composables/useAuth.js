@@ -10,7 +10,7 @@ const error = ref(null) // utolsó hibaüzenet
 const isAuthenticated = computed(() => !!token.value)
 
 // Regisztráció
-// userData: { name, email, password, password_confirmation }
+// userData: { owner_first_name, owner_last_name, email, password, password_confirmation }
 const register = async (userData) => {
   loading.value = true
   error.value = null
@@ -18,7 +18,8 @@ const register = async (userData) => {
   try {
     // Kérést küld a backend /register végpontjára
     const response = await api.post('/register', {
-      name: userData.name,
+      owner_first_name: userData.owner_first_name,
+      owner_last_name: userData.owner_last_name,
       email: userData.email,
       password: userData.password,
       password_confirmation: userData.password_confirmation

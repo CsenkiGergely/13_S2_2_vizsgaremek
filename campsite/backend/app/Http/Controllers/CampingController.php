@@ -37,7 +37,7 @@ class CampingController extends Controller
             });
         });
 
-        $campings = $camping->paginate(2); // 2 egyszerre
+        $campings = $camping->paginate(12); // 12 kemping oldalanként
         
         // árak és értékelések hozzáadása minden kempinghez
         $campings->getCollection()->transform(function ($camp) {
@@ -97,13 +97,10 @@ class CampingController extends Controller
         
         $fields = $request->validate([
             'camping_name' => 'required|string|max:150',
-            'owner_first_name' => 'required|string|max:100',
-            'owner_last_name' => 'required|string|max:100',
             'description' => 'required|string',
             'company_name' => 'nullable|string|max:150',
             'tax_id' => 'nullable|string|max:50',
             'billing_address' => 'nullable|string|max:200',
-            
             'city' => 'required|string|max:100',
             'zip_code' => 'required|string|max:10',
             'street_address' => 'required|string|max:200',
@@ -125,8 +122,6 @@ class CampingController extends Controller
             'user_id' => $request->user()->id,
             'location_id' => $location->id,
             'camping_name' => $fields['camping_name'],
-            'owner_first_name' => $fields['owner_first_name'],
-            'owner_last_name' => $fields['owner_last_name'],
             'description' => $fields['description'],
             'company_name' => $fields['company_name'] ?? null,
             'tax_id' => $fields['tax_id'] ?? null,
@@ -164,8 +159,6 @@ class CampingController extends Controller
         
         $fields = $request->validate([
             'camping_name' => 'sometimes|string|max:150',
-            'owner_first_name' => 'sometimes|string|max:100',
-            'owner_last_name' => 'sometimes|string|max:100',
             'description' => 'sometimes|string',
             'company_name' => 'nullable|string|max:150',
             'tax_id' => 'nullable|string|max:50',
@@ -191,8 +184,6 @@ class CampingController extends Controller
         
         $camping->update([
             'camping_name' => $fields['camping_name'] ?? $camping->camping_name,
-            'owner_first_name' => $fields['owner_first_name'] ?? $camping->owner_first_name,
-            'owner_last_name' => $fields['owner_last_name'] ?? $camping->owner_last_name,
             'description' => $fields['description'] ?? $camping->description,
             'company_name' => $fields['company_name'] ?? $camping->company_name,
             'tax_id' => $fields['tax_id'] ?? $camping->tax_id,

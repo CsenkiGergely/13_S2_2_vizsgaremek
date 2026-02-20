@@ -20,8 +20,7 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::apiResource('posts', PostController::class);
-Route::post('/posts', [PostController::class, 'index']);
+
 
 // Auth
 Route::post('/register', [AuthController::class, 'register']);

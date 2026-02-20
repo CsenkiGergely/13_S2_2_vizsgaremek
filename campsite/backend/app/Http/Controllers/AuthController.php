@@ -18,7 +18,8 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $fields = $request->validate([
-            'name' => 'required|max:255',
+            'owner_first_name' => 'required|max:255',
+            'owner_last_name' => 'required|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|confirmed'
         ]);
@@ -37,18 +38,31 @@ class AuthController extends Controller
             ]
         );
 
-        // Aktiváló email küldése
-        $verifyUrl = config('app.frontend_url', 'http://localhost:5173')
-            . '/verify-email?token=' . $token
-            . '&email=' . urlencode($user->email);
+        // API token generálása (Sanctum)
+        $authToken = $user->createToken($request->owner_first_name)->plainTextToken;
 
-        Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
-            $message->to($user->email);
-            $message->subject('Email Megerősítés - CampSite');
-        });
+        // Aktiváló email küldése (ha sikertelen, nem akadályozza a regisztrációt)
+        $emailSent = false;
+        try {
+            $verifyUrl = config('app.frontend_url', 'http://localhost:5173')
+                . '/verify-email?token=' . $token
+                . '&email=' . urlencode($user->email);
+
+            Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
+                $message->to($user->email);
+                $message->subject('Email Megerősítés - CampSite');
+            });
+            $emailSent = true;
+        } catch (\Exception $e) {
+            error_log('Email küldési hiba: ' . $e->getMessage());
+        }
 
         return response()->json([
-            'message' => 'Sikeres regisztráció! Kérjük erősítsd meg az email címedet a kiküldött levélben található linkre kattintva.'
+            'user' => $user,
+            'token' => $authToken,
+            'message' => $emailSent
+                ? 'Sikeres regisztráció! Kérjük erősítsd meg az email címedet a kiküldött levélben található linkre kattintva.'
+                : 'Sikeres regisztráció! (Az email küldés jelenleg nem elérhető.)'
         ], 201);
     }
 
@@ -220,14 +234,18 @@ class AuthController extends Controller
         $user = $request->user();
 
         $fields = $request->validate([
-            'name' => 'sometimes|string|max:255',
+            'owner_first_name' => 'required|max:255',
+            'owner_last_name' => 'required|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'phone_number' => 'nullable|string|max:20',
             'password' => 'nullable|min:8|confirmed',
         ]);
 
-        if (isset($fields['name'])) {
-            $user->name = $fields['name'];
+        if (isset($fields['owner_first_name'])) {
+            $user->owner_first_name = $fields['owner_first_name'];
+        }
+        if (isset($fields['owner_last_name'])) {
+            $user->owner_last_name = $fields['owner_last_name'];
         }
 
         if (isset($fields['email'])) {

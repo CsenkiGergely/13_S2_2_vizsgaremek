@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import AuthModal from './AuthModal.vue'
 import { useAuth } from '../composables/useAuth'
 
@@ -8,12 +8,24 @@ const { user, isAuthenticated, logout } = useAuth()
 const mobileMenuOpen = ref(false)
 const authModalOpen = ref(false)
 const authModalMode = ref('login')
+const profileMenuOpen = ref(false)
+
+// Név kezdőbetűje a profil ikonba
+const userInitial = computed(() => {
+  return user.value?.owner_first_name ? user.value.owner_first_name.charAt(0).toUpperCase() : '?'
+})
 
 const toggleMobileMenu = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value
 }
 
+const toggleProfileMenu = () => {
+  profileMenuOpen.value = !profileMenuOpen.value
+}
 
+const closeProfileMenu = () => {
+  profileMenuOpen.value = false
+}
 
 const openLoginModal = () => {
   authModalMode.value = 'login'
@@ -32,7 +44,6 @@ const openPhoneLoginModal = () => {
   mobileMenuOpen.value = false
 }
 
-
 const closeAuthModal = () => {
   authModalOpen.value = false
 }
@@ -44,6 +55,7 @@ const handleAuthSuccess = (userData) => {
 const handleLogout = async () => {
   await logout()
   mobileMenuOpen.value = false
+  profileMenuOpen.value = false
 }
 </script>
 
@@ -61,7 +73,7 @@ const handleLogout = async () => {
 
   <button 
     @click="openPhoneLoginModal" 
-    class="bg-[#4A7434] text-white px-3 py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium ml-2"
+    class=" text-gray-700 px-3 py-1.5 rounded-lg hover:text-[#4A7434] text-base font-medium ml-2"
   >
     Legyél partnerünk
   </button>
@@ -86,8 +98,46 @@ const handleLogout = async () => {
 </template>
 
       <template v-else>
-        <span class="text-gray-700 text-base font-medium">{{ user?.email }}</span>
-        <button @click="handleLogout" class="bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 text-base font-medium">Kijelentkezés</button>
+        <!-- Profil ikon dropdown -->
+        <div class="relative" v-click-outside="closeProfileMenu">
+          <button 
+            @click="toggleProfileMenu"
+            class="w-9 h-9 rounded-full bg-[#4A7434] text-white font-bold text-base flex items-center justify-center hover:bg-[#F17E21] transition focus:outline-none focus:ring-2 focus:ring-[#4A7434] focus:ring-offset-2"
+            :title="user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : ''"
+          >
+            {{ userInitial }}
+          </button>
+
+          <!-- Lenyíló menü -->
+          <div 
+            v-if="profileMenuOpen"
+            class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
+          >
+            <!-- Felhasználó neve és emailje -->
+            <div class="px-4 py-3 border-b border-gray-100">
+              <p class="text-sm font-semibold text-gray-800">
+                {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
+              </p>
+              <p class="text-xs text-gray-500 truncate">{{ user?.email }}</p>
+            </div>
+
+            <!-- Menüpontok -->
+            <router-link 
+              to="/felhasznalo" 
+              @click="closeProfileMenu"
+              class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] transition"
+            >
+              👤 Profilom
+            </router-link>
+
+            <button 
+              @click="handleLogout"
+              class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+            >
+              🚪 Kijelentkezés
+            </button>
+          </div>
+        </div>
       </template>
     </nav>
 
@@ -112,8 +162,19 @@ const handleLogout = async () => {
 
 
     <template v-else>
-      <span class="block text-gray-700 py-1 text-base font-medium">{{ user?.email }}</span>
-      <button @click="handleLogout" class="block w-full bg-red-500 text-white py-1.5 rounded-lg hover:bg-red-600 text-base font-medium">Kijelentkezés</button>
+      <div class="flex items-center gap-3 py-1 border-b border-gray-100 mb-1">
+        <div class="w-9 h-9 rounded-full bg-[#4A7434] text-white font-bold flex items-center justify-center text-base">
+          {{ userInitial }}
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-gray-800">
+            {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
+          </p>
+          <p class="text-xs text-gray-500">{{ user?.email }}</p>
+        </div>
+      </div>
+      <router-link to="/felhasznalo" @click="mobileMenuOpen = false" class="block text-gray-700 hover:text-[#4A7434] py-1 text-base font-medium">👤 Profilom</router-link>
+      <button @click="handleLogout" class="block w-full text-left text-red-600 hover:text-red-700 py-1 text-base font-medium">🚪 Kijelentkezés</button>
     </template>
   </nav>
 

@@ -6,24 +6,25 @@ import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import router from './Router'
 
+// Egy app létrehozása
+const app = createApp(App)
 
+// Router használata
+app.use(router)
 
-if (!window.__app__) {
-  const app = createApp(App)
-  app.use(router)
-  app.mount('#app')
-  window.__app__ = app  // jelzés, hogy már mountolva van
-}
+// PrimeVue használata
+app.use(PrimeVue, {
+    theme: {
+        preset: Aura,
+        options: {
+            prefix: 'p',
+            darkModeSelector: false,
+            cssLayer: false
+        }
+    }
+});
 
-
-
-
-
-
-
-
-
-// modal click kintre bezárás
+// Modal click kintré bezárás direktíva
 app.directive('click-outside', {
   mounted(el, binding) {
     el.clickOutsideEvent = (event) => {
@@ -38,16 +39,5 @@ app.directive('click-outside', {
   }
 })
 
-
-app.use(PrimeVue, {
-    theme: {
-        preset: Aura,
-        options: {
-            prefix: 'p',
-            darkModeSelector: 'system',
-            cssLayer: false
-        }
-    }
- });
-
+// Mount csak EGYSZER, a végén
 app.mount('#app')
