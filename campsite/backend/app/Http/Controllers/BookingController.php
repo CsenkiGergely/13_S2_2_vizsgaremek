@@ -34,12 +34,16 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
-    public function arak(Request $request)
+    public function getPrices(Request $request)
     {
-        DB::table('bookings')
-            ->join('', 'rooms.id', '=', 'bookings.room_id')
-            ->selectRaw('DATEDIFF(check_out, check_in) * rooms.price_per_night as total_price')
-            ->get();
+        $totalPrices = DB::table('bookings')
+        ->join('camping_spots', 'camping_spots.spot_id', '=', 'bookings.camping_spot_id')
+        ->selectRaw('
+            (departure_date - arrival_date) 
+            * camping_spots.price_per_night AS total_price'
+        )
+        ->get();    
+        return response()->json($totalPrices);
     }
 
     public function store(Request $request)

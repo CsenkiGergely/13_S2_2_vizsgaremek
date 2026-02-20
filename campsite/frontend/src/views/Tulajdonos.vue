@@ -6,12 +6,16 @@ import "dayjs/locale/hu";
 dayjs.locale("hu");
 
 const { bookings, getAllBookings } = useBooking()
+const { price, getPrices  } = useBooking()
 
-const activeTab = ref('dashboard')
+const activeTab = ref('foglalasok')
 
-onMounted(() => {
+onMounted(async () => {
   getAllBookings()
+  const data = await getPrices()
+  console.log(data)
 })
+
 </script>
 
 <template>
@@ -21,8 +25,8 @@ onMounted(() => {
 
     <!-- Tabs -->
     <div class="tabs">
-      <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Dashboard</div>
       <div class="tab" :class="{ active: activeTab === 'foglalasok' }" @click="activeTab = 'foglalasok'">Foglalások</div>
+      <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Dashboard</div>
       <div class="tab" :class="{ active: activeTab === 'terkep' }" @click="activeTab = 'terkep'">Térkép</div>
       <div class="tab" :class="{ active: activeTab === 'bevetelek' }" @click="activeTab = 'bevetelek'">Bevételek</div>
     </div>
@@ -103,7 +107,8 @@ onMounted(() => {
           <thead>
             <tr>
               <th>Azonosító</th>
-              <th>Vendég neve</th>
+              <th>Vendég keresztneve</th>
+              <th>Vendég vezetékneve</th>
               <th>Hely</th>
               <th>Érkezés</th>
               <th>Távozás</th>
@@ -116,15 +121,16 @@ onMounted(() => {
           <tbody>
             <tr v-for="booking in bookings" :key="booking.id">
               <td><strong>{{ booking.id }}</strong></td>
-              <td>{{ booking.guestName }}</td>
+              <td>{{ booking.guestLastName }}</td>
+              <td>{{ booking.guestFirstName }}</td>
               <td>{{ booking.spot }}</td>
-              <td>{{ dayjs(booking.checkIn).format("YYYY. MMMM D.") }}</td>
-              <td>{{ dayjs(booking.checkOut).format("YYYY. MMMM D.") }}</td>
+              <td>{{ dayjs(booking.checkIn).format("YYYY. MM D.") }}</td>
+              <td>{{ dayjs(booking.checkOut).format("YYYY. MM D.") }}</td>
               <td>{{ booking.guests }}</td>
               <td><span :class="['badge', booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'confirmed' : booking.status === 'checked_in' ? 'checked_in' : booking.status === 'finished' ? 'finished' : booking.status === 'cancelled' ? 'cancelled' : '']">
                 {{ booking.status === 'pending' ? 'Függőben van' : booking.status === 'confirmed' ? 'Megerősített' : booking.status === 'checked_in' ? 'Bejelentkezett' : booking.status === 'finished' ? 'Befejezett' : booking.status === 'cancelled' ? 'Lemondott' : ''}}
               </span></td>
-              <td><strong>{{ booking.price }}</strong></td>
+              <td><strong>{{ price[booking.id] }}</strong></td>
               <td><button class="btn">👁 Részletek</button></td>
             </tr>
           </tbody>

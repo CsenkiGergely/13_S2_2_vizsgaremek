@@ -4,6 +4,7 @@ import api from '../api/axios'
 const stored = localStorage.getItem('booking')
 const booking = ref(stored ? JSON.parse(stored) : null)
 const bookings = ref([])
+const price = ref({})
 const loading = ref(false)
 const error = ref(null)
 
@@ -32,26 +33,46 @@ const getAllBookings = async () => {
   error.value = null
   try {
     const response = await api.get('/bookings/getAll')
-    console.log('API Response:', response)
     console.log('Response Data:', response.data)
 
     // Mappeljük az API adatokat a vue komponens formátumára
     if (response.data && response.data.data) {
       bookings.value = response.data.data.map(b => ({
         id: b.id,
-        guestName: b.user?.name || 'Ismeretlen',
+        guestFirstName: b.user?.owner_first_name || 'Ismeretlen',
+        guestLastName: b.user?.owner_last_name || 'Ismeretlen',
         spot: b.camping_spot?.name || 'N/A',
         checkIn: b.arrival_date,
         checkOut: b.departure_date,
         guests: `${b.guests || 0} fő`,
-        status: b.status,
-        price: `${b.total_price || 0} Ft`
+        status: b.status
       }))
-      console.log('Mappelt bookings:', bookings.value)
     }
   } catch (err) {
     console.error('Hiba a foglalások lekérésekor:', err)
     error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const getPrices = async () => {
+  loading.value = true
+  error.value = null
+
+  try {
+    const response = await api.get('/booking/prices')
+
+    console.log('Prices Response Data:', response.data)
+
+    price.value = response.data
+    return response.data   // ← inkább ezt add vissza
+
+  } catch (err) {
+    console.log("TELJES HIBA:", err)
+    console.log("STATUS:", err.response?.status)
+    console.log("DATA:", err.response?.data)
+    return []
   } finally {
     loading.value = false
   }
@@ -64,6 +85,8 @@ export function useBooking() {
     loading,
     error,
     fetchBooking,
-    getAllBookings
+    getAllBookings,
+    price,
+    getPrices
   }
 }
