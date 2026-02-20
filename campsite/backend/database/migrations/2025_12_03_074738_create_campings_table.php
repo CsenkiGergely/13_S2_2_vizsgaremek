@@ -15,8 +15,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('camping_name', 200);
-            $table->string('owner_first_name', 100)->nullable();
-            $table->string('owner_last_name', 100)->nullable();
             $table->foreignId('location_id')->constrained('locations')->onDelete('cascade');
             $table->text('description')->nullable();
             $table->string('company_name', 150)->nullable();
