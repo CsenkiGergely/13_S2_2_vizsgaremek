@@ -12,7 +12,7 @@ const profileMenuOpen = ref(false)
 
 // Név kezdőbetűje a profil ikonba
 const userInitial = computed(() => {
-  return user.value?.name ? user.value.name.charAt(0).toUpperCase() : '?'
+  return user.value?.owner_first_name ? user.value.owner_first_name.charAt(0).toUpperCase() : '?'
 })
 
 const toggleMobileMenu = () => {
@@ -103,7 +103,7 @@ const handleLogout = async () => {
           <button 
             @click="toggleProfileMenu"
             class="w-9 h-9 rounded-full bg-[#4A7434] text-white font-bold text-base flex items-center justify-center hover:bg-[#F17E21] transition focus:outline-none focus:ring-2 focus:ring-[#4A7434] focus:ring-offset-2"
-            :title="user?.name"
+            :title="user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : ''"
           >
             {{ userInitial }}
           </button>
@@ -115,7 +115,9 @@ const handleLogout = async () => {
           >
             <!-- Felhasználó neve és emailje -->
             <div class="px-4 py-3 border-b border-gray-100">
-              <p class="text-sm font-semibold text-gray-800">{{ user?.name }}</p>
+              <p class="text-sm font-semibold text-gray-800">
+                {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
+              </p>
               <p class="text-xs text-gray-500 truncate">{{ user?.email }}</p>
             </div>
 
@@ -165,7 +167,9 @@ const handleLogout = async () => {
           {{ userInitial }}
         </div>
         <div>
-          <p class="text-sm font-semibold text-gray-800">{{ user?.name }}</p>
+          <p class="text-sm font-semibold text-gray-800">
+            {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
+          </p>
           <p class="text-xs text-gray-500">{{ user?.email }}</p>
         </div>
       </div>

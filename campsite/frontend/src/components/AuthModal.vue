@@ -44,7 +44,8 @@ const loginForm = ref({
 })
 
 const registerForm = ref({
-  name: '',
+  owner_first_name: '',
+  owner_last_name: '',
   email: '',
   password: '',
   password_confirmation: ''
@@ -57,6 +58,23 @@ const forgotPasswordForm = ref({
 const phoneLoginForm = ref({
   phone: ''
 })
+
+// Jelszó láthatóság toggle
+const showLoginPassword = ref(false)
+const showRegisterPassword = ref(false)
+const showRegisterPasswordConfirm = ref(false)
+
+const toggleLoginPassword = () => {
+  showLoginPassword.value = !showLoginPassword.value
+}
+
+const toggleRegisterPassword = () => {
+  showRegisterPassword.value = !showRegisterPassword.value
+}
+
+const toggleRegisterPasswordConfirm = () => {
+  showRegisterPasswordConfirm.value = !showRegisterPasswordConfirm.value
+}
 
 // jelszó erősség
 const passwordStrength = computed(() => {
@@ -87,9 +105,14 @@ const closeModal = () => {
   mode.value = 'login'
 
   loginForm.value = { email: '', password: '' }
-  registerForm.value = { name: '', email: '', password: '', password_confirmation: '' }
+  registerForm.value = { owner_first_name: '', owner_last_name: '', email: '', password: '', password_confirmation: '' }
   forgotPasswordForm.value = { email: '' }
   phoneLoginForm.value = { phone: '' }
+  
+  // Jelszó láthatóság reset
+  showLoginPassword.value = false
+  showRegisterPassword.value = false
+  showRegisterPasswordConfirm.value = false
 }
 
 // switchMode
@@ -97,6 +120,11 @@ const switchMode = (newMode) => {
   mode.value = newMode
   formError.value = null
   successMessage.value = null
+  
+  // Jelszó láthatóság reset mode váltáskor
+  showLoginPassword.value = false
+  showRegisterPassword.value = false
+  showRegisterPasswordConfirm.value = false
 }
 
 // login
@@ -213,12 +241,37 @@ const result = await upgradeToPartner(phone)
                   <input id="login-email" v-model="loginForm.email" type="email" required placeholder="pelda@email.com"
                     class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition" />
                 </div>
-                <div class="flex items-center justify-between mb-2">
-                  <label for="login-password" class="block text-sm font-medium text-gray-100">Jelszó</label>
-                  <button type="button" @click="switchMode('forgot-password')" class="text-sm font-semibold text-[#4A7434] hover:text-[#F17E21] transition">Elfelejtett jelszó?</button>
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <label for="login-password" class="block text-sm font-medium text-gray-100">Jelszó</label>
+                    <button type="button" @click="switchMode('forgot-password')" class="text-sm font-semibold text-[#4A7434] hover:text-[#F17E21] transition">Elfelejtett jelszó?</button>
+                  </div>
+                  <div class="relative">
+                    <input 
+                      id="login-password" 
+                      v-model="loginForm.password" 
+                      :type="showLoginPassword ? 'text' : 'password'" 
+                      required 
+                      placeholder="••••••••"
+                      autocomplete="new-password"
+                      class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 pr-12 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition password-no-reveal" 
+                    />
+                    <button 
+                      type="button" 
+                      @click="toggleLoginPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
+                      tabindex="-1"
+                    >
+                      <svg v-if="!showLoginPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <input id="login-password" v-model="loginForm.password" type="password" required placeholder="••••••••"
-                  class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition" />
                 <button type="submit" :disabled="loading"
                   class="w-full rounded-lg bg-[#4A7434] px-4 py-3 text-sm font-semibold text-white hover:bg-[#F17E21] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                   Bejelentkezés
@@ -252,8 +305,13 @@ const result = await upgradeToPartner(phone)
               <!-- register -->
               <form v-else-if="isRegister" @submit.prevent="handleRegister" class="space-y-5">
                 <div>
-                  <label for="register-name" class="block text-sm font-medium text-gray-100 mb-2">Teljes név</label>
-                  <input id="register-name" v-model="registerForm.name" type="text" required placeholder="Kovács János"
+                  <label for="register-lastname" class="block text-sm font-medium text-gray-100 mb-2">Vezetéknév</label>
+                  <input id="register-lastname" v-model="registerForm.owner_last_name" type="text" required placeholder="Kovács"
+                    class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition" />
+                </div>                
+                <div>
+                  <label for="register-firstname" class="block text-sm font-medium text-gray-100 mb-2">Keresztnév</label>
+                  <input id="register-firstname" v-model="registerForm.owner_first_name" type="text" required placeholder="János"
                     class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition" />
                 </div>
                 <div>
@@ -263,14 +321,60 @@ const result = await upgradeToPartner(phone)
                 </div>
                 <div>
                   <label for="register-password" class="block text-sm font-medium text-gray-100 mb-2">Jelszó</label>
-                  <input id="register-password" v-model="registerForm.password" type="password" required placeholder="••••••••"
-                    class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition" />
+                  <div class="relative">
+                    <input 
+                      id="register-password" 
+                      v-model="registerForm.password" 
+                      :type="showRegisterPassword ? 'text' : 'password'" 
+                      required 
+                      placeholder="••••••••"
+                      autocomplete="new-password"
+                      class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 pr-12 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition password-no-reveal" 
+                    />
+                    <button 
+                      type="button" 
+                      @click="toggleRegisterPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
+                      tabindex="-1"
+                    >
+                      <svg v-if="!showRegisterPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    </button>
+                  </div>
                   <p v-if="registerForm.password" class="mt-1 text-sm" :class="passwordStrength.color">{{ passwordStrength.text }}</p>
                 </div>
                 <div>
                   <label for="register-password-confirm" class="block text-sm font-medium text-gray-100 mb-2">Jelszó megerősítése</label>
-                  <input id="register-password-confirm" v-model="registerForm.password_confirmation" type="password" required placeholder="••••••••"
-                    class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition" />
+                  <div class="relative">
+                    <input 
+                      id="register-password-confirm" 
+                      v-model="registerForm.password_confirmation" 
+                      :type="showRegisterPasswordConfirm ? 'text' : 'password'" 
+                      required 
+                      placeholder="••••••••"
+                      autocomplete="new-password"
+                      class="block w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 pr-12 text-white placeholder:text-gray-500 focus:border-[#4A7434] focus:ring-2 focus:ring-[#4A7434] focus:outline-none transition password-no-reveal" 
+                    />
+                    <button 
+                      type="button" 
+                      @click="toggleRegisterPasswordConfirm"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition"
+                      tabindex="-1"
+                    >
+                      <svg v-if="!showRegisterPasswordConfirm" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" :disabled="loading" class="w-full rounded-lg bg-[#4A7434] px-4 py-3 text-sm font-semibold text-white hover:bg-[#F17E21] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                   Regisztráció
@@ -319,5 +423,19 @@ const result = await upgradeToPartner(phone)
 .scale-leave-to {
   opacity: 0;
   transform: scale(0.9);
+}
+
+/* Edge, IE és más böngészők beépített jelszó megjelenítő gombjának elrejtése */
+.password-no-reveal::-ms-reveal,
+.password-no-reveal::-ms-clear {
+  display: none;
+}
+
+/* Webkit böngészők (Chrome, Safari, Edge Chromium) autofill ikonjainak elrejtése */
+.password-no-reveal::-webkit-credentials-auto-fill-button,
+.password-no-reveal::-webkit-textfield-decoration-container {
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
 }
 </style>
