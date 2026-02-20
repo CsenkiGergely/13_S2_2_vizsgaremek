@@ -9,6 +9,7 @@ import Cookie from '../views/cookie.vue'
 import Fizetes from '../views/fizetes.vue'
 import SpotKezeles from '../views/SpotKezeles.vue'
 import VerifyEmail from '../views/VerifyEmail.vue'
+import Profil from '../views/profil.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -21,7 +22,8 @@ const routes = [
   { path: '/felhasznalo', name: 'Felhasznalo', component: Felhasznalo },
   { path: '/kemping/:id/helyek', name: 'SpotKezeles', component: SpotKezeles, meta: { requiresAuth: true } },
   { path: '/verify-email', name: 'VerifyEmail', component: VerifyEmail },
-  { path: '/fizetes', name: 'Fizetes', component: Fizetes }
+  { path: '/fizetes', name: 'Fizetes', component: Fizetes },
+    { path: '/profil', name: 'Profil', component: Profil }
 ]
 
 const router = createRouter({
