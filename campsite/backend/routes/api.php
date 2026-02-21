@@ -12,6 +12,7 @@ use App\Http\Controllers\CampingSpotController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\UserGuestController;
 use App\Http\Controllers\CampingTagController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/search', [SearchController::class, 'search']);
 
@@ -70,6 +71,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/owner/bookings', [BookingController::class, 'ownerBookings']);
     Route::patch('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
     Route::post('/bookings/scan', [BookingController::class, 'scanQrCode']);
+    
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'getOwnerDashboard']);
     
     // Kemping kezelés (csak tulajdonosoknak)
     Route::post('/campings', [CampingController::class, 'store']);
