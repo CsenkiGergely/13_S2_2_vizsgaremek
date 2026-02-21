@@ -1,19 +1,146 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useBooking } from '../composables/useBooking'
+import { useDashboard } from '../composables/useDashboard'
 import dayjs from 'dayjs';
 import "dayjs/locale/hu";
 dayjs.locale("hu");
 
-const { bookings, getAllBookings } = useBooking()
-const { price, getPrices  } = useBooking()
+const { bookings, getAllBookings, prices, getPrices } = useBooking()
+const { dashboard, getDashboard } = useDashboard()
 
-const activeTab = ref('foglalasok')
+const activeTab = ref('dashboard')
+const monthlyRevenue = ref(0)
+const averageBookingValue = ref(0)
+const revenueByType = ref([])
+const priceByBookingId = ref({})
+const isAuthenticated = ref(false)
 
-onMounted(async () => {
-  getAllBookings()
-  const data = await getPrices()
-  console.log(data)
+const checkAuthentication = () => {
+  const token = localStorage.getItem('auth_token')
+  isAuthenticated.value = !!token
+  return !!token
+}
+
+const loadData = async () => {
+  if (!checkAuthentication()) {
+    console.warn('Nincs bejelentkezve. Kérjük, lépjen be az alkalmazásba.')
+    return
+  }
+  
+  try {
+    // Dashboard adatok betöltése
+    await getDashboard()
+    
+    // Foglalások és árak betöltése
+    await getAllBookings()
+    await getPrices()
+    
+    // Bevétel típusok szerint
+    if (bookings.value && prices.value) {
+      const bookingList = Array.isArray(bookings.value) ? bookings.value : []
+      const priceMap = Array.isArray(prices.value)
+        ? prices.value.reduce((map, item, index) => {
+            const bookingId = item.booking_id || item.bookingId || item.id || bookingList[index]?.id
+            const bookingPrice = Number(item.price || item.total_price || 0)
+
+            if (bookingId) {
+              map[bookingId] = bookingPrice
+            }
+
+            return map
+          }, {})
+        : {}
+
+      priceByBookingId.value = priceMap
+      
+      revenueByType.value = calculateRevenueByType(bookings.value, priceMap)
+    }
+  } catch (error) {
+    console.error('Hiba az adatok betöltésekor:', error)
+  }
+}
+
+// Bevétel típusok szerint
+const calculateRevenueByType = (bookingsData, pricesData) => {
+  if (!bookingsData || !pricesData) return []
+  
+  const typeMap = {}
+  
+  bookingsData.forEach(booking => {
+    const type = booking.spot
+      || booking.camping_spot?.type
+      || booking.campingSpot?.type
+      || booking.camping_spot?.name
+      || booking.campingSpot?.name
+      || 'Ismeretlen'
+
+    const price = Number(
+      pricesData[booking.id]
+      || booking.total_price
+      || booking.price
+      || 0
+    )
+    
+    if (!typeMap[type]) {
+      typeMap[type] = {
+        name: type,
+        count: 0,
+        revenue: 0,
+        percentage: 0
+      }
+    }
+    
+    typeMap[type].count += 1
+    typeMap[type].revenue += price
+  })
+  
+  const totalRevenue = Object.values(typeMap).reduce((sum, item) => sum + item.revenue, 0)
+  
+  return Object.values(typeMap).map(item => ({
+    ...item,
+    percentage: totalRevenue > 0 ? Math.round((item.revenue / totalRevenue) * 100) : 0
+  }))
+}
+
+const getBookingFirstName = (booking) => {
+  return booking.guestfirstname
+    || booking.guestFirstName
+    || booking.user?.owner_first_name
+    || '-'
+}
+
+const getBookingLastName = (booking) => {
+  return booking.guestlastname
+    || booking.guestLastName
+    || booking.user?.owner_last_name
+    || '-'
+}
+
+const getBookingSpot = (booking) => {
+  return booking.spot
+    || booking.campingSpot?.name
+    || booking.camping_spot?.name
+    || booking.campingSpot?.type
+    || booking.camping_spot?.type
+    || 'Ismeretlen'
+}
+
+const getBookingPrice = (booking) => {
+  return Number(
+    priceByBookingId.value[booking.id]
+    || booking.total_price
+    || booking.price
+    || 0
+  )
+}
+
+const formatBookingDate = (dateValue) => {
+  return dateValue ? dayjs(dateValue).format('YYYY. MM D.') : '-'
+}
+
+onMounted(() => {
+  loadData()
 })
 
 </script>
@@ -23,38 +150,45 @@ onMounted(async () => {
     <h1>Kemping Admin</h1>
     <div class="subtitle">Kezelje a foglalásokat és monitorizálja a kemping működését</div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <div class="tab" :class="{ active: activeTab === 'foglalasok' }" @click="activeTab = 'foglalasok'">Foglalások</div>
-      <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Dashboard</div>
-      <div class="tab" :class="{ active: activeTab === 'terkep' }" @click="activeTab = 'terkep'">Térkép</div>
-      <div class="tab" :class="{ active: activeTab === 'bevetelek' }" @click="activeTab = 'bevetelek'">Bevételek</div>
+    <div v-if="!isAuthenticated" class="auth-error">
+      <h2>⚠️ Nincs bejelentkezve</h2>
+      <p>A dashboard eléréséhez kérjük, lépjen be az alkalmazásba.</p>
+      <router-link to="/login" class="btn-link">Bejelentkezés</router-link>
     </div>
 
-    <!-- DASHBOARD -->
+    <template v-else>
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Dashboard</div>
+        <div class="tab" :class="{ active: activeTab === 'foglalasok' }" @click="activeTab = 'foglalasok'">Foglalások</div>
+        <div class="tab" :class="{ active: activeTab === 'terkep' }" @click="activeTab = 'terkep'">Térkép</div>
+        <div class="tab" :class="{ active: activeTab === 'bevetelek' }" @click="activeTab = 'bevetelek'">Bevételek</div>
+      </div>
+
+      <!-- DASHBOARD -->
     <div v-if="activeTab === 'dashboard'">
       <div class="stats">
         <div class="card">
           <small>Összes foglalás</small>
-          <h2>127</h2>
+          <h2>{{ dashboard?.totalBookings || 0 }}</h2>
           <div class="trend">E hónapban +12%</div>
         </div>
 
         <div class="card">
           <small>Aktív vendégek</small>
-          <h2>34</h2>
+          <h2>{{ dashboard?.activeGuests || 0 }}</h2>
           <div class="trend">Jelenleg bent +8%</div>
         </div>
 
         <div class="card">
           <small>Foglalt helyek</small>
-          <h2>28 / 45</h2>
-          <div class="trend">62% foglaltság +15%</div>
+          <h2>{{ dashboard?.bookedSpots || 0 }} / {{ dashboard?.totalSpots || 0 }}</h2>
+          <div class="trend">{{ dashboard?.occupancyPercentage || 0 }}% foglaltság +15%</div>
         </div>
 
         <div class="card">
           <small>Havi bevétel</small>
-          <h2>450 000 Ft</h2>
+          <h2>{{ (dashboard?.monthlyRevenue || 0).toLocaleString('hu-HU') }} Ft</h2>
           <div class="trend">Aktuális hónap +25%</div>
         </div>
       </div>
@@ -63,36 +197,16 @@ onMounted(async () => {
         <h3>Legutóbbi foglalások</h3>
         <p>Az elmúlt hét foglalásai</p>
 
-        <div class="booking">
+        <div v-for="booking in dashboard?.recentBookings" :key="booking.id" class="booking">
           <div>
-            <div class="name">Kovács János</div>
-            <div class="place">Hely: A-15</div>
+            <div class="name">{{ booking.guestFirstName }} {{ booking.guestLastName }}</div>
+            <div class="place">Hely: {{ booking.spot }}</div>
           </div>
           <div class="right">
-            <div class="price">45 000 Ft</div>
-            <span class="badge active">Aktív</span>
-          </div>
-        </div>
-
-        <div class="booking">
-          <div>
-            <div class="name">Nagy Anna</div>
-            <div class="place">Hely: B-8</div>
-          </div>
-          <div class="right">
-            <div class="price">32 000 Ft</div>
-            <span class="badge confirmed">Megerősített</span>
-          </div>
-        </div>
-
-        <div class="booking">
-          <div>
-            <div class="name">Szabó Péter</div>
-            <div class="place">Hely: C-3</div>
-          </div>
-          <div class="right">
-            <div class="price">38 000 Ft</div>
-            <span class="badge done">Befejezett</span>
+            <div class="price">{{ (booking.price || 0).toLocaleString('hu-HU') }} Ft</div>
+            <span :class="['badge', booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'confirmed' : booking.status === 'checked_in' ? 'checked_in' : booking.status === 'finished' ? 'finished' : booking.status === 'cancelled' ? 'cancelled' : '']">
+              {{ booking.status === 'pending' ? 'Függőben van' : booking.status === 'confirmed' ? 'Megerősített' : booking.status === 'checked_in' ? 'Bejelentkezett' : booking.status === 'finished' ? 'Befejezett' : booking.status === 'cancelled' ? 'Lemondott' : ''}}
+            </span>
           </div>
         </div>
       </div>
@@ -121,16 +235,16 @@ onMounted(async () => {
           <tbody>
             <tr v-for="booking in bookings" :key="booking.id">
               <td><strong>{{ booking.id }}</strong></td>
-              <td>{{ booking.guestLastName }}</td>
-              <td>{{ booking.guestFirstName }}</td>
-              <td>{{ booking.spot }}</td>
-              <td>{{ dayjs(booking.checkIn).format("YYYY. MM D.") }}</td>
-              <td>{{ dayjs(booking.checkOut).format("YYYY. MM D.") }}</td>
+              <td>{{ getBookingFirstName(booking) }}</td>
+              <td>{{ getBookingLastName(booking) }}</td>
+              <td>{{ getBookingSpot(booking) }}</td>
+              <td>{{ formatBookingDate(booking.checkIn || booking.arrival_date || booking.arrivalDate) }}</td>
+              <td>{{ formatBookingDate(booking.checkOut || booking.departure_date || booking.departureDate) }}</td>
               <td>{{ booking.guests }}</td>
               <td><span :class="['badge', booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'confirmed' : booking.status === 'checked_in' ? 'checked_in' : booking.status === 'finished' ? 'finished' : booking.status === 'cancelled' ? 'cancelled' : '']">
                 {{ booking.status === 'pending' ? 'Függőben van' : booking.status === 'confirmed' ? 'Megerősített' : booking.status === 'checked_in' ? 'Bejelentkezett' : booking.status === 'finished' ? 'Befejezett' : booking.status === 'cancelled' ? 'Lemondott' : ''}}
               </span></td>
-              <td><strong>{{ price[booking.id] }}</strong></td>
+              <td><strong>{{ getBookingPrice(booking).toLocaleString('hu-HU') }} Ft</strong></td>
               <td><button class="btn">👁 Részletek</button></td>
             </tr>
           </tbody>
@@ -151,12 +265,12 @@ onMounted(async () => {
       <div class="stats">
         <div class="card">
           <small>Havi bevétel</small>
-          <h2>450 000 Ft</h2>
+          <h2>{{ (dashboard?.monthlyRevenue || 0).toLocaleString('hu-HU') }} Ft</h2>
           <div class="trend">+25% az előző hónaphoz képest</div>
         </div>
         <div class="card">
           <small>Átlagos foglalási érték</small>
-          <h2>38 500 Ft</h2>
+          <h2>{{ (bookings?.length > 0 && prices?.length > 0 ? Math.round(prices.reduce((sum, p) => sum + (p.price || p.total_price || 0), 0) / bookings.length) : 0).toLocaleString('hu-HU') }} Ft</h2>
           <div class="trend">+12% az előző hónaphoz képest</div>
         </div>
       </div>
@@ -165,40 +279,22 @@ onMounted(async () => {
         <h3>Bevétel típusok szerint</h3>
         <p>Helyek típusainak bevétel megoszlása</p>
 
-        <div class="booking">
+        <div v-if="revenueByType.length > 0" v-for="type in revenueByType" :key="type.name" class="booking">
           <div>
-            <div class="name">Tóparti premium helyek</div>
-            <div class="place">12 foglalás</div>
+            <div class="name">{{ type.name }}</div>
+            <div class="place">{{ type.count }} foglalás</div>
           </div>
           <div class="right">
-            <div class="price">180 000 Ft</div>
-            <p>40%</p>
+            <div class="price">{{ type.revenue.toLocaleString('hu-HU') }} Ft</div>
+            <p>{{ type.percentage }}%</p>
           </div>
         </div>
-
-        <div class="booking">
-          <div>
-            <div class="name">Erdei helyek</div>
-            <div class="place">18 foglalás</div>
-          </div>
-          <div class="right">
-            <div class="price">162 000 Ft</div>
-            <p>36%</p>
-          </div>
-        </div>
-
-        <div class="booking">
-          <div>
-            <div class="name">Standard helyek</div>
-            <div class="place">22 foglalás</div>
-          </div>
-          <div class="right">
-            <div class="price">108 000 Ft</div>
-            <p>24%</p>
-          </div>
+        <div v-else class="booking">
+          <p>Nincsenek adatok</p>
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -397,5 +493,39 @@ onMounted(async () => {
 
   .btn:hover {
     background: #f9fafb;
+  }
+
+  .auth-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .auth-error h2 {
+    color: #dc2626;
+    margin: 0 0 10px 0;
+  }
+
+  .auth-error p {
+    color: #991b1b;
+    margin: 0 0 20px 0;
+  }
+
+  .btn-link {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #3f6212;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .btn-link:hover {
+    background: #2d4609;
   }
 </style>
