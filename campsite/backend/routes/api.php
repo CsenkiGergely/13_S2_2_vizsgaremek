@@ -13,6 +13,7 @@ use App\Http\Controllers\CampingSpotController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\UserGuestController;
 use App\Http\Controllers\CampingTagController;
+use App\Http\Controllers\EntranceGateController;
 
 Route::get('/search', [SearchController::class, 'search']);
 
@@ -52,6 +53,10 @@ Route::get('/campings/{campingId}/photos', [CampingPhotoController::class, 'inde
 Route::get('/campings/{campingId}/spots', [CampingSpotController::class, 'index']);
 Route::get('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'show']);
 
+// ESP32 QR szkenner végpont (saját Bearer auth_token, nem Sanctum)
+// Regisztrálva a Sanctum csoport ELŐTT, hogy a POST /bookings/{id} wildcard ne kapja el
+Route::post('/bookings/scan-image', [BookingController::class, 'scanImage']);
+
 // Foglalások
 Route::middleware('auth:sanctum')->group(function () {
     // felhasználói foglalások
@@ -67,6 +72,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
     Route::post('/bookings/scan', [BookingController::class, 'scanQrCode']);
     
+    // Saját kempingek lekérése (tulajdonos)
+    Route::get('/my-campings', [CampingController::class, 'myCampings']);
+
     // Kemping kezelés (csak tulajdonosoknak)
     Route::post('/campings', [CampingController::class, 'store']);
     Route::put('/campings/{id}', [CampingController::class, 'update']);
@@ -75,6 +83,17 @@ Route::middleware('auth:sanctum')->group(function () {
     // GeoJSON térkép kezelése (csak tulajdonos)
     Route::post('/campings/{id}/geojson', [CampingController::class, 'uploadGeojson']);
     Route::delete('/campings/{id}/geojson', [CampingController::class, 'deleteGeojson']);
+
+    // Kapu kezelés (csak tulajdonos)
+    Route::get('/campings/{campingId}/gates', [EntranceGateController::class, 'index']);
+    Route::post('/campings/{campingId}/gates', [EntranceGateController::class, 'store']);
+    Route::put('/campings/{campingId}/gates/{gateId}', [EntranceGateController::class, 'update']);
+    Route::delete('/campings/{campingId}/gates/{gateId}', [EntranceGateController::class, 'destroy']);
+
+    // Kapu szintű auth token (csak tulajdonos)
+    Route::post('/campings/{campingId}/gates/{gateId}/auth-token', [EntranceGateController::class, 'generateToken']);
+    Route::get('/campings/{campingId}/gates/{gateId}/auth-token', [EntranceGateController::class, 'getTokenStatus']);
+    Route::delete('/campings/{campingId}/gates/{gateId}/auth-token', [EntranceGateController::class, 'revokeToken']);
     
     // Kemping helyek kezelése (csak tulajdonosoknak)
     Route::post('/campings/{campingId}/spots', [CampingSpotController::class, 'store']);
