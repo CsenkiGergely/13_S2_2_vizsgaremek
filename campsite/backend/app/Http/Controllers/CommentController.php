@@ -12,7 +12,6 @@ class CommentController extends Controller
 {
     
     // Kemping összes értékelésének lekérése (fő kommentek + válaszok)
-     
     public function index($campingId)
     {
         $camping = Camping::findOrFail($campingId);
@@ -33,8 +32,7 @@ class CommentController extends Controller
     }
 
     
-    //Új értékelés létrehozása (csak vendég, aki foglalt már)
-     
+    // Új értékelés létrehozása (csak vendég, aki foglalt már)
     public function store(Request $request, $campingId)
     {
         $user = Auth::user();
@@ -74,7 +72,6 @@ class CommentController extends Controller
             'user_id' => $user->id,
             'rating' => $validated['rating'],
             'comment' => $validated['comment'],
-            'upload_date' => now(),
         ]);
 
         $comment->load('user');
@@ -85,9 +82,7 @@ class CommentController extends Controller
         ], 201);
     }
 
-
-     //Válasz hozzáadása egy értékeléshez (csak a kemping tulajdonosa)
-
+    // Válasz hozzáadása egy értékeléshez (csak a kemping tulajdonosa)
     public function reply(Request $request, $commentId)
     {
         $user = Auth::user();
@@ -128,7 +123,6 @@ class CommentController extends Controller
             'user_id' => $user->id,
             'parent_id' => $commentId,
             'comment' => $validated['comment'],
-            'upload_date' => now(),
         ]);
 
         $reply->load('user');
@@ -139,9 +133,7 @@ class CommentController extends Controller
         ], 201);
     }
 
-    
-     //Saját értékelés szerkesztése
-   
+    // Saját értékelés szerkesztése
     public function update(Request $request, $commentId)
     {
         $user = Auth::user();
@@ -177,12 +169,16 @@ class CommentController extends Controller
         ]);
     }
 
-    
-     //Saját értékelés törlése
-     
+    // Saját értékelés törlése (ha főkomment, akkor a válaszokat is töröljük)
     public function destroy($commentId)
     {
         $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Nincs bejelentkezve.'
+            ], 401);
+        }
+
         $comment = Comment::findOrFail($commentId);
 
         // Ellenőrizzük, hogy a user-é a komment VAGY a kemping tulajdonosa
@@ -194,6 +190,7 @@ class CommentController extends Controller
             ], 403);
         }
 
+        // Töröljük egyszerűen a kommentet — a DB cascade gondoskodik a válaszokról
         $comment->delete();
 
         return response()->json([

@@ -12,15 +12,7 @@ class Comment extends Model
         'parent_id',
         'rating',
         'comment',
-        'upload_date',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'upload_date' => 'date',
-        ];
-    }
 
     // Kapcsolatok
     public function campingComments()
