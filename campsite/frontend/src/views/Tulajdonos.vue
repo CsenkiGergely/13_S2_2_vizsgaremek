@@ -89,7 +89,7 @@ async function handleGenerateToken(gateId) {
 
 async function handleRevokeToken(gateId) {
   if (!selectedCampingId.value) return
-  if (!confirm('Biztosan visszavonod a tokent? Az ESP32 szkenner nem fog működni ezután.')) return
+  if (!confirm('Biztosan visszavonod a tokent? Az szkenner nem fog működni ezután.')) return
   try {
     await revokeToken(selectedCampingId.value, gateId)
   } catch (err) {
@@ -343,10 +343,10 @@ onMounted(async () => {
               <label class="form-label">Zárás</label>
               <input type="time" class="form-input" v-model="newGate.closingTime" />
             </div>
-            <div class="form-group half">
+          </div>
+          <div class="form-group">
               <label class="form-label">Kapu neve</label>
-              <input type="time" class="form-input" v-model="newGate.name" />
-            </div>
+              <input type="text" class="form-input" v-model="newGate.name" placeholder="Főbejárat"/>
           </div>
           <button class="btn-submit" @click="addGate" :disabled="!newGate.campingId">Hozzáadás</button>
         </div>
@@ -356,7 +356,7 @@ onMounted(async () => {
       <div class="modal-overlay" v-if="showTokenModal" @click.self="showTokenModal = false">
         <div class="modal-content">
           <div class="modal-header">
-            <h3>ESP32 Token generálva</h3>
+            <h3>Scanner token generálva</h3>
             <button class="modal-close" @click="showTokenModal = false">&times;</button>
           </div>
           <p class="token-warning">Mentsd el ezt a tokent! Többé nem jelenik meg teljes egészében.</p>
@@ -474,6 +474,21 @@ onMounted(async () => {
     padding: 4px;
     gap: 4px;
     margin-bottom: 25px;
+    max-width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .tabs {
+      display: flex;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox */
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none; /* Chrome, Safari */
+    }
   }
 
   .tab {
@@ -495,6 +510,12 @@ onMounted(async () => {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
     margin-top: 28px;
+  }
+
+  @media (max-width: 768px) {
+    .stats {
+      grid-template-columns: 1fr;
+    }
   }
 
   .card {
@@ -538,17 +559,97 @@ onMounted(async () => {
     color: #64748b;
   }
 
+  .booking {
+    display: flex;
+    justify-content: space-between;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+
   @media (max-width: 640px) {
     .booking {
       flex-direction: column;
       align-items: flex-start;
       gap: 10px;
-      display: flex;
-      justify-content: space-between;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
+    }
+    
+    .container {
+      padding: 16px 12px 60px;
+    }
+
+    h1 {
+      font-size: 22px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+    }
+
+    .gates-header {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .gates-title {
+      font-size: 20px;
+    }
+
+    .gates-header-right {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-select {
+      width: 100%;
+      min-width: unset;
+    }
+
+    .btn-add-gate {
+      width: 100%;
+    }
+
+    .modal-content {
+      margin: 12px;
+      max-width: calc(100% - 24px);
+      padding: 20px;
+    }
+
+    .modal-header h3 {
+      font-size: 16px;
+    }
+
+    .form-row {
+      flex-direction: column;
+    }
+
+    .form-group.half {
+      width: 100%;
+    }
+
+    /* Táblázat görgethetővé tétele */
+    .card {
+      overflow-x: auto;
+      padding: 16px;
+    }
+
+    table {
+      min-width: 700px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 8px;
+    }
+
+    .gate-card {
+      padding: 16px;
+    }
+
+    .section {
+      padding: 16px;
     }
   }
 
@@ -672,6 +773,12 @@ onMounted(async () => {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 16px;
+  }
+
+  @media (max-width: 768px) {
+    .gates-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .gate-card {
