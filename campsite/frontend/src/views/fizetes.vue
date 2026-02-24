@@ -223,16 +223,33 @@ const handlePayment = () => {
             <!-- Kártyatípus választó -->
             <div class="full-width card-type-selector">
               <label for="cardType">💳 Kártyatípus</label>
-              <select 
-                id="cardType" 
-                v-model="activeTab" 
-                @change="handleCardTypeChange"
-                class="card-select"
-              >
-                <option value="visa">Visa</option>
-                <option value="mastercard">Mastercard</option>
-                <option value="amex">American Express</option>
-              </select>
+              <div class="card-type-wrapper">
+                <select 
+                  id="cardType" 
+                  v-model="activeTab" 
+                  @change="handleCardTypeChange"
+                  class="card-select"
+                >
+                  <option value="visa">Visa</option>
+                  <option value="mastercard">Mastercard</option>
+                  <option value="amex">American Express</option>
+                </select>
+                <div class="card-logo">
+                  <img 
+                    v-if="activeTab === 'visa'" 
+                    src="/img/visalogo_20220804_111847.png" 
+                    alt="Visa"
+                    class="logo-img"
+                  />
+                  <img 
+                    v-else-if="activeTab === 'mastercard'" 
+                    src="/img/Mastercard_2019_logo.svg" 
+                    alt="Mastercard"
+                    class="logo-img"
+                  />
+                  <span v-else class="amex-text">AMEX</span>
+                </div>
+              </div>
             </div>
 
             <!-- Kártyaadatok -->
@@ -416,8 +433,14 @@ const handlePayment = () => {
   margin-bottom: 1rem;
 }
 
+.card-type-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .card-select {
-  width: 100%;
+  flex: 1;
   padding: 0.75rem 1rem;
   border: 1px solid #829dd4;
   border-radius: 0.625rem;
@@ -435,6 +458,30 @@ const handlePayment = () => {
 
 .card-select:hover {
   border-color: var(--accent);
+}
+
+.card-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 50px;
+  padding: 0.5rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.logo-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.amex-text {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #006FCF;
 }
 
 form.grid {
