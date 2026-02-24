@@ -10,7 +10,7 @@ dayjs.locale("hu");
 const { bookings, getAllBookings } = useBooking()
 const {
   gates, myCampings, loading: gatesLoading, error: gatesError,
-  fetchMyCampings, fetchGates, createGate, deleteGate: apiDeleteGate,
+  fetchMyCampings, fetchGates, createGate, updateGate, deleteGate: apiDeleteGate,
   generateToken, revokeToken,
 } = useGate()
 
@@ -20,7 +20,9 @@ const activeTab = ref('dashboard')
 const selectedCampingId = ref(null)
 const showGateModal = ref(false)
 const showTokenModal = ref(false)
+const showRenameModal = ref(false)
 const generatedToken = ref(null)
+const renameGate = ref({ id: null, name: '' })
 
 const newGate = ref({
   campingId: null,
@@ -94,6 +96,23 @@ async function handleRevokeToken(gateId) {
     await revokeToken(selectedCampingId.value, gateId)
   } catch (err) {
     console.error('Token visszavonása sikertelen:', err)
+  }
+}
+
+function openRenameModal(gate) {
+  renameGate.value = { id: gate.id, name: gate.name || '' }
+  showRenameModal.value = true
+}
+
+async function handleRenameGate() {
+  if (!selectedCampingId.value || !renameGate.value.id) return
+  try {
+    await updateGate(selectedCampingId.value, renameGate.value.id, {
+      name: renameGate.value.name,
+    })
+    showRenameModal.value = false
+  } catch (err) {
+    console.error('Kapu átnevezése sikertelen:', err)
   }
 }
 
@@ -279,6 +298,9 @@ onMounted(async () => {
                 <span class="gate-name">{{ gate.name || 'Névtelen kapu' }} #{{ gate.id }}</span>
               </div>
               <div class="gate-actions">
+                <button class="gate-action-btn edit" title="Átnevezés" @click="openRenameModal(gate)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
                 <button class="gate-action-btn delete" title="Törlés" @click="handleDeleteGate(gate.id)">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
@@ -349,6 +371,27 @@ onMounted(async () => {
               <input type="text" class="form-input" v-model="newGate.name" placeholder="Főbejárat"/>
           </div>
           <button class="btn-submit" @click="addGate" :disabled="!newGate.campingId">Hozzáadás</button>
+        </div>
+      </div>
+
+      <!-- Modal: Kapu átnevezése -->
+      <div class="modal-overlay" v-if="showRenameModal" @click.self="showRenameModal = false">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Kapu átnevezése</h3>
+            <button class="modal-close" @click="showRenameModal = false">&times;</button>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Új név</label>
+            <input
+              type="text"
+              class="form-input"
+              v-model="renameGate.name"
+              placeholder="pl. Főbejárat"
+              @keyup.enter="handleRenameGate"
+            />
+          </div>
+          <button class="btn-submit" @click="handleRenameGate">Mentés</button>
         </div>
       </div>
 
@@ -836,6 +879,11 @@ onMounted(async () => {
   .gate-action-btn.delete:hover {
     color: #dc2626;
     background: #fef2f2;
+  }
+
+  .gate-action-btn.edit:hover {
+    color: #3f6212;
+    background: #f0fdf4;
   }
 
   .gate-time {
