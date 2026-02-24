@@ -16,7 +16,7 @@ onMounted(() => {
 
 <template>
   <div class="container">
-    <h1>Kemping Admin</h1>
+    <h1>Kemping Tulajdonos</h1>
     <div class="subtitle">Kezelje a foglalásokat és monitorizálja a kemping működését</div>
 
     <!-- Tabs -->
