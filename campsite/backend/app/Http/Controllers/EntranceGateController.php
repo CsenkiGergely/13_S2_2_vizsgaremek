@@ -27,7 +27,7 @@ class EntranceGateController extends Controller
         }
 
         $gates = EntranceGate::where('camping_id', $campingId)
-            ->select(['id', 'gate_id', 'opening_time', 'closing_time', 'created_at',
+            ->select(['id', 'gate_id', 'name', 'opening_time', 'closing_time', 'created_at',
                 DB::raw("CASE WHEN auth_token IS NOT NULL THEN CONCAT(LEFT(auth_token, 8), '...') ELSE NULL END AS token_prefix"),
                 DB::raw("CASE WHEN auth_token IS NOT NULL THEN true ELSE false END AS has_token"),
             ])
@@ -54,12 +54,14 @@ class EntranceGateController extends Controller
 
         $validated = $request->validate([
             'gate_id'      => 'nullable|integer',
+            'name'         => 'nullable|string|max:100',
             'opening_time' => 'nullable|date_format:H:i',
             'closing_time' => 'nullable|date_format:H:i',
         ]);
 
         $gate = EntranceGate::create([
             'camping_id'   => $campingId,
+            'name'         => $validated['name'] ?? null,
             'gate_id'      => $validated['gate_id'] ?? null,
             'opening_time' => $validated['opening_time'] ?? null,
             'closing_time' => $validated['closing_time'] ?? null,
@@ -83,6 +85,7 @@ class EntranceGateController extends Controller
 
         $validated = $request->validate([
             'gate_id'      => 'sometimes|nullable|integer',
+            'name'         => 'nullable|string|max:100',
             'opening_time' => 'sometimes|nullable|date_format:H:i',
             'closing_time' => 'sometimes|nullable|date_format:H:i',
         ]);

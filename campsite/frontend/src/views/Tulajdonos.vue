@@ -4,6 +4,7 @@ import { useBooking } from '../composables/useBooking'
 import { useGate } from '../composables/useGate'
 import dayjs from 'dayjs';
 import "dayjs/locale/hu";
+import { name } from 'dayjs/locale/hu';
 dayjs.locale("hu");
 
 const { bookings, getAllBookings } = useBooking()
@@ -15,7 +16,7 @@ const {
 
 const activeTab = ref('dashboard')
 
-// ── Kapuk kezelése ────────────────────────────────────────────
+// Kapuk kezelése
 const selectedCampingId = ref(null)
 const showGateModal = ref(false)
 const showTokenModal = ref(false)
@@ -51,6 +52,7 @@ async function addGate() {
     await createGate(newGate.value.campingId, {
       opening_time: newGate.value.openingTime,
       closing_time: newGate.value.closingTime,
+      name: newGate.value.name,
     })
     showGateModal.value = false
     // Ha a kiválasztott kemping más, váltsunk rá
@@ -274,7 +276,7 @@ onMounted(async () => {
             <div class="gate-card-header">
               <div class="gate-name-row">
                 <svg class="gate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="9" /><path d="M3 12v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6" /></svg>
-                <span class="gate-name">Kapu #{{ gate.gate_id || gate.id }}</span>
+                <span class="gate-name">{{ gate.name || 'Névtelen kapu' }} #{{ gate.id }}</span>
               </div>
               <div class="gate-actions">
                 <button class="gate-action-btn delete" title="Törlés" @click="handleDeleteGate(gate.id)">
@@ -287,6 +289,7 @@ onMounted(async () => {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <span v-if="gate.opening_time && gate.closing_time">{{ gate.opening_time }} – {{ gate.closing_time }}</span>
               <span v-else>Nincs nyitvatartás megadva</span>
+              <span>| Kemping ID: {{ selectedCampingId }}</span>
             </div>
 
             <div class="gate-divider"></div>
@@ -329,6 +332,8 @@ onMounted(async () => {
             </select>
           </div>
 
+
+
           <div class="form-row">
             <div class="form-group half">
               <label class="form-label">Nyitás</label>
@@ -338,8 +343,11 @@ onMounted(async () => {
               <label class="form-label">Zárás</label>
               <input type="time" class="form-input" v-model="newGate.closingTime" />
             </div>
+            <div class="form-group half">
+              <label class="form-label">Kapu neve</label>
+              <input type="time" class="form-input" v-model="newGate.name" />
+            </div>
           </div>
-
           <button class="btn-submit" @click="addGate" :disabled="!newGate.campingId">Hozzáadás</button>
         </div>
       </div>
