@@ -48,6 +48,11 @@ const closeAuthModal = () => {
   authModalOpen.value = false
 }
 
+const handleAuthSuccess = () => {
+  authModalOpen.value = false
+  // A user és isAuthenticated automatikusan frissül a useAuth composable-ből
+}
+
 const handleLogout = async () => {
   await logout()
   mobileMenuOpen.value = false
@@ -57,7 +62,7 @@ const handleLogout = async () => {
 
 <template>
 <header class="bg-white shadow-md sticky top-0 z-50">
-  <div class="container mx-auto px-4 flex items-center justify-between h-12">
+  <div class="max-w-[1400px] mx-auto px-6 flex items-center justify-between h-12">
     <!-- logo -->
     <router-link to="/" class="logo flex items-center">
       <img src="/img/CampSite.svg" alt="CampSite Logo" class="h-20"/>
@@ -65,9 +70,9 @@ const handleLogout = async () => {
 
     <!-- desktop nav -->
     <nav class="hidden md:flex items-center space-x-4">
-      <a href="#" class="text-gray-700 hover:text-[#4A7434] transition text-base font-medium">Menü</a>
-
+  <!-- Legyél partnerünk gomb - csak ha nincs bejelentkezve VAGY még nem partner (role !== true) -->
   <button 
+    v-if="!isAuthenticated || (isAuthenticated && user?.role !== true)"
     @click="openPhoneLoginModal" 
     class=" text-gray-700 px-3 py-1.5 rounded-lg hover:text-[#4A7434] text-base font-medium ml-2"
   >
@@ -98,10 +103,15 @@ const handleLogout = async () => {
         <div class="relative" v-click-outside="closeProfileMenu">
           <button 
             @click="toggleProfileMenu"
-            class="w-9 h-9 rounded-full bg-[#4A7434] text-white font-bold text-base flex items-center justify-center hover:bg-[#F17E21] transition focus:outline-none focus:ring-2 focus:ring-[#4A7434] focus:ring-offset-2"
+            class="flex items-center gap-2 hover:opacity-80 transition focus:outline-none"
             :title="user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : ''"
           >
-            {{ userInitial }}
+            <div class="w-9 h-9 rounded-full bg-[#4A7434] text-white font-bold text-base flex items-center justify-center hover:bg-[#F17E21] transition focus:outline-none focus:ring-2 focus:ring-[#4A7434] focus:ring-offset-2">
+              {{ userInitial }}
+            </div>
+            <span class="text-gray-700 font-medium text-sm">
+              {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
+            </span>
           </button>
 
           <!-- Lenyíló menü -->
@@ -109,14 +119,6 @@ const handleLogout = async () => {
             v-if="profileMenuOpen"
             class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
           >
-            <!-- Felhasználó neve és emailje -->
-            <div class="px-4 py-3 border-b border-gray-100">
-              <p class="text-sm font-semibold text-gray-800">
-                {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
-              </p>
-              <p class="text-xs text-gray-500 truncate">{{ user?.email }}</p>
-            </div>
-
             <!-- Menüpontok -->
             <router-link 
               to="/profil" 
@@ -135,7 +137,7 @@ const handleLogout = async () => {
             </router-link>
 
             <router-link 
-              v-if="user && user.role"
+              v-if="user && user.role === true"
               to="/sajat-szallashelyek" 
               @click="closeProfileMenu"
               class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] transition"
@@ -165,13 +167,16 @@ const handleLogout = async () => {
 
   <!-- mobil menu -->
   <nav v-if="mobileMenuOpen" class="md:hidden px-4 space-y-2 py-1">
-    <a href="#" class="block text-gray-700 hover:text-[#4A7434] text-base font-medium">Menü</a>
-
 <template v-if="!isAuthenticated">
   <button @click="openRegisterModal" class="block w-full text-gray-700 hover:text-[#4A7434] py-1 text-base font-medium">Regisztráció</button>
   <button @click="openLoginModal" class="block w-full bg-[#4A7434] text-white py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium">Bejelentkezés</button>
   <button @click="openPhoneLoginModal" class="block w-full bg-[#4A7434] text-white py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium">Legyél partnerünk</button>
 </template>
+
+    <!-- Legyél partnerünk gomb bejelentkezett, de nem partner usereknek (role !== true) -->
+    <template v-else-if="isAuthenticated && user?.role !== true">
+      <button @click="openPhoneLoginModal" class="block w-full bg-[#4A7434] text-white py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium">Legyél partnerünk</button>
+    </template>
 
 
     <template v-else>

@@ -9,13 +9,12 @@ import "dayjs/locale/hu";
 import { name } from 'dayjs/locale/hu';
 dayjs.locale("hu");
 
-const { bookings, getAllBookings } = useBooking()
+const { bookings, getAllBookings, prices, getPrices } = useBooking()
 const {
   gates, myCampings, loading: gatesLoading, error: gatesError,
   fetchMyCampings, fetchGates, createGate, updateGate, deleteGate: apiDeleteGate,
   generateToken, revokeToken,
 } = useGate()
-const { bookings, getAllBookings, prices, getPrices } = useBooking()
 const { dashboard, getDashboard } = useDashboard()
 
 const activeTab = ref('dashboard')
@@ -272,13 +271,11 @@ function copyToken() {
 }
 
 onMounted(async () => {
-  getAllBookings()
   await fetchMyCampings()
   // Ha van kemping, automatikusan kiválasztjuk az elsőt
   if (myCampings.value.length > 0) {
     selectedCampingId.value = myCampings.value[0].id
   }
-onMounted(() => {
   loadData()
 })
 
@@ -289,13 +286,6 @@ onMounted(() => {
     <h1>Kemping Tulajdonos</h1>
     <div class="subtitle">Kezelje a foglalásokat és monitorizálja a kemping működését</div>
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Dashboard</div>
-      <div class="tab" :class="{ active: activeTab === 'foglalasok' }" @click="activeTab = 'foglalasok'">Foglalások</div>
-      <div class="tab" :class="{ active: activeTab === 'kapuk' }" @click="activeTab = 'kapuk'">Kapuk</div>
-      <div class="tab" :class="{ active: activeTab === 'terkep' }" @click="activeTab = 'terkep'">Térkép</div>
-      <div class="tab" :class="{ active: activeTab === 'bevetelek' }" @click="activeTab = 'bevetelek'">Bevételek</div>
     <div v-if="!isAuthenticated" class="auth-error">
       <h2>⚠️ Nincs bejelentkezve</h2>
       <p>A dashboard eléréséhez kérjük, lépjen be az alkalmazásba.</p>
@@ -307,6 +297,7 @@ onMounted(() => {
       <div class="tabs">
         <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Dashboard</div>
         <div class="tab" :class="{ active: activeTab === 'foglalasok' }" @click="activeTab = 'foglalasok'">Foglalások</div>
+        <div class="tab" :class="{ active: activeTab === 'kapuk' }" @click="activeTab = 'kapuk'">Kapuk</div>
         <div class="tab" :class="{ active: activeTab === 'terkep' }" @click="activeTab = 'terkep'">Térkép</div>
         <div class="tab" :class="{ active: activeTab === 'bevetelek' }" @click="activeTab = 'bevetelek'">Bevételek</div>
       </div>
@@ -585,16 +576,18 @@ onMounted(() => {
         <h3>Bevétel típusok szerint</h3>
         <p>Helyek típusainak bevétel megoszlása</p>
 
-        <div v-if="revenueByType.length > 0" v-for="type in revenueByType" :key="type.name" class="booking">
-          <div>
-            <div class="name">{{ type.name }}</div>
-            <div class="place">{{ type.count }} foglalás</div>
+        <template v-if="revenueByType.length > 0">
+          <div v-for="type in revenueByType" :key="type.name" class="booking">
+            <div>
+              <div class="name">{{ type.name }}</div>
+              <div class="place">{{ type.count }} foglalás</div>
+            </div>
+            <div class="right">
+              <div class="price">{{ type.revenue.toLocaleString('hu-HU') }} Ft</div>
+              <p>{{ type.percentage }}%</p>
+            </div>
           </div>
-          <div class="right">
-            <div class="price">{{ type.revenue.toLocaleString('hu-HU') }} Ft</div>
-            <p>{{ type.percentage }}%</p>
-          </div>
-        </div>
+        </template>
         <div v-else class="booking">
           <p>Nincsenek adatok</p>
         </div>
@@ -1372,6 +1365,8 @@ onMounted(() => {
 
   .btn-copy:hover {
     background: #f9fafb;
+  }
+
   .auth-error {
     background: #fef2f2;
     border: 1px solid #fecaca;
@@ -1400,9 +1395,12 @@ onMounted(() => {
     border-radius: 8px;
     font-weight: 600;
     transition: background 0.2s;
+    border: none;
+    cursor: pointer;
   }
 
   .btn-link:hover {
     background: #2d4609;
   }
+
 </style>
