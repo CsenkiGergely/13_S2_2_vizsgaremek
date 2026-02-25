@@ -34,6 +34,20 @@ class BookingController extends Controller
         return response()->json($bookings);
     }
 
+    public function getPrices(Request $request)
+    {
+        $totalPrices = DB::table('bookings')
+        ->join('camping_spots', 'camping_spots.spot_id', '=', 'bookings.camping_spot_id')
+        ->selectRaw('
+            bookings.id AS booking_id,
+            (departure_date - arrival_date) 
+            * camping_spots.price_per_night AS total_price'
+        )
+        ->orderBy('bookings.id', 'asc')
+        ->get();    
+        return response()->json($totalPrices);
+    }
+
     public function store(Request $request)
     {
         // Minden szügséges adat ellenőrzése

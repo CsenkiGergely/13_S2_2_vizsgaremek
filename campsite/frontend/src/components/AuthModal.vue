@@ -175,21 +175,24 @@ const handlePhoneLogin = async () => {
   formError.value = null
   successMessage.value = null
   const phone = phoneLoginForm.value.phone.trim()
-  const phoneRegex = /^\+36\d{2}\s?\d{3}\s?\d{4}$/
+  
+  // Mindkét formátumot elfogadja: +36701234567 vagy +36 70 123 4567
+  const phoneRegex = /^\+36\s?\d{2}\s?\d{3}\s?\d{4}$/
+  
   if (!phoneRegex.test(phone)) {
     formError.value = 'Érvénytelen telefonszám formátum! Pl: +36701234567 vagy +36 70 123 4567'
     return
   }
 
-const result = await upgradeToPartner(phone)
+  const result = await upgradeToPartner(phone)
 
   if (result.success) {
     emit('success', result.user)
     successMessage.value = result.message || 'Sikeresen partner lettél!'
     setTimeout(() => {
       closeModal()
-      router.push('/admin')
-}, 800)
+      router.push('/tulajdonos')
+    }, 800)
   } else {
     formError.value = result.error || 'Hiba történt partner státusz váltás közben.'
   }
