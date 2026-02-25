@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\Camping;
 use App\Models\Location;
@@ -449,7 +450,7 @@ class CampingController extends Controller
         $camping->save();
 
         return response()->json([
-            'message'     => 'ESP32 token sikeresen generálva. Mentsd el, többé nem jelenik meg teljes egészében!',
+            'message'     => 'Token sikeresen generálva. Mentsd el, többé nem jelenik meg teljes egészében!',
             'auth_token'  => $token,
             'camping_id'  => $camping->id,
             'camping_name'=> $camping->camping_name,
