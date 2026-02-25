@@ -12,20 +12,12 @@ class Comment extends Model
         'parent_id',
         'rating',
         'comment',
-        'upload_date',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'upload_date' => 'date',
-        ];
-    }
 
     // Kapcsolatok
     public function campingComments()
     {
-        return $this->belongsTo(Camping::class);
+        return $this->belongsTo(Camping::class, 'camping_id');
     }
 
     public function user()
@@ -43,5 +35,11 @@ class Comment extends Model
     public function replies()
     {
         return $this->hasMany(Comment::class, 'parent_id');
+    }
+
+    // Rekurzív gyerekek betöltése (több szintű válaszokhoz)
+    public function childrenRecursive()
+    {
+        return $this->replies()->with('user', 'childrenRecursive');
     }
 }
