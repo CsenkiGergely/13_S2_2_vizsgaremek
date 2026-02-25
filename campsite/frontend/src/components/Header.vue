@@ -48,10 +48,6 @@ const closeAuthModal = () => {
   authModalOpen.value = false
 }
 
-const handleAuthSuccess = (userData) => {
-  console.log('Sikeres bejelentkezés/regisztráció:', userData)
-}
-
 const handleLogout = async () => {
   await logout()
   mobileMenuOpen.value = false
@@ -128,6 +124,23 @@ const handleLogout = async () => {
               class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] transition"
             >
               👤 Profilom
+            </router-link>
+
+            <router-link 
+              to="/foglalasaim"
+              @click="closeProfileMenu"
+              class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] transition"
+            >
+              📅 Foglalásaim
+            </router-link>
+
+            <router-link 
+              v-if="user && user.role"
+              to="/sajat-szallashelyek" 
+              @click="closeProfileMenu"
+              class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] transition"
+            >
+              🏕️ Saját szálláshelyeim
             </router-link>
 
             <button 

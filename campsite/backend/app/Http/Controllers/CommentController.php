@@ -12,7 +12,6 @@ class CommentController extends Controller
 {
     
     // Kemping összes értékelésének lekérése (fő kommentek + válaszok)
-     
     public function index($campingId)
     {
         $camping = Camping::findOrFail($campingId);
@@ -20,7 +19,7 @@ class CommentController extends Controller
         // Csak a fő kommenteket kérjük le (amiknek nincs parent_id-ja)
         $comments = Comment::where('camping_id', $campingId)
             ->whereNull('parent_id')
-            ->with(['user', 'replies.user'])
+            ->with(['user', 'childrenRecursive'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -33,8 +32,7 @@ class CommentController extends Controller
     }
 
     
-    //Új értékelés létrehozása (csak vendég, aki foglalt már)
-     
+    // Új értékelés létrehozása (csak vendég, aki foglalt már)
     public function store(Request $request, $campingId)
     {
         $user = Auth::user();
@@ -74,7 +72,6 @@ class CommentController extends Controller
             'user_id' => $user->id,
             'rating' => $validated['rating'],
             'comment' => $validated['comment'],
-            'upload_date' => now(),
         ]);
 
         $comment->load('user');
@@ -85,38 +82,48 @@ class CommentController extends Controller
         ], 201);
     }
 
-
-     //Válasz hozzáadása egy értékeléshez (csak a kemping tulajdonosa)
-
+    // Válasz hozzáadása egy értékeléshez
     public function reply(Request $request, $commentId)
     {
         $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Nincs bejelentkezve.'
+            ], 401);
+        }
+
         $parentComment = Comment::findOrFail($commentId);
 
-        // Ellenőrizzük, hogy ez egy fő komment-e (nem válasz)
-        if ($parentComment->parent_id !== null) {
-            return response()->json([
-                'message' => 'Csak fő értékelésekre lehet válaszolni.'
-            ], 422);
-        }
+        // Rate-limiting / spam-ellenőrzés
+        $maxRepliesPerMinute = 3; // maximum ennyi válasz ugyanahoz a kommenthez 1 perc alatt
+        $minSecondsBetweenReplies = 10; // legalább ennyi másodpercnek kell eltelnie két válasz között
 
-        // Ellenőrizzük, hogy a user a kemping tulajdonosa-e
-        $camping = Camping::findOrFail($parentComment->camping_id);
-        if ($camping->user_id !== $user->id) {
-            return response()->json([
-                'message' => 'Csak a kemping tulajdonosa válaszolhat az értékelésekre.'
-            ], 403);
-        }
-
-        // Ellenőrizzük, hogy már válaszolt-e erre a kommentre
-        $existingReply = Comment::where('parent_id', $commentId)
+        // Ugyanahhoz a parenthez adott válaszok száma az elmúlt 1 percben
+        $recentToSameParent = Comment::where('parent_id', $commentId)
             ->where('user_id', $user->id)
-            ->exists();
+            ->where('created_at', '>=', now()->subMinute())
+            ->count();
 
-        if ($existingReply) {
+        if ($recentToSameParent >= $maxRepliesPerMinute) {
             return response()->json([
-                'message' => 'Már válaszoltál erre az értékelésre.'
-            ], 422);
+                'message' => 'Túl sok hozzászólást küldtél erre a kommentre rövid időn belül. Kérlek próbáld újra később.'
+            ], 429);
+        }
+
+        // 
+        // Globális minimum idő két válasz között ugyanattól a felhasználótól
+        $lastReply = Comment::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if ($lastReply) {
+            $secondsSinceLast = $lastReply->created_at->diffInSeconds(now());
+            if ($secondsSinceLast < $minSecondsBetweenReplies) {
+                $retryAfter = $minSecondsBetweenReplies - $secondsSinceLast;
+                return response()->json([
+                    'message' => 'Túl gyorsan küldesz hozzászólásokat. Kérlek várj ' . $retryAfter . ' másodpercet.'
+                ], 429);
+            }
         }
 
         $validated = $request->validate([
@@ -128,7 +135,6 @@ class CommentController extends Controller
             'user_id' => $user->id,
             'parent_id' => $commentId,
             'comment' => $validated['comment'],
-            'upload_date' => now(),
         ]);
 
         $reply->load('user');
@@ -139,9 +145,7 @@ class CommentController extends Controller
         ], 201);
     }
 
-    
-     //Saját értékelés szerkesztése
-   
+    // Saját értékelés szerkesztése
     public function update(Request $request, $commentId)
     {
         $user = Auth::user();
@@ -177,12 +181,16 @@ class CommentController extends Controller
         ]);
     }
 
-    
-     //Saját értékelés törlése
-     
+    // Saját értékelés törlése (ha főkomment, akkor a válaszokat is töröljük)
     public function destroy($commentId)
     {
         $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Nincs bejelentkezve.'
+            ], 401);
+        }
+
         $comment = Comment::findOrFail($commentId);
 
         // Ellenőrizzük, hogy a user-é a komment VAGY a kemping tulajdonosa
@@ -194,6 +202,7 @@ class CommentController extends Controller
             ], 403);
         }
 
+        // Töröljük egyszerűen a kommentet — a DB cascade gondoskodik a válaszokról
         $comment->delete();
 
         return response()->json([
