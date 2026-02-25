@@ -776,6 +776,20 @@ onMounted(async () => {
       gap: 10px;
     }
     
+    /* Mobil nézet javítása: kerüljük a jobb oszlop fix min-width használatát, ami vízszintes túlfolyást és
+       elcsúszást okozott a dashboard és bevételek listáján. Kis képernyőn a jobb rész legyen teljes szélességű,
+       balra rendezett, hogy az összegek és százalékok szépen egymás alá törjenek. */
+    .booking .right {
+      min-width: 0; /* allow to shrink */
+      align-items: flex-start; /* align contents to the left */
+      text-align: left;
+      width: 100%;
+    }
+
+    .booking .right .price {
+      margin-top: 6px;
+    }
+
     .container {
       padding: 16px 12px 60px;
     }
