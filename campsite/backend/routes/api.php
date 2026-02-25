@@ -9,19 +9,17 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CampingPhotoController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CampingSpotController;
-
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\UserGuestController;
 use App\Http\Controllers\CampingTagController;
 use App\Http\Controllers\EntranceGateController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/search', [SearchController::class, 'search']);
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
-
-
 
 // Auth
 Route::post('/register', [AuthController::class, 'register']);
@@ -42,6 +40,7 @@ Route::get('/campings/{id}/spots', [CampingController::class, 'getSpots']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
 Route::get('/bookings/getAll', [BookingController::class, 'getAllBookings']);
+Route::get('/bookings/prices', [BookingController::class, 'getPrices']);
 
 // Értékelések (publikus lekérés)
 Route::get('/campings/{campingId}/comments', [CommentController::class, 'index']);
@@ -56,6 +55,11 @@ Route::get('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class
 // ESP32 QR szkenner végpont (saját Bearer auth_token, nem Sanctum)
 // Regisztrálva a Sanctum csoport ELŐTT, hogy a POST /bookings/{id} wildcard ne kapja el
 Route::post('/bookings/scan-image', [BookingController::class, 'scanImage']);
+// GeoJSON térkép lekérése (publikus - nem kell auth)
+Route::get('/campings/{id}/geojson', [CampingController::class, 'getGeojson']);
+
+// Kemping tag-ek (publikus lekérés)
+Route::get('/campings/{campingId}/tags', [CampingTagController::class, 'index']);
 
 // Foglalások
 Route::middleware('auth:sanctum')->group(function () {
@@ -75,6 +79,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Saját kempingek lekérése (tulajdonos)
     Route::get('/my-campings', [CampingController::class, 'myCampings']);
 
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'getOwnerDashboard']);
+    
     // Kemping kezelés (csak tulajdonosoknak)
     Route::post('/campings', [CampingController::class, 'store']);
     Route::put('/campings/{id}', [CampingController::class, 'update']);
@@ -123,11 +130,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/campings/{campingId}/tags/{tagId}', [CampingTagController::class, 'destroy']);
 
 });
-
-// GeoJSON térkép lekérése (publikus - nem kell auth)
-Route::get('/campings/{id}/geojson', [CampingController::class, 'getGeojson']);
-
-// Kemping tag-ek (publikus lekérés)
-Route::get('/campings/{campingId}/tags', [CampingTagController::class, 'index']);
-
-

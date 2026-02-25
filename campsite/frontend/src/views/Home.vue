@@ -120,7 +120,6 @@ const handleSearch = async () => {
       </div>
     </div>
   </div>
-
   
   <main class="content" role="main">
     
@@ -129,28 +128,22 @@ const handleSearch = async () => {
 
    
     <div class="gallery" aria-label="Népszerű régiók képei">
-                          <router-link to="/foglalas">
-                                  <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
-                    </router-link>
-                                              <router-link to="/foglalas">
-                                        <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
-                    </router-link>
-                                              <router-link to="/foglalas">
-                                  <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
-                    </router-link>
-                                              <router-link to="/foglalas">
-                                  <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
-                    </router-link>
-
-
-     
-     
+      <router-link to="/foglalas">
+        <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
+      </router-link>
+      <router-link to="/foglalas">
+        <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
+      </router-link>
+      <router-link to="/foglalas">
+        <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
+      </router-link>
+      <router-link to="/foglalas">
+        <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
+      </router-link>
     </div>
-
 
     <h2 class="section-title" style="margin-top:2rem">Kiemelt kempingünk</h2>
     <p class="muted">Különlegesen ajánlott hely — családbarát szolgáltatásokkal és gyönyörű panorámával.</p>
-
    
     <div class="single-image" aria-hidden="false">
       <img src="/img/night-1189929_1920.jpg" alt="Kiemelt kemping nagy panorámakép"/>
@@ -275,7 +268,6 @@ const handleSearch = async () => {
       .submit-col .btn{ padding: .8rem 3rem; font-size:1rem; }
     }
 
-   
     .content {
       width: min(1100px, 92%);
       margin: 4rem auto;
@@ -287,7 +279,6 @@ const handleSearch = async () => {
       margin: 1rem 0 0.75rem;
       text-align:center;
     }
-
    
     .gallery{
       display:grid;
@@ -295,6 +286,7 @@ const handleSearch = async () => {
       gap:0.75rem;
       margin-top:1rem;
     }
+
     .gallery img{
       width:100%;
       height:220px;
@@ -303,7 +295,6 @@ const handleSearch = async () => {
       border-radius:.75rem;
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     }
-
   
     .single-image{
       margin-top:1.25rem;
@@ -324,7 +315,6 @@ const handleSearch = async () => {
       .gallery img{ height:160px; }
       .single-image img{ height:420px; }
     }
-
    
     .muted{
       color:#6b7280;
