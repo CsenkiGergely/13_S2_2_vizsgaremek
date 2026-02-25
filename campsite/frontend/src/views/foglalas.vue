@@ -1,13 +1,3 @@
-<script>
-import { ref, onMounted } from 'vue'
-import { useBooking } from '../composables/useBooking'
-import dayjs from 'dayjs';
-import "dayjs/locale/hu";
-dayjs.locale("hu");
-
-</script>
-
-
 <template>
   <div class="container mx-auto px-4 py-6 space-y-6">
 
@@ -113,7 +103,7 @@ dayjs.locale("hu");
                 </div>
               </div>
               <div class="flex items-center gap-2 mb-3">
-                <span class="text-gray-700">🚭</span>
+                <span class="text-gray-700">🚫</span>
                 <div>
                   <p class="font-medium text-gray-800">Éjszakai csend: 22:00-06:00</p>
                 </div>
@@ -229,47 +219,20 @@ dayjs.locale("hu");
           </div>
 
           <div class="space-y-4">
-            <div class="pb-4 border-b border-gray-200">
+            <div v-if="commentsState.length === 0" class="text-gray-500">Nincsenek kommentek még.</div>
+            <div v-for="c in commentsState" :key="c.id || c.date + c.author" class="pb-4 border-b border-gray-200">
               <div class="flex items-center gap-2 mb-2">
-                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-600">N</div>
+                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-600">{{ (c.author || c.name || 'N')[0] ? (c.author || c.name || 'N')[0].toUpperCase() : 'N' }}</div>
                 <div>
-                  <p class="font-medium text-gray-800">Nagy Anna</p>
-                  <p class="text-xs text-gray-500">2024-08-15</p>
+                  <p class="font-medium text-gray-800">{{ c.author || c.name || 'Név' }}</p>
+                  <p class="text-xs text-gray-500">{{ formatCommentDate(c.date || c.created_at || c.createdAt) }}</p>
                 </div>
               </div>
               <div class="flex items-center gap-1 mb-2">
-                <span class="text-yellow-500 text-sm">⭐⭐⭐⭐⭐</span>
-                <span class="text-sm font-semibold text-gray-700 ml-1">5</span>
+                <span class="text-yellow-500 text-sm">{{ '★'.repeat(Math.min(c.rating || 5, 5)) }}</span>
+                <span class="text-sm font-semibold text-gray-700 ml-1">{{ c.rating || '' }}</span>
               </div>
-              <p class="text-gray-600">Fantasztikus hely! A gyerekek imádták a strandot, mi pedig a nyugodt környezetet.</p>
-            </div>
-            <div class="pb-4 border-b border-gray-200">
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-600">S</div>
-                <div>
-                  <p class="font-medium text-gray-800">Szabó Béla</p>
-                  <p class="text-xs text-gray-500">2024-07-22</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-1 mb-2">
-                <span class="text-yellow-500 text-sm">⭐⭐⭐⭐</span>
-                <span class="text-sm font-semibold text-gray-700 ml-1">4</span>
-              </div>
-              <p class="text-gray-600">Jó kemping, tiszta mosdók. Az étterem kissé drága volt.</p>
-            </div>
-            <div class="pb-4 border-b border-gray-200">
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-600">T</div>
-                <div>
-                  <p class="font-medium text-gray-800">Tóth Éva</p>
-                  <p class="text-xs text-gray-500">2024-06-10</p>
-                </div>
-              </div>
-              <div class="flex items-center gap-1 mb-2">
-                <span class="text-yellow-500 text-sm">⭐⭐⭐⭐⭐</span>
-                <span class="text-sm font-semibold text-gray-700 ml-1">5</span>
-              </div>
-              <p class="text-gray-600">Minden tökéletes volt! Vissza fogunk jönni jövőre is.</p>
+              <p class="text-gray-600">{{ c.text || c.comment || c.body }}</p>
             </div>
           </div>
         </div>
@@ -355,7 +318,7 @@ dayjs.locale("hu");
           <!-- Foglalás gomb -->
           <button 
             @click="handleBooking"
-            class="w-full bg-[#FFD700] hover:bg-[#FFD700] text-black font-semibold py-4 rounded-lg transition-colors duration-2"
+            class="w-full booking-btn text-black font-semibold py-4 rounded-lg transition-colors duration-150"
           >
             Foglalás
           </button>
@@ -384,21 +347,61 @@ dayjs.locale("hu");
 import { ref, onMounted, nextTick, computed } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { useComment } from '../composables/useComment'
+import { useCamping } from '../composables/useCamping'
+import dayjs from 'dayjs';
+import 'dayjs/locale/hu';
+import api from '../api/axios'
 
-// Galéria képei (itt lehet a saját képeket betenni)
-const images = [
-  '/img/Budapest_szallas1.jpg',
-  '/img/Budapest_szallas2.jpg',
-  '/img/Budapest_szallas3.jpg'
+dayjs.locale('hu');
+
+// Kemping adatforrás
+const campingId = ref(1) // ideiglenes, később route vagy kiválasztás alapján adható
+const { campingDetails, campingSpotList, campingPhotoList, getCampingDetails, getCampingSpotList, getCampingPhotoList, getCampingAvailability } = useCamping()
+
+// Galéria képei (kemping képek a public/img mappából lesznek alapértelmezett fallbackként)
+const fallbackImages = [
+  '/img/camping-4806279_1920.jpg',
+  '/img/camp-2650359_1920.jpg',
+  '/img/ground-camping-8260968_1280.jpg'
 ]
+
+const images = ref([...fallbackImages])
 const currentImage = ref(0)
 
+const loadImages = async (campingIdLocal = campingId.value) => {
+  try {
+    // Próbáljuk először a composable-t
+    const photos = await getCampingPhotoList(campingIdLocal)
+    const list = photos || campingPhotoList.value || []
+    if (Array.isArray(list) && list.length > 0) {
+      const baseHost = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
+      const mapped = list.map(item => {
+        if (!item) return null
+        if (typeof item === 'string') return item.startsWith('http') ? item : (item.startsWith('/') ? `${baseHost}${item}` : `${baseHost}/${item}`)
+        const url = item.url || item.path || item.image || item.src || item.public_url
+        if (!url) return null
+        return url.startsWith('http') ? url : (url.startsWith('/') ? `${baseHost}${url}` : `${baseHost}/${url}`)
+      }).filter(Boolean)
+
+      if (mapped.length > 0) {
+        images.value = mapped
+        currentImage.value = 0
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('Nem sikerült lekérni a kemping képeit a composable-lal, fallback használata.', err)
+  }
+  images.value = [...fallbackImages]
+}
+
 const nextImage = () => {
-  currentImage.value = (currentImage.value + 1) % images.length
+  currentImage.value = (currentImage.value + 1) % images.value.length
 }
 
 const prevImage = () => {
-  currentImage.value = (currentImage.value - 1 + images.length) % images.length
+  currentImage.value = (currentImage.value - 1 + images.value.length) % images.value.length
 }
 
 // Feature / szolgáltatások
@@ -415,6 +418,18 @@ const bookingForm = ref({
   checkOut: '',
   guests: '2'
 })
+
+// Kommentek (dinamikus)
+const commentsState = ref([])
+const { comments, getComments } = useComment()
+
+const formatCommentDate = (d) => {
+  if (!d) return ''
+  return dayjs(d).format('YYYY-MM-DD')
+}
+
+// Spots now reactive and loaded from composable
+const spots = ref([])
 
 // Naptár állapot
 const currentMonth = ref(new Date().getMonth())
@@ -456,14 +471,20 @@ const calendarDays = computed(() => {
   let startDay = firstDay.getDay() - 1
   if (startDay < 0) startDay = 6
   
+  // Helyi dátumot YYYY-MM-DD stringgé alakító segédfüggvény (nincs UTC konverzió)
+  const toLocalDateStr = (y, m, d) => {
+    const mm = String(m + 1).padStart(2, '0')
+    const dd = String(d).padStart(2, '0')
+    return `${y}-${mm}-${dd}`
+  }
+
   // Előző hónap napjai
   const prevMonthLastDay = new Date(currentYear.value, currentMonth.value, 0).getDate()
   for (let i = startDay - 1; i >= 0; i--) {
     const day = prevMonthLastDay - i
-    const date = new Date(currentYear.value, currentMonth.value - 1, day)
     days.push({
       day,
-      date: date.toISOString().split('T')[0],
+      date: toLocalDateStr(currentYear.value, currentMonth.value - 1, day),
       isCurrentMonth: false,
       isDisabled: true,
       isSelected: false,
@@ -478,7 +499,7 @@ const calendarDays = computed(() => {
   
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const date = new Date(currentYear.value, currentMonth.value, day)
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = toLocalDateStr(currentYear.value, currentMonth.value, day)
     const isPast = date < today
     
     const isCheckIn = dateStr === bookingForm.value.checkIn
@@ -500,10 +521,9 @@ const calendarDays = computed(() => {
   // Következő hónap napjai (hogy 42 nap legyen, 6 sor)
   const remainingDays = 42 - days.length
   for (let day = 1; day <= remainingDays; day++) {
-    const date = new Date(currentYear.value, currentMonth.value + 1, day)
     days.push({
       day,
-      date: date.toISOString().split('T')[0],
+      date: toLocalDateStr(currentYear.value, currentMonth.value + 1, day),
       isCurrentMonth: false,
       isDisabled: true,
       isSelected: false,
@@ -511,7 +531,6 @@ const calendarDays = computed(() => {
       key: `next-${day}`
     })
   }
-  
   return days
 })
 
@@ -535,9 +554,27 @@ const selectDate = (dateObj) => {
   }
 }
 
-// Dátum formázása
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr)
+// Dátum formázása (javítva: ISO string helyes helyi dátumként történő parsolása)
+const formatDate = (dateInput) => {
+  if (!dateInput) return ''
+
+  let date
+  // Ha ISO string (YYYY-MM-DD vagy YYYY-MM-DDTHH:MM:SSZ), bontsuk és hozzuk létre helyi dátumként
+  if (typeof dateInput === 'string') {
+    const iso = dateInput.split('T')[0]
+    const parts = iso.split('-')
+    if (parts.length === 3) {
+      const [y, m, d] = parts.map(Number)
+      date = new Date(y, m - 1, d) // helyi dátum, így nincs időzóna eltolás
+    } else {
+      date = new Date(dateInput)
+    }
+  } else if (dateInput instanceof Date) {
+    date = dateInput
+  } else {
+    date = new Date(dateInput)
+  }
+
   const month = date.getMonth() + 1
   const day = date.getDate()
   return `${month}. ${day}.`
@@ -581,7 +618,7 @@ const handleBooking = () => {
 const selectedSpot = ref(null)
 
 // Teszt spot adatok (később API-ból jön)
-const spots = [
+const spotsStatic = [
   { id: 1, name: 'A1 - Sátornak', type: 'sátor', capacity: 4, price: 3500, booked: false, coords: [46.52247780, 19.74844711] },
   { id: 2, name: 'A2 - Sátornak', type: 'sátor', capacity: 4, price: 3500, booked: true,  coords: [46.52232919, 19.74841008] },
   { id: 3, name: 'B1 - Lakókocsi', type: 'lakókocsi', capacity: 6, price: 5500, booked: false, coords: [46.52246081, 19.74858287] },
@@ -619,6 +656,50 @@ const campingZone = [
 onMounted(async () => {
   await nextTick()
 
+  // Kemping adatok lekérése
+  try {
+    await getCampingDetails(campingId.value)
+  } catch (e) {
+    console.warn('Kemping adatok lekérése sikertelen', e)
+  }
+
+  // Spotok és képek betöltése
+  try {
+    await getCampingSpotList(campingId.value)
+    // használjuk a composable által töltött listát, ha van
+    if (Array.isArray(campingSpotList.value) && campingSpotList.value.length > 0) {
+      spots.value = campingSpotList.value.map(s => ({
+        id: s.id,
+        name: s.name || s.spot_name || s.title || `Hely ${s.id}`,
+        type: s.type || s.spot_type || s.category || 'Ismeretlen',
+        capacity: s.capacity || s.max_people || 1,
+        price: s.price || s.rate || 0,
+        booked: !!s.booked || !!s.is_booked || false,
+        coords: Array.isArray(s.coords) ? s.coords : (s.lat && s.lng ? [s.lat, s.lng] : (s.latitude && s.longitude ? [s.latitude, s.longitude] : [46.5223, 19.7490]))
+      }))
+    }
+  } catch (e) {
+    console.warn('Spotok lekérése sikertelen, fallback marad a statikus lista', e)
+  }
+
+  // Képek betöltése (composable vagy fallback)
+  await loadImages(campingId.value)
+
+  // Kommentek betöltése
+  try {
+    let fetched = null
+    if (typeof getComments === 'function') {
+      fetched = await getComments(campingId.value)
+    }
+    if (comments && comments.value && Array.isArray(comments.value)) {
+      commentsState.value = comments.value
+    } else if (Array.isArray(fetched)) {
+      commentsState.value = fetched
+    }
+  } catch (e) {
+    console.warn('Comments fetch failed', e)
+  }
+
   // Térkép létrehozása
   const map = L.map('campingMap', {
     zoomControl: true,
@@ -648,7 +729,7 @@ onMounted(async () => {
   }).addTo(map).bindPopup('Kempingezőhely zóna')
 
   // Spot markerek
-  spots.forEach(spot => {
+  (spots.value.length > 0 ? spots.value : spotsStatic).forEach(spot => {
     const color = spot.booked ? '#ef4444' : '#22c55e'
 
     const marker = L.circleMarker(spot.coords, {
@@ -671,7 +752,8 @@ onMounted(async () => {
       selectedSpot.value = spot
     })
   })
-})</script>
+})
+</script>
 
 <style scoped>
 /* Galéria gombok */
@@ -682,6 +764,14 @@ button {
 }
 button:hover {
   background-color: rgba(255,255,255,1);
+}
+
+/* Booking button explicit styles (fallback) */
+.booking-btn {
+  background: #8FA889;
+}
+.booking-btn:hover {
+  background: #7a9175;
 }
 
 /* Container reszponzív elrendezés */
