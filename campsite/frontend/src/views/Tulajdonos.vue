@@ -20,6 +20,7 @@ const { dashboard, getDashboard } = useDashboard()
 const activeTab = ref('dashboard')
 const monthlyRevenue = ref(0)
 const averageBookingValue = ref(0)
+const previousAverageBookingValue = ref(0)
 const revenueByType = ref([])
 const priceByBookingId = ref({})
 const isAuthenticated = ref(false)
@@ -30,6 +31,17 @@ const checkAuthentication = () => {
   const token = localStorage.getItem('auth_token')
   isAuthenticated.value = !!token
   return !!token
+}
+
+const formatChange = (current, previous) => {
+  if (previous === undefined || previous === null) return ''
+  const curr = Number(current || 0)
+  const prev = Number(previous || 0)
+  if (prev === 0) {
+    return curr > 0 ? '+100%' : '0%'
+  }
+  const change = Math.round(((curr - prev) / prev) * 100)
+  return (change > 0 ? '+' : '') + change + '%'
 }
 
 const loadData = async () => {
@@ -65,6 +77,30 @@ const loadData = async () => {
       priceByBookingId.value = priceMap
       
       revenueByType.value = calculateRevenueByType(bookings.value, priceMap)
+
+      // Számítsuk ki az átlagos foglalási értéket a betöltött árak alapján
+      const bookingCount = bookingList.length
+      const totalPrice = Object.values(priceMap).reduce((sum, v) => sum + Number(v || 0), 0)
+      averageBookingValue.value = bookingCount > 0 ? Math.round(totalPrice / bookingCount) : 0
+
+      // Számítsuk ki az előző hónap átlagos foglalási értékét (ha vannak adatok)
+      const now = new Date()
+      const prev = new Date(now.getFullYear(), now.getMonth() - 1)
+      const prevMonth = prev.getMonth()
+      const prevYear = prev.getFullYear()
+
+      const prevBookings = bookingList.filter(b => {
+        const dateStr = b.departure_date || b.checkOut || b.departureDate || b.created_at || b.createdAt
+        if (!dateStr) return false
+        const d = new Date(dateStr)
+        return d.getMonth() === prevMonth && d.getFullYear() === prevYear
+      })
+
+      const totalPrevPrice = prevBookings.reduce((sum, b) => {
+        return sum + Number(priceMap[b.id] || b.total_price || b.price || 0)
+      }, 0)
+
+      previousAverageBookingValue.value = prevBookings.length > 0 ? Math.round(totalPrevPrice / prevBookings.length) : 0
     }
   } catch (error) {
     console.error('Hiba az adatok betöltésekor:', error)
@@ -308,25 +344,25 @@ onMounted(async () => {
         <div class="card">
           <small>Összes foglalás</small>
           <h2>{{ dashboard?.totalBookings || 0 }}</h2>
-          <div class="trend">E hónapban +12%</div>
+          <div class="trend">{{ formatChange(dashboard?.totalBookings, dashboard?.previousTotalBookings) || '—' }}</div>
         </div>
 
         <div class="card">
           <small>Aktív vendégek</small>
           <h2>{{ dashboard?.activeGuests || 0 }}</h2>
-          <div class="trend">Jelenleg bent +8%</div>
+          <div class="trend">{{ formatChange(dashboard?.activeGuests, dashboard?.previousActiveGuests) || '—' }}</div>
         </div>
 
         <div class="card">
           <small>Foglalt helyek</small>
           <h2>{{ dashboard?.bookedSpots || 0 }} / {{ dashboard?.totalSpots || 0 }}</h2>
-          <div class="trend">{{ dashboard?.occupancyPercentage || 0 }}% foglaltság +15%</div>
+          <div class="trend">{{ dashboard?.occupancyPercentage || 0 }}% foglaltság {{ formatChange(dashboard?.occupancyPercentage, dashboard?.previousOccupancyPercentage) }}</div>
         </div>
 
         <div class="card">
           <small>Havi bevétel</small>
           <h2>{{ (dashboard?.monthlyRevenue || 0).toLocaleString('hu-HU') }} Ft</h2>
-          <div class="trend">Aktuális hónap +25%</div>
+          <div class="trend">{{ formatChange(dashboard?.monthlyRevenue, dashboard?.previousMonthlyRevenue) || '—' }}</div>
         </div>
       </div>
 
@@ -563,12 +599,12 @@ onMounted(async () => {
         <div class="card">
           <small>Havi bevétel</small>
           <h2>{{ (dashboard?.monthlyRevenue || 0).toLocaleString('hu-HU') }} Ft</h2>
-          <div class="trend">+25% az előző hónaphoz képest</div>
+          <div class="trend">{{ formatChange(dashboard?.monthlyRevenue, dashboard?.previousMonthlyRevenue) || '—' }} az előző hónaphoz képest</div>
         </div>
         <div class="card">
           <small>Átlagos foglalási érték</small>
-          <h2>{{ (bookings?.length > 0 && prices?.length > 0 ? Math.round(prices.reduce((sum, p) => sum + (p.price || p.total_price || 0), 0) / bookings.length) : 0).toLocaleString('hu-HU') }} Ft</h2>
-          <div class="trend">+12% az előző hónaphoz képest</div>
+          <h2>{{ (averageBookingValue || 0).toLocaleString('hu-HU') }} Ft</h2>
+          <div class="trend">{{ formatChange(averageBookingValue, previousAverageBookingValue) || '—' }} az előző hónaphoz képest</div>
         </div>
       </div>
 
@@ -730,14 +766,9 @@ onMounted(async () => {
     color: #64748b;
   }
 
-  .booking {
-    display: flex;
-    justify-content: space-between;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
-  }
+  .booking { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e6eef8; }
+  .booking > div:first-child { flex: 1; }
+  .booking .right { text-align: right; min-width: 140px; display: flex; flex-direction: column; align-items: flex-end; }
 
   @media (max-width: 640px) {
     .booking {

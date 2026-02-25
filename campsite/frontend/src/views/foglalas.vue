@@ -1,3 +1,13 @@
+<script>
+import { ref, onMounted } from 'vue'
+import { useBooking } from '../composables/useBooking'
+import dayjs from 'dayjs';
+import "dayjs/locale/hu";
+dayjs.locale("hu");
+
+</script>
+
+
 <template>
   <div class="container mx-auto px-4 py-6 space-y-6">
 
@@ -345,7 +355,7 @@
           <!-- Foglalás gomb -->
           <button 
             @click="handleBooking"
-            class="w-full bg-[#8FA889] hover:bg-[#7a9175] text-white font-semibold py-4 rounded-lg transition-colors duration-200"
+            class="w-full bg-[#FFD700] hover:bg-[#FFD700] text-black font-semibold py-4 rounded-lg transition-colors duration-2"
           >
             Foglalás
           </button>
