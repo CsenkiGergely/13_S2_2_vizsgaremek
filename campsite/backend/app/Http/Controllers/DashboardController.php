@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\CampingSpot;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -28,13 +27,12 @@ class DashboardController extends Controller
         $currentMonth = Carbon::now()->month;
         $currentYear = Carbon::now()->year;
         
-        $monthlyRevenue = DB::table('bookings')
-            ->join('camping_spots', 'camping_spots.spot_id', '=', 'bookings.camping_spot_id')
-            ->whereIn('bookings.status', ['finished', 'checked_in'])
-            ->whereMonth('bookings.departure_date', $currentMonth)
-            ->whereYear('bookings.departure_date', $currentYear)
-            ->selectRaw('SUM((bookings.departure_date - bookings.arrival_date) * camping_spots.price_per_night) as total')
-            ->value('total') ?? 0;
+        $monthlyRevenue = Booking::with('campingSpot')
+            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereMonth('departure_date', $currentMonth)
+            ->whereYear('departure_date', $currentYear)
+            ->get()
+            ->sum(fn ($booking) => $this->calculateBookingPrice($booking));
 
         // Legutóbbi foglalások
         $recentBookings = Booking::with(['user', 'campingSpot'])

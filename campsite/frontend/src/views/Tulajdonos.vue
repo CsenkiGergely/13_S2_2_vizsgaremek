@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useBooking } from '../composables/useBooking'
 import { useDashboard } from '../composables/useDashboard'
+import AuthModal from '../components/AuthModal.vue'
 import dayjs from 'dayjs';
 import "dayjs/locale/hu";
 dayjs.locale("hu");
@@ -15,6 +16,8 @@ const averageBookingValue = ref(0)
 const revenueByType = ref([])
 const priceByBookingId = ref({})
 const isAuthenticated = ref(false)
+const authModalOpen = ref(false)
+const authModalMode = ref('login')
 
 const checkAuthentication = () => {
   const token = localStorage.getItem('auth_token')
@@ -139,6 +142,20 @@ const formatBookingDate = (dateValue) => {
   return dateValue ? dayjs(dateValue).format('YYYY. MM D.') : '-'
 }
 
+const openLoginModal = () => {
+  authModalMode.value = 'login'
+  authModalOpen.value = true
+}
+
+const closeAuthModal = () => {
+  authModalOpen.value = false
+}
+
+const handleAuthSuccess = () => {
+  isAuthenticated.value = checkAuthentication()
+  loadData()
+}
+
 onMounted(() => {
   loadData()
 })
@@ -153,7 +170,7 @@ onMounted(() => {
     <div v-if="!isAuthenticated" class="auth-error">
       <h2>⚠️ Nincs bejelentkezve</h2>
       <p>A dashboard eléréséhez kérjük, lépjen be az alkalmazásba.</p>
-      <router-link to="/login" class="btn-link">Bejelentkezés</router-link>
+      <button type="button" @click="openLoginModal" class="btn-link">Bejelentkezés</button>
     </div>
 
     <template v-else>
@@ -295,6 +312,13 @@ onMounted(() => {
       </div>
     </div>
     </template>
+
+    <AuthModal
+      :isOpen="authModalOpen"
+      :initialMode="authModalMode"
+      @close="closeAuthModal"
+      @success="handleAuthSuccess"
+    />
   </div>
 </template>
 
