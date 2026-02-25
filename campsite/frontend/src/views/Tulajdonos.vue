@@ -236,7 +236,7 @@ onMounted(() => {
         <div class="card">
           <small>Foglalt helyek</small>
           <h2>{{ dashboard?.bookedSpots || 0 }} / {{ dashboard?.totalSpots || 0 }}</h2>
-          <div class="trend">{{ dashboard?.occupancyPercentage || 0 }}% foglaltság {{ formatChange(dashboard?.occupancyPercentage, dashboard?.previousOccupancyPercentage) }}</div>
+          <div class="trend">{{ dashboard?.occupancyPercentage || 0 }}% foglaltság, {{ formatChange(dashboard?.occupancyPercentage, dashboard?.previousOccupancyPercentage) }}</div>
         </div>
 
         <div class="card">
@@ -357,7 +357,6 @@ onMounted(() => {
     />
   </div>
 </template>
-
 
 <style scoped>
   * {
@@ -544,7 +543,6 @@ onMounted(() => {
     background: #f3f4f6;
     color: #ff0000;
   }
-
 
   .btn {
     padding: 6px 12px;
