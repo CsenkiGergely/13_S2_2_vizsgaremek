@@ -1,5 +1,14 @@
-<script>
+<script setup>
+import { useAuth } from '../composables/useAuth'
+import { useRouter } from 'vue-router'
 
+const { user, logout } = useAuth()
+const router = useRouter()
+
+const handleLogout = async () => {
+  await logout()
+  router.push('/') // Átirányítás a főoldalra kijelentkezés után
+}
 </script>
 
 <template>
@@ -7,13 +16,18 @@
 
     <div class="top-bar">
         <div class="profile-header">
-            <div class="avatar">G</div>
+            <div class="avatar">{{ user?.owner_first_name?.charAt(0).toUpperCase() || 'U' }}</div>
             <div class="profile-info">
-                <h1>Gergo</h1>
-                <p>csenki.gergely@diak.szbi-pg.hu</p>
+                <h1>{{ user?.owner_first_name }} {{ user?.owner_last_name }}</h1>
+                <p>{{ user?.email }}</p>
             </div>
         </div>
-        <button class="logout-btn">Kijelentkezés</button>
+                    <button 
+              @click="handleLogout"
+              class="logout-btn"
+            >
+              🚪 Kijelentkezés
+            </button>
     </div>
 
     <div class="cards">
@@ -22,12 +36,17 @@
 
             <div class="form-group">
                 <label>Név</label>
-                <input type="text" value="Gergo">
+                <input type="text" :value="user?.owner_first_name + ' ' + user?.owner_last_name" readonly>
+            </div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="text" :value="user?.email" readonly>
             </div>
 
             <div class="form-group">
                 <label>Telefon</label>
-                <input type="text" value="+36 30 123 4567">
+                <input type="text" :value="user?.phone || 'Nincs megadva'" readonly>
             </div>
 
             <button class="save-btn">Profil mentése</button>
