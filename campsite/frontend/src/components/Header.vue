@@ -129,14 +129,6 @@ const handleLogout = async () => {
             </router-link>
 
             <router-link 
-              to="/foglalasaim"
-              @click="closeProfileMenu"
-              class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] transition"
-            >
-              📅 Foglalásaim
-            </router-link>
-
-            <router-link 
               v-if="user && user.role === true"
               to="/Tulajdonos" 
               @click="closeProfileMenu"
@@ -166,33 +158,67 @@ const handleLogout = async () => {
   </div>
 
   <!-- mobil menu -->
-  <nav v-if="mobileMenuOpen" class="md:hidden px-4 space-y-2 py-1">
+  <nav v-if="mobileMenuOpen" class="md:hidden border-t border-gray-100">
 <template v-if="!isAuthenticated">
-  <button @click="openRegisterModal" class="block w-full text-gray-700 hover:text-[#4A7434] py-1 text-base font-medium">Regisztráció</button>
-  <button @click="openLoginModal" class="block w-full bg-[#4A7434] text-white py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium">Bejelentkezés</button>
-  <button @click="openPhoneLoginModal" class="block w-full bg-[#4A7434] text-white py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium">Legyél partnerünk</button>
+  <div class="px-4 py-3 space-y-2">
+    <button @click="openRegisterModal" class="block w-full text-gray-700 hover:text-[#4A7434] py-2 text-base font-medium text-left">Regisztráció</button>
+    <button @click="openLoginModal" class="block w-full bg-[#4A7434] text-white py-2 rounded-lg hover:bg-[#F17E21] text-base font-medium">Bejelentkezés</button>
+    <button @click="openPhoneLoginModal" class="block w-full text-gray-700 hover:text-[#4A7434] py-2 text-base font-medium text-left">Legyél partnerünk</button>
+  </div>
 </template>
 
-    <!-- Legyél partnerünk gomb bejelentkezett, de nem partner usereknek (role !== true) -->
     <template v-else-if="isAuthenticated && user?.role !== true">
-      <button @click="openPhoneLoginModal" class="block w-full bg-[#4A7434] text-white py-1.5 rounded-lg hover:bg-[#F17E21] text-base font-medium">Legyél partnerünk</button>
-    </template>
-
-
-    <template v-else>
-      <div class="flex items-center gap-3 py-1 border-b border-gray-100 mb-1">
-        <div class="w-9 h-9 rounded-full bg-[#4A7434] text-white font-bold flex items-center justify-center text-base">
-          {{ userInitial }}
+      <div class="px-4 py-3 space-y-2">
+        <div class="flex items-center gap-3 py-2 border-b border-gray-100 mb-1">
+          <div class="w-9 h-9 rounded-full bg-[#4A7434] text-white font-bold flex items-center justify-center text-base">
+            {{ userInitial }}
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-800">
+              {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
+            </p>
+            <p class="text-xs text-gray-500">{{ user?.email }}</p>
+          </div>
         </div>
-        <div>
-          <p class="text-sm font-semibold text-gray-800">
-            {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
-          </p>
-          <p class="text-xs text-gray-500">{{ user?.email }}</p>
+        <router-link to="/profil" @click="mobileMenuOpen = false" class="flex items-center gap-2 px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
+          👤 Profilom
+        </router-link>
+        <button @click="openPhoneLoginModal" class="flex items-center gap-2 w-full text-left px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
+          🤝 Legyél partnerünk
+        </button>
+        <div class="border-t border-gray-100 mt-1 pt-1">
+          <button @click="handleLogout" class="flex items-center gap-2 w-full text-left px-2 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition">
+            🚪 Kijelentkezés
+          </button>
         </div>
       </div>
-      <router-link to="/felhasznalo" @click="mobileMenuOpen = false" class="block text-gray-700 hover:text-[#4A7434] py-1 text-base font-medium">👤 Profilom</router-link>
-      <button @click="handleLogout" class="block w-full text-left text-red-600 hover:text-red-700 py-1 text-base font-medium">🚪 Kijelentkezés</button>
+    </template>
+
+    <template v-else>
+      <div class="px-4 py-3 space-y-1">
+        <div class="flex items-center gap-3 py-2 border-b border-gray-100 mb-1">
+          <div class="w-9 h-9 rounded-full bg-[#4A7434] text-white font-bold flex items-center justify-center text-base">
+            {{ userInitial }}
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-800">
+              {{ user && user.owner_last_name && user.owner_first_name ? `${user.owner_last_name} ${user.owner_first_name}` : '' }}
+            </p>
+            <p class="text-xs text-gray-500">{{ user?.email }}</p>
+          </div>
+        </div>
+        <router-link to="/profil" @click="mobileMenuOpen = false" class="flex items-center gap-2 px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
+          👤 Profilom
+        </router-link>
+        <router-link v-if="user && user.role === true" to="/Tulajdonos" @click="mobileMenuOpen = false" class="flex items-center gap-2 px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
+          🏕️ Saját szálláshelyeim
+        </router-link>
+        <div class="border-t border-gray-100 mt-1 pt-1">
+          <button @click="handleLogout" class="flex items-center gap-2 w-full text-left px-2 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition">
+            🚪 Kijelentkezés
+          </button>
+        </div>
+      </div>
     </template>
   </nav>
 

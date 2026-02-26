@@ -16,6 +16,7 @@ use App\Http\Controllers\EntranceGateController;
 use App\Http\Controllers\DashboardController;
 
 Route::get('/search', [SearchController::class, 'search']);
+Route::get('/locations/suggest', [SearchController::class, 'suggest']);
 
 Route::get('/user', function (Request $request) {
     return $request->user();

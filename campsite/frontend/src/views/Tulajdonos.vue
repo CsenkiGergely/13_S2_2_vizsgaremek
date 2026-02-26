@@ -1345,7 +1345,7 @@ onMounted(async () => {  await fetchMyCampings()
         <div class="card">
           <small>Foglalt helyek</small>
           <h2>{{ dashboard?.bookedSpots || 0 }} / {{ dashboard?.totalSpots || 0 }}</h2>
-          <div class="trend">{{ dashboard?.occupancyPercentage || 0 }}% foglaltság {{ formatChange(dashboard?.occupancyPercentage, dashboard?.previousOccupancyPercentage) }}</div>
+          <div class="trend">{{ dashboard?.occupancyPercentage || 0 }}% foglaltság, {{ formatChange(dashboard?.occupancyPercentage, dashboard?.previousOccupancyPercentage) }}</div>
         </div>
 
         <div class="card">
@@ -2062,7 +2062,6 @@ onMounted(async () => {  await fetchMyCampings()
   </div>
 </template>
 
-
 <style scoped>
   * {
     box-sizing: border-box;
@@ -2202,6 +2201,20 @@ onMounted(async () => {  await fetchMyCampings()
       gap: 10px;
     }
     
+    /* Mobil nézet javítása: kerüljük a jobb oszlop fix min-width használatát, ami vízszintes túlfolyást és
+       elcsúszást okozott a dashboard és bevételek listáján. Kis képernyőn a jobb rész legyen teljes szélességű,
+       balra rendezett, hogy az összegek és százalékok szépen egymás alá törjenek. */
+    .booking .right {
+      min-width: 0; /* allow to shrink */
+      align-items: flex-start; /* align contents to the left */
+      text-align: left;
+      width: 100%;
+    }
+
+    .booking .right .price {
+      margin-top: 6px;
+    }
+
     .container {
       padding: 16px 12px 60px;
     }
@@ -2343,7 +2356,6 @@ onMounted(async () => {  await fetchMyCampings()
     background: #f3f4f6;
     color: #ff0000;
   }
-
 
   .btn {
     padding: 6px 12px;
