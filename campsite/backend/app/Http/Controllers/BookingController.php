@@ -36,11 +36,12 @@ class BookingController extends Controller
 
     public function getPrices(Request $request)
     {
+        // postgresql: date kulonbseg EXTRACT-tal szamolva (napokban)
         $totalPrices = DB::table('bookings')
         ->join('camping_spots', 'camping_spots.spot_id', '=', 'bookings.camping_spot_id')
         ->selectRaw('
             bookings.id AS booking_id,
-            (departure_date - arrival_date) 
+            EXTRACT(EPOCH FROM (bookings.departure_date::timestamp - bookings.arrival_date::timestamp)) / 86400
             * camping_spots.price_per_night AS total_price'
         )
         ->orderBy('bookings.id', 'asc')
@@ -380,7 +381,7 @@ class BookingController extends Controller
         }
         
         $bookings = $bookings->orderBy('arrival_date', 'desc')
-            ->paginate(20);
+            ->get();
 
         return response()->json($bookings);
     }

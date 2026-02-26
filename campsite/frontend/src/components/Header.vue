@@ -138,7 +138,7 @@ const handleLogout = async () => {
 
             <router-link 
               v-if="user && user.role === true"
-              to="/sajat-szallashelyek" 
+              to="/Tulajdonos" 
               @click="closeProfileMenu"
               class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] transition"
             >

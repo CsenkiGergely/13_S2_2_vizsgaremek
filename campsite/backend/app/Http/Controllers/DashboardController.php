@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\Camping;
 use App\Models\CampingSpot;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -13,15 +14,11 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        // Összes foglalás száma (összes időre)
-        $totalBookings = Booking::count();
+        // owner kempingjeinek id-jai
+        $myCampingIds = Camping::where('user_id', $user->id)->pluck('id');
 
-        // Aktív vendégek (jelenleg bent)
-        $activeGuests = Booking::where('status', 'checked_in')->count();
-
-        // Foglalt helyek szám (aktuális állapot)
-        $bookedSpots = CampingSpot::where('is_available', false)->count();
-        $totalSpots = CampingSpot::count();
+        // owner kempingjeihez tartozo spot id-k
+        $mySpotIds = CampingSpot::whereIn('camping_id', $myCampingIds)->pluck('spot_id');
 
         // Aktuális hónap és előző hónap
         $now = Carbon::now();
@@ -31,24 +28,53 @@ class DashboardController extends Controller
         $prevMonth = $prev->month;
         $prevYear = $prev->year;
 
-        // Havi bevétel (aktuális hó: befejezett/confirmed/checked_in foglalások departure_date alapján)
+        // havi foglalasok szama - aktualis honap
+        $totalBookings = Booking::whereIn('camping_spot_id', $mySpotIds)
+            ->whereMonth('created_at', $currentMonth)
+            ->whereYear('created_at', $currentYear)
+            ->count();
+
+        // elozo havi foglalasok szama
+        $previousTotalBookings = Booking::whereIn('camping_spot_id', $mySpotIds)
+            ->whereMonth('created_at', $prevMonth)
+            ->whereYear('created_at', $prevYear)
+            ->count();
+
+        // aktiv vendegek - csak a sajat kempingek
+        $activeGuests = Booking::whereIn('camping_spot_id', $mySpotIds)
+            ->where('status', 'checked_in')->count();
+
+        // foglalt helyek - aktiv foglalasok alapjan (confirmed vagy checked_in, ma az idoszakban)
+        $today = Carbon::today();
+        $bookedSpots = Booking::whereIn('camping_id', $myCampingIds)
+            ->whereIn('status', ['confirmed', 'checked_in'])
+            ->where('arrival_date', '<=', $today)
+            ->where('departure_date', '>', $today)
+            ->selectRaw('COUNT(DISTINCT camping_spot_id) as cnt')
+            ->value('cnt');
+        $totalSpots = CampingSpot::whereIn('camping_id', $myCampingIds)->count();
+
+        // havi bevetel - csak a sajat kempingek foglalasai
         $monthlyRevenue = Booking::with('campingSpot')
+            ->whereIn('camping_spot_id', $mySpotIds)
             ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
             ->whereMonth('departure_date', $currentMonth)
             ->whereYear('departure_date', $currentYear)
             ->get()
             ->sum(fn ($booking) => $this->calculateBookingPrice($booking));
 
-        // Előző hónap bevétel (ugyanaz a logika)
+        // elozo honap bevetel
         $previousMonthlyRevenue = Booking::with('campingSpot')
+            ->whereIn('camping_spot_id', $mySpotIds)
             ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
             ->whereMonth('departure_date', $prevMonth)
             ->whereYear('departure_date', $prevYear)
             ->get()
             ->sum(fn ($booking) => $this->calculateBookingPrice($booking));
 
-        // --- Átlagos foglalási értékek (backend számolja) ---
+        // atlagos foglalasi ertekek - sajat kempingekre
         $currentMonthBookings = Booking::with('campingSpot')
+            ->whereIn('camping_spot_id', $mySpotIds)
             ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
             ->whereMonth('departure_date', $currentMonth)
             ->whereYear('departure_date', $currentYear)
@@ -61,6 +87,7 @@ class DashboardController extends Controller
         }
 
         $previousMonthBookings = Booking::with('campingSpot')
+            ->whereIn('camping_spot_id', $mySpotIds)
             ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
             ->whereMonth('departure_date', $prevMonth)
             ->whereYear('departure_date', $prevYear)
@@ -72,10 +99,11 @@ class DashboardController extends Controller
             $previousAverageBookingValue = (int) round($totalPrev / $previousMonthBookings->count());
         }
 
-        // Legutóbbi foglalások
+        // legutobbi foglalasok - csak a sajat kempingek
         $recentBookings = Booking::with(['user', 'campingSpot'])
+            ->whereIn('camping_spot_id', $mySpotIds)
             ->orderBy('created_at', 'desc')
-            ->limit(3)
+            ->limit(10)
             ->get()
             ->map(function ($booking) {
                 return [
@@ -87,23 +115,20 @@ class DashboardController extends Controller
                     'checkOut' => $booking->departure_date,
                     'guests' => $booking->guests,
                     'status' => $booking->status,
-                    'price' => $this->calculateBookingPrice($booking)
+                    'price' => $this->calculateBookingPrice($booking),
+                    'createdAt' => $booking->created_at->toIso8601String(),
                 ];
             });
 
-        // Előző hónap: összes foglalás (létrehozás szerint)
-        $previousTotalBookings = Booking::whereMonth('created_at', $prevMonth)
-            ->whereYear('created_at', $prevYear)
-            ->count();
-
-        // Előző hónap: aktív vendégek (checked_in státuszú foglalások a hónapban)
-        $previousActiveGuests = Booking::where('status', 'checked_in')
+        // elozo honap - sajat kempingekre szurve
+        $previousActiveGuests = Booking::whereIn('camping_spot_id', $mySpotIds)
+            ->where('status', 'checked_in')
             ->whereMonth('created_at', $prevMonth)
             ->whereYear('created_at', $prevYear)
             ->count();
 
-        // Előző hónap: foglalt helyek számítása — egy egyszerű megközelítés: hány különböző spot volt lefoglalva az előző hónapban
-        $previousBookedSpots = Booking::whereIn('status', ['confirmed', 'checked_in', 'finished'])
+        $previousBookedSpots = Booking::whereIn('camping_spot_id', $mySpotIds)
+            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
             ->whereMonth('departure_date', $prevMonth)
             ->whereYear('departure_date', $prevYear)
             ->distinct('camping_spot_id')

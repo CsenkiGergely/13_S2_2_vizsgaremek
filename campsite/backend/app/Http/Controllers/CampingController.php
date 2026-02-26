@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\Camping;
 use App\Models\Location;
@@ -16,9 +17,7 @@ class CampingController extends Controller
      */
     public function myCampings(Request $request)
     {
-        $campings = Camping::where('user_id', $request->user()->id)
-            ->select('id', 'camping_name', 'user_id')
-            ->get();
+        $campings = Camping::with('location')->where('user_id', $request->user()->id)->get();
 
         return response()->json($campings);
     }
@@ -449,7 +448,7 @@ class CampingController extends Controller
         $camping->save();
 
         return response()->json([
-            'message'     => 'ESP32 token sikeresen generálva. Mentsd el, többé nem jelenik meg teljes egészében!',
+            'message'     => 'Token sikeresen generálva. Mentsd el, többé nem jelenik meg teljes egészében!',
             'auth_token'  => $token,
             'camping_id'  => $camping->id,
             'camping_name'=> $camping->camping_name,
@@ -501,6 +500,6 @@ class CampingController extends Controller
         $camping->auth_token = null;
         $camping->save();
 
-        return response()->json(['message' => 'ESP32 token visszavonva. A szkenner többé nem tud bejelentkeztetni.']);
+        return response()->json(['message' => 'Token visszavonva. A szkenner többé nem tud bejelentkeztetni.']);
     }
 }

@@ -1,31 +1,86 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useBooking } from '../composables/useBooking'
 import { useGate } from '../composables/useGate'
 import { useDashboard } from '../composables/useDashboard'
+import { useCamping } from '../composables/useCamping'
 import AuthModal from '../components/AuthModal.vue'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import dayjs from 'dayjs';
 import "dayjs/locale/hu";
 import { name } from 'dayjs/locale/hu';
 dayjs.locale("hu");
 
-const { bookings, getAllBookings, prices, getPrices } = useBooking()
+// composable-ök behuzasa
+const { bookings, getOwnerBookings, updateBookingStatus } = useBooking()
 const {
   gates, myCampings, loading: gatesLoading, error: gatesError,
   fetchMyCampings, fetchGates, createGate, updateGate, deleteGate: apiDeleteGate,
   generateToken, revokeToken,
 } = useGate()
 const { dashboard, getDashboard } = useDashboard()
+const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, loading: campingLoading, error: campingError } = useCamping()
 
 const activeTab = ref('dashboard')
 const monthlyRevenue = ref(0)
+const previousMonthlyRevenueValue = ref(0)
 const averageBookingValue = ref(0)
 const previousAverageBookingValue = ref(0)
 const revenueByType = ref([])
-const priceByBookingId = ref({})
 const isAuthenticated = ref(false)
 const authModalOpen = ref(false)
 const authModalMode = ref('login')
+
+// foglalasok tab - szuro es modal
+const bookingFilterCampingId = ref(null)
+const showBookingDetailModal = ref(false)
+const selectedBooking = ref(null)
+
+// foglalasok szurve kemping alapjan
+const filteredBookings = computed(() => {
+  const list = Array.isArray(bookings.value) ? bookings.value : []
+  if (!bookingFilterCampingId.value) return list
+  return list.filter(b => {
+    const cId = b.camping_id || b.campingId || b.camping?.id
+    return Number(cId) === Number(bookingFilterCampingId.value)
+  })
+})
+
+// bevetelek tab - havi trend adatok
+const revenueFilterCampingId = ref(null)
+const monthlyTrendData = ref([])
+
+// attekintes - kivalasztott kemping
+const overviewSelectedCampingId = ref(null)
+
+// attekintes - kemping szerkesztes modal
+const showEditCampingModal = ref(false)
+const editCampingForm = ref({})
+const editCampingError = ref(null)
+
+// attekintes - hely szerkesztes modal
+const showEditSpotModal = ref(false)
+const editSpotForm = ref({})
+const editSpotCampingId = ref(null)
+const editSpotError = ref(null)
+
+// attekintes - tag hozzaadas modal
+const showTagModal = ref(false)
+const tagModalCampingId = ref(null)
+const tagModalExisting = ref([])
+
+// terkep tab
+const mapSelectedCampingId = ref(null)
+const mapGeojsonData = ref(null)
+const mapFileInput = ref(null)
+const mapUploadError = ref(null)
+const mapUploadSuccess = ref(null)
+const mapLoading = ref(false)
+const mapContainerRef = ref(null)
+const mapCodeOpen = ref(false)
+let leafletMap = null
+let geojsonLayer = null
 
 const checkAuthentication = () => {
   const token = localStorage.getItem('auth_token')
@@ -54,66 +109,84 @@ const loadData = async () => {
     // Dashboard adatok betöltése
     await getDashboard()
     
-    // Foglalások és árak betöltése
-    await getAllBookings()
-    await getPrices()
+    // foglalasok betoltese - owner bookings
+    await getOwnerBookings()
     
-    // Bevétel típusok szerint
-    if (bookings.value && prices.value) {
-      const bookingList = Array.isArray(bookings.value) ? bookings.value : []
-      const priceMap = Array.isArray(prices.value)
-        ? prices.value.reduce((map, item, index) => {
-            const bookingId = item.booking_id || item.bookingId || item.id || bookingList[index]?.id
-            const bookingPrice = Number(item.price || item.total_price || 0)
-
-            if (bookingId) {
-              map[bookingId] = bookingPrice
-            }
-
-            return map
-          }, {})
-        : {}
-
-      priceByBookingId.value = priceMap
-      
-      revenueByType.value = calculateRevenueByType(bookings.value, priceMap)
-
-      // Számítsuk ki az átlagos foglalási értéket a betöltött árak alapján
-      const bookingCount = bookingList.length
-      const totalPrice = Object.values(priceMap).reduce((sum, v) => sum + Number(v || 0), 0)
-      averageBookingValue.value = bookingCount > 0 ? Math.round(totalPrice / bookingCount) : 0
-
-      // Számítsuk ki az előző hónap átlagos foglalási értékét (ha vannak adatok)
-      const now = new Date()
-      const prev = new Date(now.getFullYear(), now.getMonth() - 1)
-      const prevMonth = prev.getMonth()
-      const prevYear = prev.getFullYear()
-
-      const prevBookings = bookingList.filter(b => {
-        const dateStr = b.departure_date || b.checkOut || b.departureDate || b.created_at || b.createdAt
-        if (!dateStr) return false
-        const d = new Date(dateStr)
-        return d.getMonth() === prevMonth && d.getFullYear() === prevYear
-      })
-
-      const totalPrevPrice = prevBookings.reduce((sum, b) => {
-        return sum + Number(priceMap[b.id] || b.total_price || b.price || 0)
-      }, 0)
-
-      previousAverageBookingValue.value = prevBookings.length > 0 ? Math.round(totalPrevPrice / prevBookings.length) : 0
-    }
+    // szurt adatok ujraszamolasa
+    recalculateRevenueData()
   } catch (error) {
     console.error('Hiba az adatok betöltésekor:', error)
   }
 }
 
+// bevetelek ujraszamolasa a szuro alapjan (kemping valasztaskor)
+function recalculateRevenueData() {
+  const bookingList = Array.isArray(bookings.value) ? bookings.value : []
+
+  // szurt foglalasok a kivalasztott kempinghez
+  const filtered = revenueFilterCampingId.value
+    ? bookingList.filter(b => {
+        const cId = b.camping_id || b.campingId || b.camping?.id
+        return Number(cId) === Number(revenueFilterCampingId.value)
+      })
+    : bookingList
+
+  // havi bevetel: aktualis honap foglalasaibol szamolva
+  const now = dayjs()
+  const currentMonthBookings = filtered.filter(b => {
+    const dateStr = b.arrival_date || b.checkIn || b.arrivalDate || b.created_at
+    if (!dateStr) return false
+    const d = dayjs(dateStr)
+    return d.month() === now.month() && d.year() === now.year()
+  })
+  monthlyRevenue.value = currentMonthBookings.reduce((sum, b) => sum + calcBookingPrice(b), 0)
+
+  // elozo havi bevetel az osszehasonlitashoz
+  const prevMonth = now.subtract(1, 'month')
+  const prevMonthBookings = filtered.filter(b => {
+    const dateStr = b.arrival_date || b.checkIn || b.arrivalDate || b.created_at
+    if (!dateStr) return false
+    const d = dayjs(dateStr)
+    return d.month() === prevMonth.month() && d.year() === prevMonth.year()
+  })
+  const previousMonthlyRevenue = prevMonthBookings.reduce((sum, b) => sum + calcBookingPrice(b), 0)
+
+  // atlagos foglalasi ertek a szurt foglalasokbol
+  if (filtered.length > 0) {
+    const totalRev = filtered.reduce((sum, b) => sum + calcBookingPrice(b), 0)
+    averageBookingValue.value = Math.round(totalRev / filtered.length)
+  } else {
+    averageBookingValue.value = 0
+  }
+
+  // elozo havi atlag az osszehasonlitashoz
+  previousAverageBookingValue.value = prevMonthBookings.length > 0
+    ? Math.round(prevMonthBookings.reduce((sum, b) => sum + calcBookingPrice(b), 0) / prevMonthBookings.length)
+    : 0
+
+  // previousMonthlyRevenue tarolasa a template szamara
+  previousMonthlyRevenueValue.value = previousMonthlyRevenue
+
+  // bevetelek tipusonkent
+  revenueByType.value = calculateRevenueByType(bookingList)
+
+  // havi trend kiszamolasa az utolso 6 honapra
+  calculateMonthlyTrend(bookingList)
+}
+
 // Bevétel típusok szerint
-const calculateRevenueByType = (bookingsData, pricesData) => {
-  if (!bookingsData || !pricesData) return []
+const calculateRevenueByType = (bookingsData) => {
+  if (!bookingsData) return []
   
   const typeMap = {}
   
   bookingsData.forEach(booking => {
+    // kemping szuro
+    if (revenueFilterCampingId.value) {
+      const cId = booking.camping_id || booking.campingId || booking.camping?.id
+      if (Number(cId) !== Number(revenueFilterCampingId.value)) return
+    }
+
     const type = booking.spot
       || booking.camping_spot?.type
       || booking.campingSpot?.type
@@ -121,12 +194,7 @@ const calculateRevenueByType = (bookingsData, pricesData) => {
       || booking.campingSpot?.name
       || 'Ismeretlen'
 
-    const price = Number(
-      pricesData[booking.id]
-      || booking.total_price
-      || booking.price
-      || 0
-    )
+    const price = calcBookingPrice(booking)
     
     if (!typeMap[type]) {
       typeMap[type] = {
@@ -172,13 +240,18 @@ const getBookingSpot = (booking) => {
     || 'Ismeretlen'
 }
 
+// foglalas aranak kiszamitasa: ejszakak szama * ar/ejszaka
+function calcBookingPrice(booking) {
+  const arrival = dayjs(booking.arrival_date || booking.arrivalDate || booking.checkIn)
+  const departure = dayjs(booking.departure_date || booking.departureDate || booking.checkOut)
+  if (!arrival.isValid() || !departure.isValid()) return 0
+  const nights = departure.diff(arrival, 'day')
+  const ppn = Number(booking.camping_spot?.price_per_night || booking.campingSpot?.price_per_night || 0)
+  return nights > 0 ? nights * ppn : 0
+}
+
 const getBookingPrice = (booking) => {
-  return Number(
-    priceByBookingId.value[booking.id]
-    || booking.total_price
-    || booking.price
-    || 0
-  )
+  return calcBookingPrice(booking)
 }
 
 const formatBookingDate = (dateValue) => {
@@ -197,6 +270,301 @@ const closeAuthModal = () => {
 const handleAuthSuccess = () => {
   isAuthenticated.value = checkAuthentication()
   loadData()
+}
+
+// havi bevetelek kiszamolasa - utolso 6 honap
+function calculateMonthlyTrend(bookingList) {
+  const months = []
+  const now = dayjs()
+
+  // 6 honap visszafele
+  for (let i = 5; i >= 0; i--) {
+    const month = now.subtract(i, 'month')
+    months.push({
+      label: month.format('MMM'),
+      year: month.year(),
+      month: month.month(),
+      revenue: 0,
+    })
+  }
+
+  // foglalasok szortolasa honapokra
+  bookingList.forEach(b => {
+    const dateStr = b.arrival_date || b.checkIn || b.arrivalDate || b.created_at
+    if (!dateStr) return
+    const d = dayjs(dateStr)
+
+    // kemping szuro a bevetelek tabhoz
+    if (revenueFilterCampingId.value) {
+      const cId = b.camping_id || b.campingId || b.camping?.id
+      if (Number(cId) !== Number(revenueFilterCampingId.value)) return
+    }
+
+    const entry = months.find(m => m.month === d.month() && m.year === d.year())
+    if (entry) {
+      entry.revenue += calcBookingPrice(b)
+    }
+  })
+
+  monthlyTrendData.value = months
+}
+
+// foglalas statusz valtoztatas
+async function handleStatusChange(bookingId, newStatus) {
+  try {
+    await updateBookingStatus(bookingId, newStatus)
+    // ujratoltjuk a foglalasokat
+    await getOwnerBookings()
+  } catch (err) {
+    console.error('hiba a statusz valtoztataskor:', err)
+    alert('Nem sikerült a státusz módosítása: ' + (err.response?.data?.message || err.message))
+  }
+}
+
+// modalbol statusz valtoztatas
+async function handleModalStatusChange(newStatus) {
+  if (!selectedBooking.value) return
+  try {
+    await updateBookingStatus(selectedBooking.value.id, newStatus)
+    await getOwnerBookings()
+    // frissitjuk a kivalasztott foglalast
+    const updated = (Array.isArray(bookings.value) ? bookings.value : []).find(b => b.id === selectedBooking.value.id)
+    if (updated) selectedBooking.value = updated
+    else showBookingDetailModal.value = false
+  } catch (err) {
+    alert('Nem sikerült a státusz módosítása: ' + (err.response?.data?.message || err.message))
+  }
+}
+
+// lemondas megerositese
+async function handleModalCancel() {
+  if (!confirm('Biztosan le akarod mondani ezt a foglalást? A lemondás nem visszacsinálható!')) return
+  await handleModalStatusChange('cancelled')
+}
+
+// foglalas reszletek megnyitasa
+function openBookingDetail(booking) {
+  selectedBooking.value = booking
+  showBookingDetailModal.value = true
+}
+
+// statusz szinek es nevek
+const statusOptions = [
+  { value: 'pending', label: 'Függőben' },
+  { value: 'confirmed', label: 'Megerősített' },
+  { value: 'checked_in', label: 'Bejelentkezett' },
+  { value: 'completed', label: 'Befejezett' },
+  { value: 'cancelled', label: 'Lemondott' },
+]
+
+function getStatusLabel(status) {
+  return statusOptions.find(s => s.value === status)?.label || status
+}
+
+// mennyi ideje tortent
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diffMs = now - date
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return 'most'
+  if (diffMin < 60) return `${diffMin} perce`
+  const diffH = Math.floor(diffMin / 60)
+  if (diffH < 24) return `${diffH} órája`
+  const diffD = Math.floor(diffH / 24)
+  if (diffD < 7) return `${diffD} napja`
+  if (diffD < 30) return `${Math.floor(diffD / 7)} hete`
+  if (diffD < 365) return `${Math.floor(diffD / 30)} hónapja`
+  return `${Math.floor(diffD / 365)} éve`
+}
+
+// kemping szerkesztes megnyitasa
+function openEditCampingModal(camping) {
+  editCampingForm.value = {
+    id: camping.id,
+    camping_name: camping.camping_name || '',
+    description: camping.description || '',
+    city: camping.location?.city || '',
+    zip_code: camping.location?.zip_code || '',
+    street_address: camping.location?.street_address || '',
+    company_name: camping.company_name || '',
+    tax_id: camping.tax_id || '',
+    billing_address: camping.billing_address || '',
+  }
+  editCampingError.value = null
+  showEditCampingModal.value = true
+}
+
+async function handleEditCampingSave() {
+  editCampingError.value = null
+  const f = editCampingForm.value
+  if (!f.camping_name || !f.description || !f.city || !f.zip_code || !f.street_address) {
+    editCampingError.value = 'Kérlek töltsd ki az összes kötelező mezőt!'
+    return
+  }
+  if (!isValidZipCode(f.zip_code)) {
+    editCampingError.value = 'Az irányítószámnak 4 számjegyből kell állnia! (pl. 1011)'
+    return
+  }
+  if (f.tax_id && !isValidTaxId(f.tax_id)) {
+    editCampingError.value = 'Az adószám formátuma nem megfelelő! Helyes: 12345678-1-41'
+    return
+  }
+  try {
+    await updateCamping(f.id, {
+      camping_name: f.camping_name,
+      description: f.description,
+      city: f.city,
+      zip_code: f.zip_code,
+      street_address: f.street_address,
+      company_name: f.company_name,
+      tax_id: f.tax_id,
+      billing_address: f.billing_address,
+    })
+    showEditCampingModal.value = false
+    await fetchMyCampings()
+    await loadOverviewForCamping(overviewSelectedCampingId.value)
+  } catch (err) {
+    editCampingError.value = err.response?.data?.message || 'Hiba történt a mentés során.'
+  }
+}
+
+// hely szerkesztes megnyitasa
+function openEditSpotModal(campingId, spot) {
+  editSpotCampingId.value = campingId
+  editSpotForm.value = {
+    id: spot.spot_id || spot.id,
+    name: spot.name || '',
+    type: spot.type || 'tent',
+    capacity: spot.capacity || 1,
+    price_per_night: spot.price_per_night || 0,
+    description: spot.description || '',
+  }
+  editSpotError.value = null
+  showEditSpotModal.value = true
+}
+
+async function handleEditSpotSave() {
+  editSpotError.value = null
+  const f = editSpotForm.value
+  if (!f.name || !f.capacity || !f.price_per_night) {
+    editSpotError.value = 'Kérlek töltsd ki az összes kötelező mezőt!'
+    return
+  }
+  try {
+    await updateCampingSpot(editSpotCampingId.value, f.id, {
+      name: f.name,
+      type: f.type,
+      capacity: Number(f.capacity),
+      price_per_night: Number(f.price_per_night),
+      description: f.description,
+    })
+    showEditSpotModal.value = false
+    await loadOverviewForCamping(overviewSelectedCampingId.value)
+  } catch (err) {
+    editSpotError.value = err.response?.data?.message || 'Hiba történt a mentés során.'
+  }
+}
+
+// attekintes - tag modal megnyitasa
+function openTagModal(campingId, existingTags) {
+  tagModalCampingId.value = campingId
+  tagModalExisting.value = existingTags.map(t => t.tag ?? t)
+  showTagModal.value = true
+}
+
+async function handleToggleTagFromModal(campingId, tag, existingTags) {
+  const exists = existingTags.some(t => (t.tag ?? t) === tag)
+  if (exists) {
+    const found = existingTags.find(t => (t.tag ?? t) === tag)
+    if (found && found.id) {
+      await handleDeleteTag(campingId, found.id)
+    }
+  } else {
+    try {
+      await addCampingTag(campingId, { tag })
+      await loadOverviewForCamping(overviewSelectedCampingId.value)
+    } catch (err) {
+      console.error('tag hozzaadas hiba:', err)
+    }
+  }
+  // frissitjuk a modal existing lista-t
+  const updated = overviewData.value.find(i => i.camping.id === campingId)
+  if (updated) tagModalExisting.value = updated.tags.map(t => t.tag ?? t)
+}
+
+// attekintesbol hely torles
+async function handleDeleteSpot(campingId, spotId) {
+  if (!confirm('Biztosan törölni akarod ezt a helyet?')) return
+  try {
+    await deleteCampingSpot(campingId, spotId)
+    // ujratoltjuk az attekintes adatokat
+    await loadOverviewForCamping(campingId)
+  } catch (err) {
+    console.error('hely torles sikertelen:', err)
+    alert('Nem sikerült törölni: ' + (err.response?.data?.message || err.message))
+  }
+}
+
+// attekintesbol tag torles
+async function handleDeleteTag(campingId, tagId) {
+  if (!confirm('Biztosan törölni akarod ezt a taget?')) return
+  try {
+    await deleteCampingTag(campingId, tagId)
+    await loadOverviewForCamping(campingId)
+  } catch (err) {
+    console.error('tag torles sikertelen:', err)
+    alert('Nem sikerült törölni: ' + (err.response?.data?.message || err.message))
+  }
+}
+
+// attekintes - egy kemping adatainak betoltese
+async function loadOverviewForCamping(campingId) {
+  if (!campingId) {
+    overviewData.value = []
+    return
+  }
+  overviewLoading.value = true
+  try {
+    const camping = myCampings.value.find(c => c.id === campingId)
+    if (!camping) return
+    const [spots, tags] = await Promise.all([
+      getCampingSpotList(campingId).catch(() => []),
+      getCampingTagList(campingId).catch(() => []),
+    ])
+    overviewData.value = [{
+      camping,
+      spots: Array.isArray(spots) ? spots : [],
+      tags: Array.isArray(tags) ? tags : [],
+    }]
+  } finally {
+    overviewLoading.value = false
+  }
+}
+
+// uj kemping - validacios helper
+function isValidTaxId(taxId) {
+  // magyar adoszam formatum: XXXXXXXX-X-XX
+  return /^\d{8}-\d-\d{2}$/.test(taxId)
+}
+
+function isValidZipCode(zip) {
+  // magyar iranyitoszam: 4 szamjegy
+  return /^\d{4}$/.test(zip)
+}
+
+// adoszam auto-formatalo: 12345678-1-41
+function formatTaxId(target) {
+  let raw = target.value.replace(/[^\d]/g, '').slice(0, 11)
+  let formatted = ''
+  if (raw.length > 8) {
+    formatted = raw.slice(0, 8) + '-' + raw.slice(8, 9)
+    if (raw.length > 9) formatted += '-' + raw.slice(9, 11)
+  } else {
+    formatted = raw
+  }
+  return formatted
 }
 
 // Kapuk kezelése
@@ -306,11 +674,367 @@ function copyToken() {
   }
 }
 
-onMounted(async () => {
-  await fetchMyCampings()
+// Új kemping hozzáadása
+const newCampingForm = ref({
+  camping_name: '',
+  description: '',
+  company_name: '',
+  tax_id: '',
+  billing_address: '',
+  city: '',
+  zip_code: '',
+  street_address: '',
+  latitude: '',
+  longitude: '',
+})
+const campingFormError = ref(null)
+const campingFormSuccess = ref(null)
+
+// Tag kezelés - előre megadható, elküldés a kemping létrehozásával együtt
+const showInfoNotice = ref(true)
+const availableTags = [
+  'Sátorhelyek',
+  'Lakókocsi beálló',
+  'Áramcsatlakozás',
+  'Ivóvíz vételi hely',
+  'Közös zuhanyzó',
+  'Közös mosdó',
+  'Mosókonyha',
+  'Tűzrakóhely',
+  'Játszótér',
+  'Kutyabarát',
+  'Kerékpárkölcsönzés',
+  'Horgászási lehetőség',
+  'Vízparti hozzáférés',
+  'Árnyékos parcellák',
+  'Hulladékgyűjtő pont',
+]
+const pendingTags = ref([])   // helyi lista, még nem mentve az API-ra
+
+function toggleTag(tag) {
+  if (pendingTags.value.includes(tag)) {
+    pendingTags.value = pendingTags.value.filter(t => t !== tag)
+  } else {
+    pendingTags.value.push(tag)
+  }
+}
+
+async function handleAddCamping() {
+  campingFormError.value = null
+  campingFormSuccess.value = null
+
+  if (!newCampingForm.value.camping_name || !newCampingForm.value.description ||
+      !newCampingForm.value.city || !newCampingForm.value.zip_code || !newCampingForm.value.street_address ||
+      !newCampingForm.value.company_name || !newCampingForm.value.tax_id || !newCampingForm.value.billing_address) {
+    campingFormError.value = 'Kérlek töltsd ki az összes kötelező mezőt!'
+    return
+  }
+
+  // iranyitoszam validacio - 4 szamjegy
+  if (!isValidZipCode(newCampingForm.value.zip_code)) {
+    campingFormError.value = 'Az irányítószámnak 4 számjegyből kell állnia! (pl. 1011)'
+    return
+  }
+
+  // adoszam validacio - XXXXXXXX-X-XX formatum
+  if (!isValidTaxId(newCampingForm.value.tax_id)) {
+    campingFormError.value = 'Az adószám formátuma nem megfelelő! Helyes: 12345678-1-41'
+    return
+  }
+
+  try {
+    const payload = {
+      camping_name: newCampingForm.value.camping_name,
+      description: newCampingForm.value.description,
+      city: newCampingForm.value.city,
+      zip_code: newCampingForm.value.zip_code,
+      street_address: newCampingForm.value.street_address,
+      company_name: newCampingForm.value.company_name,
+      tax_id: newCampingForm.value.tax_id,
+      billing_address: newCampingForm.value.billing_address,
+    }
+    if (newCampingForm.value.latitude) payload.latitude = parseFloat(newCampingForm.value.latitude)
+    if (newCampingForm.value.longitude) payload.longitude = parseFloat(newCampingForm.value.longitude)
+
+    const result = await createCamping(payload)
+    const newId = result?.id || result?.camping?.id || null
+
+    // Tagek mentése az újonnan létrehozott kempinghez
+    if (newId && pendingTags.value.length > 0) {
+      await Promise.all(pendingTags.value.map(tag => addCampingTag(newId, { tag })))
+    }
+
+    campingFormSuccess.value = 'Kemping sikeresen létrehozva!'
+    newCampingForm.value = {
+      camping_name: '', description: '', company_name: '', tax_id: '',
+      billing_address: '', city: '', zip_code: '', street_address: '',
+      latitude: '', longitude: '',
+    }
+    pendingTags.value = []
+    await fetchMyCampings()
+  } catch (err) {
+    campingFormError.value = err.response?.data?.message || campingError.value || 'Hiba történt a kemping létrehozásakor.'
+  }
+}
+
+// Áttekintés oldal
+const overviewData = ref([])   // [{ camping, spots: [], tags: [] }]
+const overviewLoading = ref(false)
+const expandedCampingId = ref(null)
+
+async function loadOverview() {
+  // ha van kivalasztott kemping, azt toltjuk be
+  if (overviewSelectedCampingId.value) {
+    await loadOverviewForCamping(overviewSelectedCampingId.value)
+    return
+  }
+  overviewLoading.value = true
+  try {
+    const result = []
+    for (const camping of myCampings.value) {
+      const [spots, tags] = await Promise.all([
+        getCampingSpotList(camping.id).catch(() => []),
+        getCampingTagList(camping.id).catch(() => []),
+      ])
+      result.push({
+        camping,
+        spots: Array.isArray(spots) ? spots : [],
+        tags: Array.isArray(tags) ? tags : [],
+      })
+    }
+    overviewData.value = result
+  } finally {
+    overviewLoading.value = false
+  }
+}
+
+function toggleOverviewCamping(id) {
+  expandedCampingId.value = expandedCampingId.value === id ? null : id
+}
+
+// Kemping hely hozzáadása
+const selectedSpotCampingId = ref(null)
+const newSpotForm = ref({
+  name: '',
+  type: '',
+  capacity: '',
+  price_per_night: '',
+  description: '',
+})
+const spotFormError = ref(null)
+const spotFormSuccess = ref(null)
+
+const spotTypes = [
+  'Sátorhely',
+  'Lakókocsi',
+  'Karaván',
+  'Faház',
+  'Glamping',
+  'Egyéb',
+]
+
+async function handleAddSpot() {
+  spotFormError.value = null
+  spotFormSuccess.value = null
+
+  if (!selectedSpotCampingId.value) {
+    spotFormError.value = 'Kérlek válassz kempinget!'
+    return
+  }
+  if (!newSpotForm.value.name || !newSpotForm.value.type || !newSpotForm.value.capacity || !newSpotForm.value.price_per_night) {
+    spotFormError.value = 'Kérlek töltsd ki az összes kötelező mezőt!'
+    return
+  }
+
+  // kapacitas ellenorzese
+  const cap = parseInt(newSpotForm.value.capacity)
+  if (isNaN(cap) || cap < 1 || cap > 50) {
+    spotFormError.value = 'A kapacitásnak 1 és 50 közötti számnak kell lennie!'
+    return
+  }
+
+  // ar ellenorzese
+  const price = parseFloat(newSpotForm.value.price_per_night)
+  if (isNaN(price) || price < 0) {
+    spotFormError.value = 'Az árnak pozitív számnak kell lennie!'
+    return
+  }
+
+  try {
+    const payload = {
+      name: newSpotForm.value.name,
+      type: newSpotForm.value.type,
+      capacity: parseInt(newSpotForm.value.capacity),
+      price_per_night: parseFloat(newSpotForm.value.price_per_night),
+    }
+    if (newSpotForm.value.description) payload.description = newSpotForm.value.description
+
+    await createCampingSpot(selectedSpotCampingId.value, payload)
+    spotFormSuccess.value = 'Kemping hely sikeresen hozzáadva!'
+    newSpotForm.value = { name: '', type: '', capacity: '', price_per_night: '', description: '' }
+  } catch (err) {
+    spotFormError.value = err.response?.data?.message || campingError.value || 'Hiba történt a kemping hely létrehozásakor.'
+  }
+}
+
+// terkep - kemping valasztas, geojson betoltese
+async function handleMapCampingChange() {
+  mapGeojsonData.value = null
+  mapUploadError.value = null
+  mapUploadSuccess.value = null
+  mapCodeOpen.value = false
+  if (leafletMap) { leafletMap.remove(); leafletMap = null; geojsonLayer = null }
+  if (!mapSelectedCampingId.value) return
+  mapLoading.value = true
+  try {
+    const data = await getCampingGeojson(mapSelectedCampingId.value)
+    mapGeojsonData.value = data?.geojson || data || null
+    if (mapGeojsonData.value) await renderLeafletMap()
+  } catch {
+    mapGeojsonData.value = null
+  } finally {
+    mapLoading.value = false
+  }
+}
+
+// terkep - fajl kivalasztas es feltoltes
+async function handleMapFileUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  mapUploadError.value = null
+  mapUploadSuccess.value = null
+
+  // frontend validalas
+  if (!file.name.endsWith('.geojson')) {
+    mapUploadError.value = 'Csak .geojson kiterjesztésű fájl tölthető fel!'
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    mapUploadError.value = 'A fájl mérete nem lehet nagyobb mint 2 MB!'
+    return
+  }
+
+  // tartalom ellenorzes
+  try {
+    const text = await file.text()
+    const parsed = JSON.parse(text)
+    if (parsed.type !== 'FeatureCollection') {
+      mapUploadError.value = 'A GeoJSON-nak FeatureCollection típusúnak kell lennie!'
+      return
+    }
+  } catch {
+    mapUploadError.value = 'Érvénytelen JSON formátum a fájlban!'
+    return
+  }
+
+  mapLoading.value = true
+  try {
+    const result = await uploadCampingGeojson(mapSelectedCampingId.value, file)
+    mapGeojsonData.value = result?.geojson || result || null
+    mapUploadSuccess.value = 'Térkép sikeresen feltöltve!'
+    if (mapGeojsonData.value) await renderLeafletMap()
+    // frissitjuk a kempinget is
+    await fetchMyCampings()
+  } catch (err) {
+    mapUploadError.value = err.response?.data?.message || 'Hiba a feltöltés során!'
+  } finally {
+    mapLoading.value = false
+    if (mapFileInput.value) mapFileInput.value.value = ''
+  }
+}
+
+// terkep - geojson torles
+async function handleMapDeleteGeojson() {
+  if (!mapSelectedCampingId.value) return
+  mapUploadError.value = null
+  mapUploadSuccess.value = null
+  mapLoading.value = true
+  try {
+    await deleteCampingGeojson(mapSelectedCampingId.value)
+    mapGeojsonData.value = null
+    mapCodeOpen.value = false
+    if (leafletMap) { leafletMap.remove(); leafletMap = null; geojsonLayer = null }
+    mapUploadSuccess.value = 'Térkép törölve!'
+    await fetchMyCampings()
+  } catch (err) {
+    mapUploadError.value = err.response?.data?.message || 'Hiba a törlés során!'
+  } finally {
+    mapLoading.value = false
+  }
+}
+
+// terkep - feature-ek szama
+function geojsonFeatureCount(data) {
+  if (!data || !data.features) return 0
+  return data.features.length
+}
+
+// terkep - leaflet megjelenites
+async function renderLeafletMap() {
+  await nextTick()
+  if (!mapContainerRef.value) return
+
+  // ha mar van terkep, toroljuk
+  if (leafletMap) {
+    leafletMap.remove()
+    leafletMap = null
+    geojsonLayer = null
+  }
+
+  if (!mapGeojsonData.value) return
+
+  leafletMap = L.map(mapContainerRef.value, {
+    zoomControl: true,
+    attributionControl: true,
+  }).setView([47.1625, 19.5033], 7) // magyarorszag kozepe
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+  }).addTo(leafletMap)
+
+  geojsonLayer = L.geoJSON(mapGeojsonData.value, {
+    style: {
+      color: '#3b82f6',
+      weight: 2,
+      fillColor: '#3b82f6',
+      fillOpacity: 0.15,
+    },
+    pointToLayer: (feature, latlng) => {
+      return L.circleMarker(latlng, {
+        radius: 6,
+        fillColor: '#3b82f6',
+        color: '#1e40af',
+        weight: 2,
+        fillOpacity: 0.7,
+      })
+    },
+    onEachFeature: (feature, layer) => {
+      if (feature.properties) {
+        const props = Object.entries(feature.properties)
+          .filter(([, v]) => v !== null && v !== undefined)
+          .map(([k, v]) => `<strong>${k}:</strong> ${v}`)
+          .join('<br>')
+        if (props) layer.bindPopup(props)
+      }
+    }
+  }).addTo(leafletMap)
+
+  // rakozelit a geojson-ra
+  const bounds = geojsonLayer.getBounds()
+  if (bounds.isValid()) {
+    leafletMap.fitBounds(bounds, { padding: [30, 30] })
+  }
+
+  // fix az invalidateSize problema (ha a container meg nem latszik teljesen)
+  setTimeout(() => leafletMap?.invalidateSize(), 200)
+}
+
+onMounted(async () => {  await fetchMyCampings()
   // Ha van kemping, automatikusan kiválasztjuk az elsőt
   if (myCampings.value.length > 0) {
     selectedCampingId.value = myCampings.value[0].id
+    overviewSelectedCampingId.value = myCampings.value[0].id
   }
   loadData()
 })
@@ -331,26 +1055,291 @@ onMounted(async () => {
     <template v-else>
       <!-- Tabs -->
       <div class="tabs">
-        <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Dashboard</div>
+        <div class="tab" :class="{ active: activeTab === 'dashboard' }" @click="activeTab = 'dashboard'">Vezérlőpult</div>
+        <div class="tab" :class="{ active: activeTab === 'attekintes' }" @click="activeTab = 'attekintes'; if(!overviewSelectedCampingId && myCampings.length > 0) { overviewSelectedCampingId = myCampings[0].id; } loadOverviewForCamping(overviewSelectedCampingId)">Áttekintés</div>
         <div class="tab" :class="{ active: activeTab === 'foglalasok' }" @click="activeTab = 'foglalasok'">Foglalások</div>
         <div class="tab" :class="{ active: activeTab === 'kapuk' }" @click="activeTab = 'kapuk'">Kapuk</div>
         <div class="tab" :class="{ active: activeTab === 'terkep' }" @click="activeTab = 'terkep'">Térkép</div>
         <div class="tab" :class="{ active: activeTab === 'bevetelek' }" @click="activeTab = 'bevetelek'">Bevételek</div>
+        <div class="tab" :class="{ active: activeTab === 'ujkemping' }" @click="activeTab = 'ujkemping'">+ Új kemping</div>
+        <div class="tab" :class="{ active: activeTab === 'ujhely' }" @click="activeTab = 'ujhely'">+ Kemping hely</div>
       </div>
+
+      <!-- ÁTTEKINTÉS -->
+    <div v-if="activeTab === 'attekintes'">
+      <div class="gates-header">
+        <div>
+          <h2 class="gates-title">Kempingek áttekintése</h2>
+          <p class="gates-subtitle">Válaszd ki a kempinget a részletek megtekintéséhez</p>
+        </div>
+        <div class="gates-header-right">
+          <!-- kemping kivalaszto dropdown -->
+          <select class="form-select" v-model="overviewSelectedCampingId" @change="loadOverviewForCamping(overviewSelectedCampingId)">
+            <option v-for="c in myCampings" :key="c.id" :value="c.id">{{ c.camping_name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- betoltes -->
+      <div v-if="overviewLoading" class="gates-empty">
+        <p>Betöltés...</p>
+      </div>
+
+      <!-- nincs kemping -->
+      <div v-else-if="myCampings.length === 0" class="spot-no-camping">
+        <div class="spot-no-camping-icon">🏕️</div>
+        <h3>Még nincs kempinged</h3>
+        <p>Hozz létre egy kempinget az áttekintés megtekintéséhez.</p>
+        <button class="btn-submit-camping" style="max-width: 260px;" @click="activeTab = 'ujkemping'">+ Új kemping létrehozása</button>
+      </div>
+
+      <!-- kivalasztott kemping adatai -->
+      <div v-else class="overview-list">
+        <div v-for="item in overviewData" :key="item.camping.id" class="overview-card">
+
+          <!-- kemping fejlec -->
+          <div class="overview-card-header">
+            <div class="overview-card-title-row">
+              <div>
+                <div class="overview-camping-name">{{ item.camping.camping_name }}</div>
+                <div class="overview-camping-meta">
+                  {{ item.camping.location?.city }} {{ item.camping.location?.zip_code }}, {{ item.camping.location?.street_address }}
+                </div>
+              </div>
+            </div>
+            <div class="overview-card-stats">
+              <span class="overview-stat-badge">{{ item.spots.length }} hely</span>
+              <span class="overview-stat-badge tag-color">{{ item.tags.length }} tag</span>
+              <button class="gate-action-btn edit" title="Kemping szerkesztése" @click="openEditCampingModal(item.camping)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- tartalom mindig latszik (nincs accordion) -->
+          <div class="overview-card-body">
+
+            <!-- leiras -->
+            <div v-if="item.camping.description" class="overview-section">
+              <h5 class="overview-section-title">Leírás</h5>
+              <p style="font-size:14px; color:#4b5563; margin:0; line-height:1.6;">{{ item.camping.description }}</p>
+            </div>
+
+            <!-- tagek -->
+            <div class="overview-section">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                <h5 class="overview-section-title" style="margin:0;">Tagek</h5>
+                <button class="btn-add-gate" style="font-size:12px; padding:5px 12px;" @click="openTagModal(item.camping.id, item.tags)">+ Tag kezelés</button>
+              </div>
+              <div v-if="item.tags.length > 0" class="tag-list">
+                <span v-for="t in item.tags" :key="t.id ?? t.tag ?? t" class="tag-badge">
+                  {{ t.tag ?? t }}
+                  <button class="tag-remove" @click="handleDeleteTag(item.camping.id, t.id)" title="Tag törlése">✕</button>
+                </span>
+              </div>
+              <p v-else class="tag-empty">Nincsenek tagek hozzáadva.</p>
+            </div>
+
+            <!-- kemping helyek -->
+            <div class="overview-section">
+              <h5 class="overview-section-title">Kemping helyek</h5>
+              <div v-if="item.spots.length > 0" class="overview-spots-grid">
+                <div v-for="spot in item.spots" :key="spot.id ?? spot.spot_id" class="overview-spot-card">
+                  <div class="overview-spot-header">
+                    <span class="overview-spot-name">{{ spot.name }}</span>
+                    <div class="overview-spot-actions">
+                      <span class="overview-spot-type">{{ spot.type }}</span>
+                      <button class="gate-action-btn edit" title="Szerkesztés" @click="openEditSpotModal(item.camping.id, spot)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button class="gate-action-btn delete" title="Törlés" @click="handleDeleteSpot(item.camping.id, spot.spot_id || spot.id)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="overview-spot-details">
+                    <div class="overview-spot-detail">
+                      <span class="overview-spot-detail-label">Kapacitás</span>
+                      <span class="overview-spot-detail-value">{{ spot.capacity }} fő</span>
+                    </div>
+                    <div class="overview-spot-detail">
+                      <span class="overview-spot-detail-label">Ár/éj</span>
+                      <span class="overview-spot-detail-value">{{ Number(spot.price_per_night).toLocaleString('hu-HU') }} Ft</span>
+                    </div>
+                  </div>
+                  <div v-if="spot.description" class="overview-spot-desc">{{ spot.description }}</div>
+                </div>
+              </div>
+              <div v-else class="overview-empty-spots">
+                <p>Nincsenek kemping helyek hozzáadva.</p>
+                <button class="btn-add-gate" style="font-size:13px; padding: 8px 14px;" @click="activeTab = 'ujhely'; selectedSpotCampingId = item.camping.id">+ Hely hozzáadása</button>
+              </div>
+            </div>
+
+            <!-- ceges adatok -->
+            <div v-if="item.camping.company_name" class="overview-section">
+              <h5 class="overview-section-title">Céges adatok</h5>
+              <div class="overview-company-grid">
+                <div class="overview-company-row"><span>Cég neve</span><strong>{{ item.camping.company_name }}</strong></div>
+                <div class="overview-company-row" v-if="item.camping.tax_id"><span>Adószám</span><strong>{{ item.camping.tax_id }}</strong></div>
+                <div class="overview-company-row" v-if="item.camping.billing_address"><span>Számlázási cím</span><strong>{{ item.camping.billing_address }}</strong></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEMPING SZERKESZTES MODAL -->
+    <div v-if="showEditCampingModal" class="modal-overlay" @click.self="showEditCampingModal = false">
+      <div class="modal-content" style="max-width:560px;">
+        <div class="modal-header">
+          <h3>Kemping szerkesztése</h3>
+          <button class="modal-close" @click="showEditCampingModal = false">&times;</button>
+        </div>
+        <div v-if="editCampingError" class="form-alert error" style="margin:12px 0 0;">⚠️ {{ editCampingError }}</div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:14px;">
+          <div class="form-group">
+            <label class="form-label">
+              Kemping neve <span class="required">*</span>
+              <span class="char-hint">(max. 100 karakter)</span>
+            </label>
+            <input type="text" class="form-input" v-model="editCampingForm.camping_name" maxlength="100" />
+            <span class="char-hint" style="display:block; margin-top:4px;">{{ editCampingForm.camping_name.length }}/100</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Leírás <span class="required">*</span>
+              <span class="char-hint">(max. 1000 karakter)</span>
+            </label>
+            <textarea class="form-textarea" v-model="editCampingForm.description" rows="3" maxlength="1000"></textarea>
+            <span class="char-hint" style="display:block; margin-top:4px;">{{ editCampingForm.description.length }}/1000</span>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Város <span class="required">*</span></label>
+              <input type="text" class="form-input" v-model="editCampingForm.city" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Irányítószám <span class="required">*</span></label>
+              <input type="text" class="form-input" v-model="editCampingForm.zip_code" maxlength="4" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Utca, házszám <span class="required">*</span></label>
+            <input type="text" class="form-input" v-model="editCampingForm.street_address" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cég neve</label>
+            <input type="text" class="form-input" v-model="editCampingForm.company_name" />
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Adószám</label>
+              <input type="text" class="form-input" :value="editCampingForm.tax_id" @input="editCampingForm.tax_id = formatTaxId($event.target); $event.target.value = editCampingForm.tax_id" maxlength="13" placeholder="12345678-1-41" />
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Számlázási cím</label>
+              <input type="text" class="form-input" v-model="editCampingForm.billing_address" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showEditCampingModal = false">Mégse</button>
+          <button class="btn-submit-camping" style="max-width:180px;" @click="handleEditCampingSave" :disabled="campingLoading">
+            {{ campingLoading ? '⏳ Mentés...' : '💾 Mentés' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HELY SZERKESZTES MODAL -->
+    <div v-if="showEditSpotModal" class="modal-overlay" @click.self="showEditSpotModal = false">
+      <div class="modal-content" style="max-width:460px;">
+        <div class="modal-header">
+          <h3>Kemping hely szerkesztése</h3>
+          <button class="modal-close" @click="showEditSpotModal = false">&times;</button>
+        </div>
+        <div v-if="editSpotError" class="form-alert error" style="margin:12px 0 0;">⚠️ {{ editSpotError }}</div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:14px;">
+          <div class="form-group">
+            <label class="form-label">Hely neve <span class="required">*</span></label>
+            <input type="text" class="form-input" v-model="editSpotForm.name" />
+          </div>
+          <div style="display:flex; gap:12px;">
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Típus</label>
+              <select class="form-select" style="width:100%;" v-model="editSpotForm.type">
+                <option value="tent">Sátor</option>
+                <option value="caravan">Lakókocsi</option>
+                <option value="bungalow">Bungaló</option>
+                <option value="motorhome">Lakóautó</option>
+                <option value="glamping">Glamping</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label class="form-label">Kapacitás (fő) <span class="required">*</span></label>
+              <input type="number" class="form-input" v-model="editSpotForm.capacity" min="1" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ár / éjszaka (Ft) <span class="required">*</span></label>
+            <input type="number" class="form-input" v-model="editSpotForm.price_per_night" min="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Leírás</label>
+            <textarea class="form-textarea" v-model="editSpotForm.description" rows="2" maxlength="500"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" @click="showEditSpotModal = false">Mégse</button>
+          <button class="btn-submit-camping" style="max-width:180px;" @click="handleEditSpotSave" :disabled="campingLoading">
+            {{ campingLoading ? '⏳ Mentés...' : '💾 Mentés' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAG KEZELES MODAL -->
+    <div v-if="showTagModal" class="modal-overlay" @click.self="showTagModal = false">
+      <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header">
+          <h3>Tagek kezelése</h3>
+          <button class="modal-close" @click="showTagModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px; color:#6b7280; margin:0 0 14px;">Pipáld ki a kempingre jellemző tulajdonságokat.</p>
+          <div class="tag-checkbox-grid">
+            <label
+              v-for="tag in availableTags"
+              :key="tag"
+              class="tag-checkbox-item"
+              :class="{ selected: tagModalExisting.includes(tag) }"
+            >
+              <input type="checkbox" :checked="tagModalExisting.includes(tag)" @change="handleToggleTagFromModal(tagModalCampingId, tag, overviewData.find(i => i.camping.id === tagModalCampingId)?.tags || [])" />
+              <span>{{ tag }}</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-submit-camping" style="max-width:140px;" @click="showTagModal = false">Kész</button>
+        </div>
+      </div>
+    </div>
 
       <!-- DASHBOARD -->
     <div v-if="activeTab === 'dashboard'">
       <div class="stats">
         <div class="card">
-          <small>Összes foglalás</small>
+          <small>Havi foglalások</small>
           <h2>{{ dashboard?.totalBookings || 0 }}</h2>
-          <div class="trend">{{ formatChange(dashboard?.totalBookings, dashboard?.previousTotalBookings) || '—' }}</div>
+          <div class="trend">{{ formatChange(dashboard?.totalBookings, dashboard?.previousTotalBookings) || '—' }} az előző hónaphoz képest</div>
         </div>
 
         <div class="card">
           <small>Aktív vendégek</small>
           <h2>{{ dashboard?.activeGuests || 0 }}</h2>
-          <div class="trend">{{ formatChange(dashboard?.activeGuests, dashboard?.previousActiveGuests) || '—' }}</div>
         </div>
 
         <div class="card">
@@ -368,18 +1357,21 @@ onMounted(async () => {
 
       <div class="section">
         <h3>Legutóbbi foglalások</h3>
-        <p>Az elmúlt hét foglalásai</p>
+        <p>A legfrissebb foglalások (legutóbbi 10 foglalás)</p>
 
-        <div v-for="booking in dashboard?.recentBookings" :key="booking.id" class="booking">
-          <div>
-            <div class="name">{{ booking.guestFirstName }} {{ booking.guestLastName }}</div>
-            <div class="place">Hely: {{ booking.spot }}</div>
-          </div>
-          <div class="right">
-            <div class="price">{{ (booking.price || 0).toLocaleString('hu-HU') }} Ft</div>
-            <span :class="['badge', booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'confirmed' : booking.status === 'checked_in' ? 'checked_in' : booking.status === 'finished' ? 'finished' : booking.status === 'cancelled' ? 'cancelled' : '']">
-              {{ booking.status === 'pending' ? 'Függőben van' : booking.status === 'confirmed' ? 'Megerősített' : booking.status === 'checked_in' ? 'Bejelentkezett' : booking.status === 'finished' ? 'Befejezett' : booking.status === 'cancelled' ? 'Lemondott' : ''}}
-            </span>
+        <div class="bookings-scroll">
+          <div v-for="booking in dashboard?.recentBookings" :key="booking.id" class="booking">
+            <div>
+              <div class="name">{{ booking.guestFirstName }} {{ booking.guestLastName }}</div>
+              <div class="place">Hely: {{ booking.spot }}</div>
+            </div>
+            <div class="right">
+              <div class="price">{{ (booking.price || 0).toLocaleString('hu-HU') }} Ft</div>
+              <span :class="['badge', booking.status]">
+                {{ getStatusLabel(booking.status) }}
+              </span>
+              <div style="color:#9ca3af; font-size:12px; margin-top:4px;">{{ timeAgo(booking.createdAt) }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -388,14 +1380,24 @@ onMounted(async () => {
     <!-- FOGLALÁSOK -->
     <div v-if="activeTab === 'foglalasok'">
       <div class="card">
-        <h2>Összes foglalás</h2>
-        <p>Kezelje a jelenlegi és múltbeli foglalásokat</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <div>
+            <h2 style="margin:0;">Foglalások kezelése</h2>
+            <p style="margin:4px 0 0; color:#6b7280; font-size:14px;">Saját kempingjeid foglalásai – státusz módosítás és részletek</p>
+          </div>
+          <!-- kemping szuro -->
+          <select class="form-select" v-model="bookingFilterCampingId">
+            <option :value="null">Összes kemping</option>
+            <option v-for="c in myCampings" :key="c.id" :value="c.id">{{ c.camping_name }}</option>
+          </select>
+        </div>
+
         <table>
           <thead>
             <tr>
-              <th>Azonosító</th>
-              <th>Vendég keresztneve</th>
-              <th>Vendég vezetékneve</th>
+              <th>ID</th>
+              <th>Kemping</th>
+              <th>Vendég</th>
               <th>Hely</th>
               <th>Érkezés</th>
               <th>Távozás</th>
@@ -406,22 +1408,90 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="booking in bookings" :key="booking.id">
+            <tr v-if="filteredBookings.length === 0">
+              <td colspan="10" style="text-align:center; color:#6b7280; padding:30px;">Nincsenek foglalások.</td>
+            </tr>
+            <tr v-for="booking in filteredBookings" :key="booking.id">
               <td><strong>{{ booking.id }}</strong></td>
-              <td>{{ getBookingFirstName(booking) }}</td>
-              <td>{{ getBookingLastName(booking) }}</td>
+              <td>{{ booking.camping?.camping_name || '-' }}</td>
+              <td>{{ getBookingFirstName(booking) }} {{ getBookingLastName(booking) }}</td>
               <td>{{ getBookingSpot(booking) }}</td>
               <td>{{ formatBookingDate(booking.checkIn || booking.arrival_date || booking.arrivalDate) }}</td>
               <td>{{ formatBookingDate(booking.checkOut || booking.departure_date || booking.departureDate) }}</td>
               <td>{{ booking.guests }}</td>
-              <td><span :class="['badge', booking.status === 'pending' ? 'pending' : booking.status === 'confirmed' ? 'confirmed' : booking.status === 'checked_in' ? 'checked_in' : booking.status === 'finished' ? 'finished' : booking.status === 'cancelled' ? 'cancelled' : '']">
-                {{ booking.status === 'pending' ? 'Függőben van' : booking.status === 'confirmed' ? 'Megerősített' : booking.status === 'checked_in' ? 'Bejelentkezett' : booking.status === 'finished' ? 'Befejezett' : booking.status === 'cancelled' ? 'Lemondott' : ''}}
-              </span></td>
+              <td>
+                <span :class="['badge', booking.status]">{{ getStatusLabel(booking.status) }}</span>
+              </td>
               <td><strong>{{ getBookingPrice(booking).toLocaleString('hu-HU') }} Ft</strong></td>
-              <td><button class="btn">👁 Részletek</button></td>
+              <td><button class="btn" @click="openBookingDetail(booking)">⚙ Kezelés</button></td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- foglalas kezeles modal -->
+      <div class="modal-overlay" v-if="showBookingDetailModal" @click.self="showBookingDetailModal = false">
+        <div class="modal-content" style="max-width:520px;">
+          <div class="modal-header">
+            <h3>Foglalás kezelése #{{ selectedBooking?.id }}</h3>
+            <button class="modal-close" @click="showBookingDetailModal = false">&times;</button>
+          </div>
+
+          <div v-if="selectedBooking" class="booking-detail-grid">
+            <div class="booking-detail-row">
+              <span>Vendég neve</span>
+              <strong>{{ getBookingFirstName(selectedBooking) }} {{ getBookingLastName(selectedBooking) }}</strong>
+            </div>
+            <div class="booking-detail-row">
+              <span>Kemping</span>
+              <strong>{{ selectedBooking.camping?.camping_name || '-' }}</strong>
+            </div>
+            <div class="booking-detail-row">
+              <span>Kemping hely</span>
+              <strong>{{ getBookingSpot(selectedBooking) }}</strong>
+            </div>
+            <div class="booking-detail-row">
+              <span>Érkezés</span>
+              <strong>{{ formatBookingDate(selectedBooking.checkIn || selectedBooking.arrival_date || selectedBooking.arrivalDate) }}</strong>
+            </div>
+            <div class="booking-detail-row">
+              <span>Távozás</span>
+              <strong>{{ formatBookingDate(selectedBooking.checkOut || selectedBooking.departure_date || selectedBooking.departureDate) }}</strong>
+            </div>
+            <div class="booking-detail-row">
+              <span>Vendégek száma</span>
+              <strong>{{ selectedBooking.guests || '-' }}</strong>
+            </div>
+            <div class="booking-detail-row">
+              <span>Státusz</span>
+              <span :class="['badge', selectedBooking.status]">{{ getStatusLabel(selectedBooking.status) }}</span>
+            </div>
+            <div class="booking-detail-row">
+              <span>Ár</span>
+              <strong>{{ getBookingPrice(selectedBooking).toLocaleString('hu-HU') }} Ft</strong>
+            </div>
+            <div class="booking-detail-row" v-if="selectedBooking.created_at || selectedBooking.createdAt">
+              <span>Létrehozva</span>
+              <strong>{{ formatBookingDate(selectedBooking.created_at || selectedBooking.createdAt) }}</strong>
+            </div>
+          </div>
+
+          <!-- statusz valtoztatas gombok - csak ha nem vegso allapotban van -->
+          <div v-if="selectedBooking && selectedBooking.status !== 'cancelled' && selectedBooking.status !== 'completed'" style="display:flex; gap:10px; margin-top:16px;">
+            <button
+              v-if="selectedBooking.status === 'pending'"
+              class="btn-submit"
+              @click="handleModalStatusChange('confirmed')"
+            >✔ Megerősítés</button>
+            <button
+              class="btn-cancel"
+              @click="handleModalCancel()"
+            >✖ Lemondás</button>
+          </div>
+          <div v-else style="margin-top:16px;">
+            <button class="btn-submit" @click="showBookingDetailModal = false">Bezárás</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -587,27 +1657,163 @@ onMounted(async () => {
 
     <!-- TÉRKÉP -->
     <div v-if="activeTab === 'terkep'">
-      <div class="card">
-        <h2>Térkép</h2>
-        <p>Kemping térképes nézete.</p>
+      <div class="new-camping-header">
+        <div>
+          <h2 class="gates-title">Térkép kezelés</h2>
+          <p class="gates-subtitle">GeoJSON térkép feltöltése a kempinghez</p>
+        </div>
       </div>
+
+      <!-- kemping valaszto -->
+      <div v-if="myCampings.length === 0" class="spot-no-camping">
+        <div class="spot-no-camping-icon">🗺️</div>
+        <h3>Még nincs kempinged</h3>
+        <p>Térkép kezeléséhez először hozz létre egy kempinget.</p>
+        <button class="btn-submit-camping" style="max-width: 260px;" @click="activeTab = 'ujkemping'">+ Új kemping létrehozása</button>
+      </div>
+
+      <template v-else>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+          <select class="form-select" v-model="mapSelectedCampingId" @change="handleMapCampingChange()">
+            <option :value="null" disabled>Válassz kempinget</option>
+            <option v-for="c in myCampings" :key="c.id" :value="c.id">{{ c.camping_name }}</option>
+          </select>
+        </div>
+
+        <!-- nincs kivalasztva kemping -->
+        <div v-if="!mapSelectedCampingId" class="section" style="text-align:center; padding:48px 24px;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" style="margin:0 auto 12px;">
+            <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          <p style="color:#9ca3af;">Válassz egy kempinget a térkép kezeléséhez</p>
+        </div>
+
+        <!-- kemping kivalasztva -->
+        <template v-if="mapSelectedCampingId">
+          <!-- uzenetek -->
+          <div v-if="mapUploadError" class="form-alert error" style="margin-bottom:16px;">❌ {{ mapUploadError }}</div>
+          <div v-if="mapUploadSuccess" class="form-alert success" style="margin-bottom:16px;">✅ {{ mapUploadSuccess }}</div>
+
+          <!-- feltoltes -->
+          <div class="section">
+            <h3>GeoJSON feltöltés</h3>
+            <p>Tölts fel egy <strong>.geojson</strong> fájlt (max. 2 MB, FeatureCollection típus)</p>
+
+            <div class="geojson-upload-area" @click="mapFileInput?.click()" @dragover.prevent @drop.prevent="handleMapFileUpload({ target: { files: $event.dataTransfer.files } })">
+              <input ref="mapFileInput" type="file" accept=".geojson" style="display:none;" @change="handleMapFileUpload" />
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5" style="margin-bottom:8px;">
+                <path d="M12 16V4m0 0l-4 4m4-4l4 4" />
+                <path d="M2 17l.621 2.485A2 2 0 004.561 21h14.878a2 2 0 001.94-1.515L22 17" />
+              </svg>
+              <div style="font-weight:500; color:#374151;">Kattints vagy húzd ide a fájlt</div>
+              <div style="font-size:13px; color:#9ca3af; margin-top:4px;">.geojson fájl, max. 2 MB</div>
+            </div>
+
+            <div v-if="mapLoading" style="text-align:center; margin-top:16px; color:#9ca3af;">
+              ⏳ Feldolgozás...
+            </div>
+          </div>
+
+          <!-- jelenlegi geojson -->
+          <div class="section">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+              <div>
+                <h3 style="margin:0;">Jelenlegi térkép</h3>
+                <p style="margin:4px 0 0;">A kempinghez mentett GeoJSON adat</p>
+              </div>
+              <button v-if="mapGeojsonData" class="btn-delete-spot" @click="handleMapDeleteGeojson" :disabled="mapLoading">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m2 0v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6h12z"/>
+                </svg>
+                Törlés
+              </button>
+            </div>
+
+            <div v-if="mapGeojsonData" class="geojson-preview">
+              <div class="geojson-info">
+                <div class="geojson-info-item">
+                  <span class="geojson-info-label">Típus</span>
+                  <span class="geojson-info-value">{{ mapGeojsonData.type || '–' }}</span>
+                </div>
+                <div class="geojson-info-item">
+                  <span class="geojson-info-label">Feature-ek száma</span>
+                  <span class="geojson-info-value">{{ geojsonFeatureCount(mapGeojsonData) }}</span>
+                </div>
+              </div>
+
+              <!-- terkep preview -->
+              <div ref="mapContainerRef" class="geojson-map-container"></div>
+
+              <!-- lenyithato kod -->
+              <div class="geojson-code-toggle" @click="mapCodeOpen = !mapCodeOpen">
+                <span>GeoJSON kód</span>
+                <svg :class="{ 'chevron-open': mapCodeOpen }" class="chevron-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+              <div v-if="mapCodeOpen" class="geojson-code-wrapper">
+                <pre class="geojson-code">{{ JSON.stringify(mapGeojsonData, null, 2) }}</pre>
+              </div>
+            </div>
+
+            <div v-else class="geojson-empty">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" style="margin-bottom:8px;">
+                <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              <p>Nincs feltöltött térkép ehhez a kempinghez</p>
+            </div>
+          </div>
+        </template>
+      </template>
     </div>
 
     <!-- BEVÉTELEK -->
     <div v-if="activeTab === 'bevetelek'">
+      <!-- kemping szuro -->
+      <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+        <select class="form-select" v-model="revenueFilterCampingId" @change="recalculateRevenueData()">
+          <option :value="null">Összes kemping</option>
+          <option v-for="c in myCampings" :key="c.id" :value="c.id">{{ c.camping_name }}</option>
+        </select>
+      </div>
+
       <div class="stats">
         <div class="card">
           <small>Havi bevétel</small>
-          <h2>{{ (dashboard?.monthlyRevenue || 0).toLocaleString('hu-HU') }} Ft</h2>
-          <div class="trend">{{ formatChange(dashboard?.monthlyRevenue, dashboard?.previousMonthlyRevenue) || '—' }} az előző hónaphoz képest</div>
+          <h2>{{ (monthlyRevenue || 0).toLocaleString('hu-HU') }} Ft</h2>
+          <div class="trend">{{ formatChange(monthlyRevenue, previousMonthlyRevenueValue) || '—' }} az előző hónaphoz képest</div>
         </div>
         <div class="card">
           <small>Átlagos foglalási érték</small>
           <h2>{{ (averageBookingValue || 0).toLocaleString('hu-HU') }} Ft</h2>
           <div class="trend">{{ formatChange(averageBookingValue, previousAverageBookingValue) || '—' }} az előző hónaphoz képest</div>
+          <p style="margin:6px 0 0; color:#9ca3af; font-size:12px;">Érkezés és távozás közti éjszakák × éjszakánkénti ár alapján</p>
         </div>
       </div>
 
+      <!-- havi trend - egyszer css bar chart -->
+      <div class="section">
+        <h3>Havi bevétel trend</h3>
+        <p>Az utolsó 6 hónap bevételei</p>
+
+        <div v-if="monthlyTrendData.length > 0" class="trend-chart">
+          <div v-for="m in monthlyTrendData" :key="m.label + m.year" class="trend-bar-wrapper">
+            <div class="trend-bar-value">{{ m.revenue > 0 ? (m.revenue / 1000).toFixed(0) + 'e' : '0' }}</div>
+            <div class="trend-bar-bg">
+              <div
+                class="trend-bar-fill"
+                :style="{ height: (monthlyTrendData.reduce((max, x) => Math.max(max, x.revenue), 0) > 0 ? Math.max(4, (m.revenue / monthlyTrendData.reduce((max, x) => Math.max(max, x.revenue), 0)) * 100) : 4) + '%' }"
+              ></div>
+            </div>
+            <div class="trend-bar-label">{{ m.label }}</div>
+          </div>
+        </div>
+        <div v-else class="booking">
+          <p>Nincsenek adatok</p>
+        </div>
+      </div>
+
+      <!-- tipus bontas -->
       <div class="section">
         <h3>Bevétel típusok szerint</h3>
         <p>Helyek típusainak bevétel megoszlása</p>
@@ -629,8 +1835,224 @@ onMounted(async () => {
         </div>
       </div>
     </div>
-    </template>
 
+    <!-- ÚJ KEMPING -->
+    <div v-if="activeTab === 'ujkemping'">
+      <div class="new-camping-header">
+        <div>
+          <h2 class="gates-title">Új kemping létrehozása</h2>
+          <p class="gates-subtitle">Töltsd ki az adatokat az új kemping regisztrálásához</p>
+        </div>
+      </div>
+
+      <div v-if="showInfoNotice" class="info-notice">
+        <span class="info-notice-icon">💡</span>
+        <div class="info-notice-text">
+          <strong>Egyedi igénye van?</strong>
+          Ha különleges kategóriát szeretne hozzáadni, vagy egyedi igénye van a kempingjével kapcsolatban,
+          kérjük írjon nekünk e-mailt:
+          <a href="mailto:info@campsite.hu">info@campsite.hu</a>
+        </div>
+        <button class="info-notice-close" @click="showInfoNotice = false" title="Bezárás">✕</button>
+      </div>
+
+      <div class="new-camping-card-full">
+        <!-- Hiba üzenet -->
+        <div v-if="campingFormError" class="form-alert error">
+          ⚠️ {{ campingFormError }}
+        </div>
+
+        <!-- Alap adatok + Tagek egy sorban -->
+        <div class="new-camping-top-row">
+          <div class="form-section new-camping-section-grow">
+            <h4 class="form-section-title">Alap adatok</h4>
+            <div class="form-group">
+              <label class="form-label">
+                Kemping neve <span class="required">*</span>
+                <span class="char-hint">(max. 100 karakter)</span>
+              </label>
+              <input type="text" class="form-input" v-model="newCampingForm.camping_name" placeholder="pl. Napfény Kemping" maxlength="100" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                Leírás <span class="required">*</span>
+                <span class="char-hint">(max. 1000 karakter)</span>
+              </label>
+              <textarea class="form-textarea" v-model="newCampingForm.description" rows="4" placeholder="Írj egy rövid leírást a kempingről..." maxlength="1000"></textarea>
+              <span class="char-hint" style="display:block; margin-top:4px;">{{ newCampingForm.description.length }}/1000</span>
+            </div>
+          </div>
+
+          <div class="form-section new-camping-section-tags">
+            <h4 class="form-section-title">Tagek (opcionális)</h4>
+            <p class="form-section-desc">Pipáld ki a kempingre jellemző tulajdonságokat. A kemping létrehozásával együtt mentődnek el.</p>
+            <div class="tag-checkbox-grid">
+              <label
+                v-for="tag in availableTags"
+                :key="tag"
+                class="tag-checkbox-item"
+                :class="{ selected: pendingTags.includes(tag) }"
+              >
+                <input type="checkbox" :value="tag" :checked="pendingTags.includes(tag)" @change="toggleTag(tag)" />
+                <span>{{ tag }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Helyszín + Céges adatok egy sorban -->
+        <div class="new-camping-bottom-row">
+          <div class="form-section new-camping-section-grow">
+            <h4 class="form-section-title">Helyszín</h4>
+            <div class="form-row">
+              <div class="form-group half">
+                <label class="form-label">Város <span class="required">*</span></label>
+                <input type="text" class="form-input" v-model="newCampingForm.city" placeholder="pl. Budapest" />
+              </div>
+              <div class="form-group half">
+                <label class="form-label">Irányítószám <span class="required">*</span></label>
+                <input type="text" class="form-input" v-model="newCampingForm.zip_code" placeholder="pl. 1011" maxlength="4" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Utca, házszám <span class="required">*</span></label>
+              <input type="text" class="form-input" v-model="newCampingForm.street_address" placeholder="pl. Fő utca, 12." />
+            </div>
+          </div>
+
+          <div class="form-section new-camping-section-grow">
+            <h4 class="form-section-title">Céges adatok</h4>
+            <div class="form-group">
+              <label class="form-label">Cég neve <span class="required">*</span></label>
+              <input type="text" class="form-input" v-model="newCampingForm.company_name" placeholder="pl. Napfény Kemping Kft." />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Adószám <span class="required">*</span></label>
+              <input type="text" class="form-input" :value="newCampingForm.tax_id" @input="newCampingForm.tax_id = formatTaxId($event.target); $event.target.value = newCampingForm.tax_id" placeholder="pl. 12345678-1-41" maxlength="13" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Számlázási cím <span class="required">*</span></label>
+              <input type="text" class="form-input" v-model="newCampingForm.billing_address" placeholder="pl. Budapest, Fő u. 12." />
+            </div>
+          </div>
+        </div>
+
+        <div v-if="campingFormSuccess" class="form-alert success">
+          ✅ {{ campingFormSuccess }}
+        </div>
+
+        <button class="btn-submit-camping" @click="handleAddCamping" :disabled="campingLoading">
+          <span v-if="campingLoading">⏳ Létrehozás folyamatban...</span>
+          <span v-else>🏕️ Kemping létrehozása</span>
+        </button>
+      </div>
+    </div>
+    <!-- KEMPING HELY HOZZÁADÁSA -->
+    <div v-if="activeTab === 'ujhely'">
+      <div class="new-camping-header">
+        <div>
+          <h2 class="gates-title">Kemping hely hozzáadása</h2>
+          <p class="gates-subtitle">Adj hozzá új férőhelyet egy meglévő kempinghez</p>
+        </div>
+      </div>
+
+      <!-- Nincs kemping -->
+      <div v-if="myCampings.length === 0" class="spot-no-camping">
+        <div class="spot-no-camping-icon">🏕️</div>
+        <h3>Még nincs kempinged</h3>
+        <p>Kemping hely hozzáadásához először hozz létre egy kempinget.</p>
+        <button class="btn-submit-camping" style="max-width: 260px;" @click="activeTab = 'ujkemping'">
+          + Új kemping létrehozása
+        </button>
+      </div>
+
+      <!-- Van kemping -->
+      <template v-else>
+        <!-- Hely form -->
+        <div class="new-camping-card-full">
+          <div v-if="spotFormError" class="form-alert error">⚠️ {{ spotFormError }}</div>
+
+          <div class="form-group" style="max-width: 420px; margin-bottom: 24px;">
+            <label class="form-label">Kemping kiválasztása <span class="required">*</span></label>
+            <select
+              class="form-select"
+              style="width: 100%;"
+              v-model="selectedSpotCampingId"
+              @change="spotFormError = null; spotFormSuccess = null"
+            >
+              <option :value="null" disabled>Válassz kempinget...</option>
+              <option v-for="c in myCampings" :key="c.id" :value="c.id">
+                {{ c.camping_name }} – {{ c.city }}
+              </option>
+            </select>
+          </div>
+
+          <div class="new-camping-top-row">
+            <!-- Bal: alap adatok -->
+            <div class="form-section new-camping-section-grow">
+              <h4 class="form-section-title">Hely adatai</h4>
+              <div class="form-group">
+                <label class="form-label">
+                  Hely neve <span class="required">*</span>
+                  <span class="char-hint">(max. 100 karakter)</span>
+                </label>
+                <input type="text" class="form-input" v-model="newSpotForm.name" placeholder="pl. A1, Napfény sarok" maxlength="100" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Típus <span class="required">*</span></label>
+                <div class="spot-type-grid">
+                  <label
+                    v-for="t in spotTypes"
+                    :key="t"
+                    class="tag-checkbox-item"
+                    :class="{ selected: newSpotForm.type === t }"
+                    @click="newSpotForm.type = t"
+                  >
+                    <input type="radio" :value="t" v-model="newSpotForm.type" style="accent-color: #3f6212; width:15px; height:15px; flex-shrink:0; cursor:pointer;" />
+                    <span>{{ t }}</span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Leírás <span class="char-hint">(opcionális)</span></label>
+                <textarea class="form-textarea" v-model="newSpotForm.description" rows="3" placeholder="Pl. árnyékos hely, közel a mosdóhoz..."></textarea>
+              </div>
+            </div>
+
+            <!-- Jobb: kapacitás és ár -->
+            <div class="form-section new-camping-section-grow">
+              <h4 class="form-section-title">Kapacitás és ár</h4>
+              <div class="form-group">
+                <label class="form-label">Kapacitás (fő) <span class="required">*</span></label>
+                <input type="number" class="form-input" v-model="newSpotForm.capacity" min="1" max="50" placeholder="pl. 4" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ár / éjszaka (Ft) <span class="required">*</span></label>
+                <input type="number" class="form-input" v-model="newSpotForm.price_per_night" min="0" placeholder="pl. 5000" />
+              </div>
+
+              <!-- Összefoglaló -->
+              <div v-if="newSpotForm.name || newSpotForm.type || newSpotForm.capacity || newSpotForm.price_per_night" class="spot-summary">
+                <h5 class="spot-summary-title">Összefoglaló</h5>
+                <div class="spot-summary-row"><span>Kemping:</span><strong>{{ myCampings.find(c => c.id === selectedSpotCampingId)?.camping_name || '—' }}</strong></div>
+                <div class="spot-summary-row"><span>Hely neve:</span><strong>{{ newSpotForm.name || '—' }}</strong></div>
+                <div class="spot-summary-row"><span>Típus:</span><strong>{{ newSpotForm.type || '—' }}</strong></div>
+                <div class="spot-summary-row"><span>Kapacitás:</span><strong>{{ newSpotForm.capacity ? newSpotForm.capacity + ' fő' : '—' }}</strong></div>
+                <div class="spot-summary-row"><span>Ár:</span><strong>{{ newSpotForm.price_per_night ? Number(newSpotForm.price_per_night).toLocaleString('hu-HU') + ' Ft/éj' : '—' }}</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="spotFormSuccess" class="form-alert success">✅ {{ spotFormSuccess }}</div>
+
+          <button class="btn-submit-camping" @click="handleAddSpot" :disabled="campingLoading">
+            <span v-if="campingLoading">⏳ Mentés folyamatban...</span>
+            <span v-else>➕ Kemping hely hozzáadása</span>
+          </button>
+        </div>
+      </template>
+    </div>
+    </template>
     <AuthModal
       :isOpen="authModalOpen"
       :initialMode="authModalMode"
@@ -765,6 +2187,9 @@ onMounted(async () => {
     color: #64748b;
   }
 
+  .bookings-scroll { max-height: 340px; overflow-y: auto; padding-right: 4px; }
+  .bookings-scroll::-webkit-scrollbar { width: 6px; }
+  .bookings-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   .booking { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #e6eef8; }
   .booking > div:first-child { flex: 1; }
   .booking .right { text-align: right; min-width: 140px; display: flex; flex-direction: column; align-items: flex-end; }
@@ -1191,6 +2616,19 @@ onMounted(async () => {
     color: #374151;
   }
 
+  .modal-body {
+    padding: 4px 0;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #f3f4f6;
+  }
+
   .form-group {
     margin-bottom: 18px;
   }
@@ -1444,6 +2882,901 @@ onMounted(async () => {
 
   .btn-link:hover {
     background: #2d4609;
+  }
+
+  /* Új kemping form */
+  .new-camping-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .info-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+
+  .info-notice-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+
+  .info-notice-text {
+    font-size: 14px;
+    color: #78350f;
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .info-notice-text strong {
+    display: block;
+    margin-bottom: 2px;
+    color: #92400e;
+  }
+
+  .info-notice-text a {
+    color: #b45309;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
+  .info-notice-text a:hover {
+    color: #78350f;
+  }
+
+  .info-notice-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #b45309;
+    padding: 0 0 0 8px;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity .15s;
+    align-self: flex-start;
+  }
+
+  .info-notice-close:hover {
+    opacity: 1;
+  }
+
+  .new-camping-card-full {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 10px rgba(0,0,0,.06);
+  }
+
+  .new-camping-top-row,
+  .new-camping-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .new-camping-top-row,
+    .new-camping-bottom-row {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+
+  .new-camping-section-grow {
+    min-width: 0;
+  }
+
+  .new-camping-section-tags {
+    min-width: 0;
+  }
+
+  .form-section {
+    margin-bottom: 0;
+    padding-bottom: 20px;
+    border-bottom: none;
+  }
+
+  .new-camping-top-row {
+    border-bottom: 1px solid #f3f4f6;
+    margin-bottom: 20px;
+  }
+
+  .form-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #374151;
+    margin: 0 0 4px 0;
+    padding-left: 10px;
+    border-left: 3px solid #3f6212;
+  }
+
+  .form-section-desc {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 4px 0 14px 0;
+  }
+
+  .required {
+    color: #dc2626;
+  }
+
+  .char-hint {
+    font-size: 11px;
+    font-weight: 400;
+    color: #9ca3af;
+    margin-left: 4px;
+  }
+
+  /* Tag checkbox grid */
+  .tag-checkbox-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .tag-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #374151;
+    transition: border-color .15s, background .15s;
+    user-select: none;
+  }
+
+  .tag-checkbox-item:hover {
+    border-color: #86efac;
+    background: #f0fdf4;
+  }
+
+  .tag-checkbox-item.selected {
+    border-color: #3f6212;
+    background: #dcfce7;
+    color: #166534;
+    font-weight: 600;
+  }
+
+  .tag-checkbox-item input[type="checkbox"] {
+    accent-color: #3f6212;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .tag-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #166534;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    opacity: 0.6;
+    transition: opacity .15s;
+  }
+
+  .tag-remove:hover {
+    opacity: 1;
+  }
+
+  .tag-empty {
+    font-size: 13px;
+    color: #9ca3af;
+    margin: 0;
+  }
+
+  .btn-submit-camping {
+    width: 100%;
+    padding: 14px;
+    background: #3f6212;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+    margin-top: 8px;
+  }
+
+  .btn-submit-camping:hover {
+    background: #4d7c0f;
+  }
+
+  .btn-submit-camping:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+
+  .form-alert {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+
+  .form-alert.success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+  }
+
+  .form-alert.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .tab.active[data-tab="ujkemping"] {
+    background: #f0fdf4;
+    color: #3f6212;
+  }
+
+  /* Áttekintés */
+  .overview-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .overview-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    overflow: hidden;
+  }
+
+  .overview-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    cursor: pointer;
+    transition: background .15s;
+    gap: 12px;
+  }
+
+  .overview-card-header:hover {
+    background: #f9fafb;
+  }
+
+  .overview-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .overview-camping-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .overview-camping-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .overview-camping-meta {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+
+  .overview-card-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .overview-stat-badge {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .overview-stat-badge.tag-color {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .overview-chevron {
+    font-size: 12px;
+    color: #9ca3af;
+    transition: transform .2s;
+    margin-left: 4px;
+  }
+
+  .overview-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .overview-card-body {
+    border-top: 1px solid #f3f4f6;
+    padding: 0 22px 22px;
+  }
+
+  .overview-section {
+    margin-top: 20px;
+  }
+
+  .overview-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 12px 0;
+  }
+
+  .overview-spots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .overview-spot-card {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .overview-spot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 6px;
+  }
+
+  .overview-spot-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1f2937;
+  }
+
+  .overview-spot-type {
+    font-size: 11px;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .overview-spot-details {
+    display: flex;
+    gap: 12px;
+  }
+
+  .overview-spot-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .overview-spot-detail-label {
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .overview-spot-detail-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .overview-spot-desc {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 8px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8px;
+  }
+
+  .overview-empty-spots {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 10px;
+    color: #6b7280;
+    font-size: 14px;
+  }
+
+  .overview-empty-spots p {
+    margin: 0;
+  }
+
+  .overview-spot-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .overview-tag-add {
+    margin-top: 10px;
+  }
+
+  .overview-tag-add-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .overview-tag-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .overview-tag-suggestion {
+    background: #f3f4f6;
+    border: 1px dashed #d1d5db;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .overview-tag-suggestion:hover {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+  }
+
+  .overview-company-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .overview-company-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #6b7280;
+    padding: 4px 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .overview-company-row:last-child {
+    border-bottom: none;
+  }
+
+  .overview-company-row strong {
+    color: #1f2937;
+  }
+
+  /* Kemping hely felvitel */
+  .spot-no-camping {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+  }
+
+  .spot-no-camping-icon {
+    font-size: 52px;
+    margin-bottom: 12px;
+  }
+
+  .spot-no-camping h3 {
+    font-size: 20px;
+    color: #374151;
+    margin: 0 0 8px;
+  }
+
+  .spot-no-camping p {
+    margin: 0 0 24px;
+    font-size: 14px;
+  }
+
+  .spot-camping-select-section {
+    margin-bottom: 4px;
+  }
+
+  .spot-section-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #374151;
+    margin: 0 0 12px 0;
+  }
+
+  .spot-camping-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+
+  .spot-camping-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    box-shadow: 0 2px 6px rgba(0,0,0,.04);
+  }
+
+  .spot-camping-card:hover {
+    border-color: #86efac;
+    background: #f0fdf4;
+  }
+
+  .spot-camping-card.selected {
+    border-color: #3f6212;
+    background: #f0fdf4;
+  }
+
+  .spot-camping-card-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .spot-camping-card-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .spot-camping-card-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .spot-camping-card-city {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+
+  .spot-camping-card-check {
+    font-size: 18px;
+    color: #3f6212;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .spot-type-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 640px) {
+    .spot-type-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .spot-summary {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 8px;
+  }
+
+  .spot-summary-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    margin: 0 0 10px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .spot-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f3f4f6;
+    color: #6b7280;
+  }
+
+  .spot-summary-row:last-child {
+    border-bottom: none;
+  }
+
+  .spot-summary-row strong {
+    color: #1f2937;
+  }
+
+  /* statusz valasztó a foglalasok tablazatban */
+  .status-select {
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    outline: none;
+    background: white;
+  }
+
+  .status-select.pending { background: #f3f4f6; color: #82a2d4; }
+  .status-select.confirmed { background: #dbeafe; color: #1e40af; }
+  .status-select.checked_in { background: #dcfce7; color: #166534; }
+  .status-select.completed { background: #f3f4f6; color: #374151; }
+  .status-select.cancelled { background: #fef2f2; color: #dc2626; }
+
+  /* lemondas gomb a modalban */
+  .btn-cancel {
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-cancel:hover {
+    background: #fee2e2;
+  }
+
+  /* foglalas reszletek modal */
+  .booking-detail-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .booking-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f3f4f6;
+    color: #6b7280;
+  }
+
+  .booking-detail-row:last-child {
+    border-bottom: none;
+  }
+
+  .booking-detail-row strong {
+    color: #1f2937;
+  }
+
+  /* hely torles gomb az attekintesben */
+  .spot-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 4px;
+    border-radius: 6px;
+    opacity: 0.5;
+    transition: opacity .15s;
+  }
+
+  .spot-delete-btn:hover {
+    opacity: 1;
+    background: #fef2f2;
+  }
+
+  /* havi trend chart - egyszer css barok */
+  .trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    height: 180px;
+    padding: 12px 0;
+  }
+
+  .trend-bar-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    gap: 4px;
+  }
+
+  .trend-bar-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .trend-bar-bg {
+    flex: 1;
+    width: 100%;
+    max-width: 48px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+
+  .trend-bar-fill {
+    width: 100%;
+    background: #3f6212;
+    border-radius: 6px;
+    min-height: 4px;
+    transition: height .3s ease;
+  }
+
+  .trend-bar-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  /* terkep tab */
+  .geojson-upload-area {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .geojson-upload-area:hover {
+    border-color: #3b82f6;
+    background: #f0f7ff;
+  }
+
+  .geojson-preview {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .geojson-info {
+    display: flex;
+    gap: 24px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .geojson-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .geojson-info-label {
+    font-size: 12px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .geojson-info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+  }
+  .geojson-map-container {
+    height: 380px;
+    width: 100%;
+    z-index: 0;
+  }
+
+  .geojson-code-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    cursor: pointer;
+    border-top: 1px solid #e5e7eb;
+    user-select: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    transition: background 0.15s;
+  }
+  .geojson-code-toggle:hover {
+    background: #f3f4f6;
+  }
+  .chevron-icon {
+    transition: transform 0.2s;
+    color: #9ca3af;
+  }
+  .chevron-open {
+    transform: rotate(180deg);
+  }
+
+  .geojson-code-wrapper {
+    max-height: 320px;
+    overflow: auto;
+    padding: 16px 20px;
+    border-top: 1px solid #e5e7eb;
+  }
+  .geojson-code {
+    margin: 0;
+    font-size: 12px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    color: #374151;
+    white-space: pre;
+    line-height: 1.5;
+  }
+
+  .geojson-empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: #9ca3af;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .geojson-empty p {
+    margin: 0;
+    font-size: 14px;
   }
 
 </style>
