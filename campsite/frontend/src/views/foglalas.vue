@@ -160,7 +160,7 @@ const calendarDays = computed(() => {
 
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const date = new Date(currentYear.value, currentMonth.value, day)
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     const isPast = date < today
     const isCheckIn = dateStr === bookingForm.value.checkIn
     const isCheckOut = dateStr === bookingForm.value.checkOut
