@@ -1,0 +1,2641 @@
+swagger: '2.0'
+info:
+  title: CampSite API
+  description: |
+    CampSite kemping foglalási és beléptetőrendszer API dokumentáció.
+
+    ## Autentikáció
+    A védett végpontok Laravel Sanctum Bearer tokennel működnek.
+    Regisztráció vagy bejelentkezés után kapott tokent a kérés headerébe kell tenni:
+    `Authorization: Bearer <token>`
+
+    ## Szerepkörök
+    - **Felhasználó (role=0)** – böngészhet, foglalhat, értékelhet
+    - **Partner / Tulajdonos (role=1)** – kempinget hozhat létre és kezelhet
+    - **ESP32 kapu** – saját auth_token-nel léptethet be vendéget
+
+    ## Státuszok (Foglalás)
+    `pending` → `confirmed` → `checked_in` → `completed` | `cancelled`
+  version: '2.0.0'
+  contact:
+    name: CampSite Team
+host: 127.0.0.1:8000
+basePath: /api
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+securityDefinitions:
+  BearerAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: 'Sanctum token. Formátum: Bearer <token>'
+  GateAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: 'ESP32 kapu token. Formátum: Bearer <gate_auth_token>'
+
+tags:
+  - name: Auth
+    description: Regisztráció, bejelentkezés, jelszókezelés, email megerősítés
+  - name: Profile
+    description: Felhasználói profil
+  - name: Search
+    description: Keresés és helyszín javaslatok
+  - name: Campings
+    description: Kempingek listázása és kezelése
+  - name: GeoJSON
+    description: Kemping térkép (GeoJSON) kezelése
+  - name: CampingSpots
+    description: Kemping helyek kezelése
+  - name: CampingPhotos
+    description: Kemping képek kezelése
+  - name: CampingTags
+    description: Kemping címkék kezelése
+  - name: Comments
+    description: Értékelések és válaszok
+  - name: Bookings
+    description: Foglalások kezelése
+  - name: OwnerBookings
+    description: Tulajdonosi foglalás műveletek
+  - name: QR & Scanning
+    description: QR kód és ESP32 beléptetés
+  - name: EntranceGates
+    description: Bejárati kapuk kezelése
+  - name: UserGuests
+    description: Vendég személyes adatok kezelése
+  - name: Dashboard
+    description: Tulajdonosi dashboard statisztikák
+
+paths:
+  # ═══════════════════════════════════════════════════════
+  # AUTH
+  # ═══════════════════════════════════════════════════════
+  /register:
+    post:
+      tags: [Auth]
+      summary: Felhasználó regisztrációja
+      description: |
+        Új felhasználó létrehozása. Sikeres regisztráció után Sanctum tokent
+        és aktiváló emailt küld (ha a mailszerver elérhető).
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - owner_first_name
+              - owner_last_name
+              - email
+              - password
+              - password_confirmation
+            properties:
+              owner_first_name:
+                type: string
+                example: 'Teszt'
+              owner_last_name:
+                type: string
+                example: 'Felhasználó'
+              email:
+                type: string
+                format: email
+                example: 'teszt@example.com'
+              password:
+                type: string
+                example: 'password123'
+              password_confirmation:
+                type: string
+                example: 'password123'
+      responses:
+        201:
+          description: Sikeres regisztráció
+          schema:
+            type: object
+            properties:
+              user:
+                $ref: '#/definitions/User'
+              token:
+                type: string
+                example: '1|abc123xyz...'
+              message:
+                type: string
+        422:
+          description: Validációs hiba
+        500:
+          description: Szerverhiba
+
+  /login:
+    post:
+      tags: [Auth]
+      summary: Bejelentkezés
+      description: Email és jelszó alapú bejelentkezés. Csak megerősített email esetén enged be.
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+              - password
+            properties:
+              email:
+                type: string
+                format: email
+                example: 'teszt@example.com'
+              password:
+                type: string
+                example: 'password123'
+      responses:
+        200:
+          description: Sikeres bejelentkezés
+          schema:
+            type: object
+            properties:
+              user:
+                $ref: '#/definitions/User'
+              token:
+                type: string
+        401:
+          description: Hibás email vagy jelszó
+        403:
+          description: Email nincs megerősítve
+        422:
+          description: Validációs hiba
+
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Kijelentkezés
+      description: Törli az összes aktív tokent.
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Sikeres kijelentkezés
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: 'Kijelentkeztél.'
+        401:
+          description: Nincs bejelentkezve
+
+  /forgot-password:
+    post:
+      tags: [Auth]
+      summary: Jelszó-visszaállítás kérése
+      description: |
+        Jelszó-visszaállító emailt küld a megadott címre.
+        Biztonsági okokból mindig azonos választ ad, függetlenül attól, hogy létezik-e a fiók.
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+            properties:
+              email:
+                type: string
+                format: email
+      responses:
+        200:
+          description: Válasz (mindig ugyanaz biztonsági okokból)
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        422:
+          description: Validációs hiba
+
+  /reset-password:
+    post:
+      tags: [Auth]
+      summary: Jelszó visszaállítása
+      description: Token alapján új jelszó beállítása. A token 60 percig érvényes.
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+              - token
+              - password
+              - password_confirmation
+            properties:
+              email:
+                type: string
+                format: email
+              token:
+                type: string
+              password:
+                type: string
+                minLength: 8
+              password_confirmation:
+                type: string
+      responses:
+        200:
+          description: Jelszó sikeresen megváltoztatva
+        400:
+          description: Érvénytelen vagy lejárt token
+
+  /verify-email:
+    post:
+      tags: [Auth]
+      summary: Email cím megerősítése
+      description: A regisztrációkor kapott aktiváló link token-je alapján megerősíti az email címet. 24 óráig érvényes.
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+              - token
+            properties:
+              email:
+                type: string
+                format: email
+              token:
+                type: string
+      responses:
+        200:
+          description: Email sikeresen megerősítve
+        400:
+          description: Érvénytelen vagy lejárt aktiváló link
+
+  /resend-verification:
+    post:
+      tags: [Auth]
+      summary: Aktiváló email újraküldése
+      description: Új aktiváló emailt küld. Biztonsági okokból mindig azonos választ ad.
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+            properties:
+              email:
+                type: string
+                format: email
+      responses:
+        200:
+          description: Ha az email regisztrálva van, elküldtük az aktiváló linket
+
+  /upgrade-to-partner:
+    post:
+      tags: [Auth]
+      summary: Partner státuszra váltás
+      description: Bejelentkezett felhasználó partner (tulajdonos) szerepkörre váltása. Telefonszám megadása kötelező.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - phone_number
+            properties:
+              phone_number:
+                type: string
+                example: '+36201234567'
+      responses:
+        200:
+          description: Sikeres váltás
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              user:
+                $ref: '#/definitions/User'
+        401:
+          description: Nincs bejelentkezve
+
+  # ═══════════════════════════════════════════════════════
+  # PROFILE
+  # ═══════════════════════════════════════════════════════
+  /user:
+    get:
+      tags: [Profile]
+      summary: Bejelentkezett felhasználó adatai
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Felhasználói adatok
+          schema:
+            $ref: '#/definitions/User'
+        401:
+          description: Nincs bejelentkezve
+
+  # ═══════════════════════════════════════════════════════
+  # SEARCH
+  # ═══════════════════════════════════════════════════════
+  /search:
+    get:
+      tags: [Search]
+      summary: Keresés kempingek között
+      description: |
+        Szöveges keresés név, leírás és helyszín alapján. Szűrés ár, értékelés és címkék szerint.
+      parameters:
+        - name: q
+          in: query
+          type: string
+          description: Keresőkifejezés (név, leírás, város)
+        - name: location
+          in: query
+          type: string
+          description: Helyszín szűrő (város, cím)
+        - name: min_price
+          in: query
+          type: number
+          description: Minimum ár/éjszaka
+        - name: max_price
+          in: query
+          type: number
+          description: Maximum ár/éjszaka
+        - name: min_rating
+          in: query
+          type: number
+          description: Minimum értékelés (1-5)
+        - name: tags
+          in: query
+          type: string
+          description: Címkék (vesszővel elválasztva, pl. "wifi,medence")
+      responses:
+        200:
+          description: Keresési találatok
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CampingListItem'
+
+  /locations/suggest:
+    get:
+      tags: [Search]
+      summary: Helyszín javaslatok (autocomplete)
+      description: Város és kemping nevek keresése a beírt szöveg alapján. Minimum 1 karakter.
+      parameters:
+        - name: q
+          in: query
+          type: string
+          required: true
+          description: Keresett szöveg (min 1 karakter)
+      responses:
+        200:
+          description: Javaslatok listája (max 8)
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [location, camping]
+                label:
+                  type: string
+                id:
+                  type: integer
+                  description: Csak camping típusnál
+
+  /booking/search:
+    get:
+      tags: [Search]
+      summary: Foglalás kereső
+      description: Szabad kempingek keresése adott időszakra, helyszínre és létszámra.
+      parameters:
+        - name: location
+          in: query
+          type: string
+          description: Város neve
+        - name: arrival_date
+          in: query
+          type: string
+          format: date
+          required: true
+          description: Érkezés dátuma (YYYY-MM-DD, mai naptól)
+        - name: departure_date
+          in: query
+          type: string
+          format: date
+          required: true
+          description: Távozás dátuma (érkezés utáni nap)
+        - name: guests
+          in: query
+          type: integer
+          required: true
+          minimum: 1
+          description: Vendégek száma
+        - name: page
+          in: query
+          type: integer
+          description: Oldalszám (alapértelmezett 1)
+      responses:
+        200:
+          description: Szabad kempingek paginálva
+          schema:
+            $ref: '#/definitions/PaginatedCampings'
+        422:
+          description: Validációs hiba
+
+  # ═══════════════════════════════════════════════════════
+  # CAMPINGS
+  # ═══════════════════════════════════════════════════════
+  /campings:
+    get:
+      tags: [Campings]
+      summary: Kempingek listázása
+      description: Publikus kemping lista szűrőkkel és paginálással (12/oldal).
+      parameters:
+        - name: search
+          in: query
+          type: string
+          description: Név vagy leírás keresés
+        - name: min_price
+          in: query
+          type: number
+          description: Minimum ár/éjszaka
+        - name: max_price
+          in: query
+          type: number
+          description: Maximum ár/éjszaka
+        - name: page
+          in: query
+          type: integer
+          description: Oldalszám
+      responses:
+        200:
+          description: Paginált kemping lista
+          schema:
+            $ref: '#/definitions/PaginatedCampings'
+
+    post:
+      tags: [Campings]
+      summary: Új kemping létrehozása (Tulajdonos)
+      description: Csak partner (role=1) felhasználó hozhat létre kempinget. Automatikusan létrehoz egy Location rekordot is.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - camping_name
+              - description
+              - city
+              - zip_code
+              - street_address
+            properties:
+              camping_name:
+                type: string
+                maxLength: 150
+                example: 'Balaton Camping'
+              description:
+                type: string
+                example: 'Gyönyörű part menti kemping a Balaton déli partján.'
+              company_name:
+                type: string
+                maxLength: 150
+              tax_id:
+                type: string
+                maxLength: 50
+              billing_address:
+                type: string
+                maxLength: 200
+              city:
+                type: string
+                maxLength: 100
+                example: 'Siófok'
+              zip_code:
+                type: string
+                maxLength: 10
+                example: '8600'
+              street_address:
+                type: string
+                maxLength: 200
+                example: 'Petőfi sétány 1.'
+              latitude:
+                type: number
+                format: double
+                example: 46.9050
+              longitude:
+                type: number
+                format: double
+                example: 18.0514
+      responses:
+        201:
+          description: Kemping sikeresen létrehozva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              camping:
+                $ref: '#/definitions/CampingFull'
+        403:
+          description: Nem partner felhasználó
+        422:
+          description: Validációs hiba
+
+  /campings/{id}:
+    get:
+      tags: [Campings]
+      summary: Kemping részletei
+      description: Egy kemping összes adatának lekérése (helyek, képek, értékelések, kapuk).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Kemping részletes adatai
+          schema:
+            $ref: '#/definitions/CampingFull'
+        404:
+          description: Kemping nem található
+
+    put:
+      tags: [Campings]
+      summary: Kemping módosítása (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              camping_name:
+                type: string
+                maxLength: 150
+              description:
+                type: string
+              company_name:
+                type: string
+              tax_id:
+                type: string
+              billing_address:
+                type: string
+              city:
+                type: string
+              zip_code:
+                type: string
+              street_address:
+                type: string
+              latitude:
+                type: number
+              longitude:
+                type: number
+      responses:
+        200:
+          description: Kemping frissítve
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              camping:
+                $ref: '#/definitions/CampingFull'
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Nem található
+
+    delete:
+      tags: [Campings]
+      summary: Kemping törlése (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Kemping törölve
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Nem található
+
+  /my-campings:
+    get:
+      tags: [Campings]
+      summary: Saját kempingek listája (Tulajdonos)
+      description: A bejelentkezett tulajdonos összes kempingje (dropdown-hoz).
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Saját kempingek
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CampingFull'
+        401:
+          description: Nincs bejelentkezve
+
+  /campings/{id}/availability:
+    get:
+      tags: [Campings]
+      summary: Kemping foglaltsági naptár
+      description: Egy kemping összes helyének foglaltsági állapota egy adott időszakban.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+        - name: start_date
+          in: query
+          required: true
+          type: string
+          format: date
+          description: Kezdő dátum (mai naptól)
+        - name: end_date
+          in: query
+          required: true
+          type: string
+          format: date
+          description: Záró dátum
+      responses:
+        200:
+          description: Foglaltsági adatok
+          schema:
+            type: object
+            properties:
+              camping_id:
+                type: integer
+              camping_name:
+                type: string
+              start_date:
+                type: string
+              end_date:
+                type: string
+              availability:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    spot_id:
+                      type: integer
+                    spot_number:
+                      type: string
+                    spot_type:
+                      type: string
+                    capacity:
+                      type: integer
+                    price_per_night:
+                      type: number
+                    available:
+                      type: boolean
+                    bookings:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          arrival_date:
+                            type: string
+                          departure_date:
+                            type: string
+                          status:
+                            type: string
+        404:
+          description: Kemping nem található
+        422:
+          description: Validációs hiba
+
+  # ═══════════════════════════════════════════════════════
+  # GEOJSON
+  # ═══════════════════════════════════════════════════════
+  /campings/{id}/geojson:
+    get:
+      tags: [GeoJSON]
+      summary: GeoJSON térkép lekérése
+      description: Publikus – kemping térképadatainak lekérése.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: GeoJSON adat
+          schema:
+            type: object
+            properties:
+              camping_id:
+                type: integer
+              camping_name:
+                type: string
+              geojson:
+                type: object
+                description: GeoJSON FeatureCollection
+        404:
+          description: Kemping nem található vagy nincs térkép
+
+    post:
+      tags: [GeoJSON]
+      summary: GeoJSON térkép feltöltése (Tulajdonos)
+      description: |
+        A tulajdonos geojson.io-n megrajzolja a térképet és feltölti.
+        Csak `.geojson` kiterjesztésű fájl, FeatureCollection típusú, max 2MB.
+      security:
+        - BearerAuth: []
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+        - name: geojson
+          in: formData
+          required: true
+          type: file
+          description: '.geojson fájl (max 2MB, FeatureCollection típus)'
+      responses:
+        200:
+          description: Térkép feltöltve
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              camping_id:
+                type: integer
+              camping_name:
+                type: string
+              geojson:
+                type: object
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Kemping nem található
+        422:
+          description: Érvénytelen fájl
+
+    delete:
+      tags: [GeoJSON]
+      summary: GeoJSON térkép törlése (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Térkép törölve
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Kemping nem található
+
+  # ═══════════════════════════════════════════════════════
+  # CAMPING SPOTS
+  # ═══════════════════════════════════════════════════════
+  /campings/{campingId}/spots:
+    get:
+      tags: [CampingSpots]
+      summary: Kemping helyeinek listázása
+      description: |
+        Publikus. Opcionális dátum szűrővel jelzi, mely helyek foglaltak.
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: start_date
+          in: query
+          type: string
+          format: date
+          description: Szűrő – kezdő dátum
+        - name: end_date
+          in: query
+          type: string
+          format: date
+          description: Szűrő – záró dátum
+      responses:
+        200:
+          description: Helyek listája
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CampingSpot'
+        404:
+          description: Kemping nem található
+
+    post:
+      tags: [CampingSpots]
+      summary: Új hely létrehozása (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - type
+              - capacity
+              - price_per_night
+            properties:
+              name:
+                type: string
+                maxLength: 100
+                example: 'A1'
+              type:
+                type: string
+                maxLength: 50
+                example: 'tent'
+              capacity:
+                type: integer
+                minimum: 1
+                example: 4
+              price_per_night:
+                type: number
+                minimum: 0
+                example: 5000
+              description:
+                type: string
+              row:
+                type: integer
+              column:
+                type: integer
+      responses:
+        201:
+          description: Hely létrehozva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              spot:
+                $ref: '#/definitions/CampingSpot'
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Kemping nem található
+
+  /campings/{campingId}/spots/{spotId}:
+    get:
+      tags: [CampingSpots]
+      summary: Hely részletei
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: spotId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Hely adatai
+          schema:
+            $ref: '#/definitions/CampingSpot'
+        404:
+          description: Nem található
+
+    put:
+      tags: [CampingSpots]
+      summary: Hely módosítása (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: spotId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+              capacity:
+                type: integer
+              price_per_night:
+                type: number
+              description:
+                type: string
+              is_available:
+                type: boolean
+              row:
+                type: integer
+              column:
+                type: integer
+      responses:
+        200:
+          description: Hely frissítve
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              spot:
+                $ref: '#/definitions/CampingSpot'
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Nem található
+
+    delete:
+      tags: [CampingSpots]
+      summary: Hely törlése (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: spotId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Hely törölve
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Nem található
+
+  # ═══════════════════════════════════════════════════════
+  # CAMPING PHOTOS
+  # ═══════════════════════════════════════════════════════
+  /campings/{campingId}/photos:
+    get:
+      tags: [CampingPhotos]
+      summary: Kemping képeinek listázása
+      description: Publikus.
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Képek listája
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CampingPhoto'
+
+    post:
+      tags: [CampingPhotos]
+      summary: Kép feltöltése (Tulajdonos)
+      description: |
+        Maximum 10 kép / kemping. Formátumok: jpg, jpeg, png, webp. Max méret: 10MB.
+      security:
+        - BearerAuth: []
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: photo
+          in: formData
+          required: true
+          type: file
+          description: 'Kép fájl (jpg, jpeg, png, webp – max 10MB)'
+        - name: caption
+          in: formData
+          type: string
+          maxLength: 255
+      responses:
+        201:
+          description: Kép feltöltve
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              photo:
+                $ref: '#/definitions/CampingPhoto'
+              remaining_slots:
+                type: integer
+        403:
+          description: Nem a tulajdonos
+        422:
+          description: Max 10 kép elérve vagy hibás formátum
+
+  /campings/{campingId}/photos/url:
+    post:
+      tags: [CampingPhotos]
+      summary: Kép hozzáadása URL alapján (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - photo_url
+            properties:
+              photo_url:
+                type: string
+                example: 'https://example.com/camping.jpg'
+              caption:
+                type: string
+                maxLength: 255
+      responses:
+        201:
+          description: Kép URL hozzáadva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              photo:
+                $ref: '#/definitions/CampingPhoto'
+        403:
+          description: Nem a tulajdonos
+
+  /campings/{campingId}/photos/{photoId}:
+    delete:
+      tags: [CampingPhotos]
+      summary: Kép törlése (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: photoId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Kép törölve
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              remaining_photos:
+                type: integer
+              remaining_slots:
+                type: integer
+        403:
+          description: Nem a tulajdonos
+        404:
+          description: Kép nem található
+
+  # ═══════════════════════════════════════════════════════
+  # CAMPING TAGS
+  # ═══════════════════════════════════════════════════════
+  /campings/{campingId}/tags:
+    get:
+      tags: [CampingTags]
+      summary: Kemping címkéinek listázása
+      description: Publikus.
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Címkék listája
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/CampingTag'
+
+    post:
+      tags: [CampingTags]
+      summary: Címke hozzáadása (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - tag
+            properties:
+              tag:
+                type: string
+                example: 'wifi'
+      responses:
+        201:
+          description: Címke hozzáadva
+        403:
+          description: Nincs jogosultság
+
+  /campings/{campingId}/tags/{tagId}:
+    delete:
+      tags: [CampingTags]
+      summary: Címke törlése (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: tagId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Címke törölve
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Nem található
+
+  # ═══════════════════════════════════════════════════════
+  # COMMENTS
+  # ═══════════════════════════════════════════════════════
+  /campings/{campingId}/comments:
+    get:
+      tags: [Comments]
+      summary: Kemping értékeléseinek listázása
+      description: |
+        Publikus. Visszaadja a fő kommenteket a válaszokkal rekurzívan,
+        és az átlag értékelést.
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Értékelések
+          schema:
+            type: object
+            properties:
+              camping:
+                type: string
+              average_rating:
+                type: number
+              reviews_count:
+                type: integer
+              comments:
+                type: array
+                items:
+                  $ref: '#/definitions/Comment'
+
+    post:
+      tags: [Comments]
+      summary: Értékelés írása
+      description: |
+        Csak befejezett vagy checked_in foglalással rendelkező felhasználók
+        értékelhetnek. Egy kemping csak egyszer értékelhető.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - rating
+              - comment
+            properties:
+              rating:
+                type: integer
+                minimum: 1
+                maximum: 5
+                example: 4
+              comment:
+                type: string
+                maxLength: 1000
+                example: 'Nagyon szép volt, ajánlom!'
+      responses:
+        201:
+          description: Értékelés létrehozva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              comment:
+                $ref: '#/definitions/Comment'
+        403:
+          description: Nincs befejezett foglalás
+        422:
+          description: Már értékelt
+
+  /comments/{commentId}/reply:
+    post:
+      tags: [Comments]
+      summary: Válasz hozzáadása értékeléshez
+      description: |
+        Bejelentkezett felhasználó válaszolhat egy kommentre.
+        Rate-limiting: max 3 válasz/perc ugyanarra a kommentre, min 10mp két válasz között.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - comment
+            properties:
+              comment:
+                type: string
+                maxLength: 1000
+      responses:
+        201:
+          description: Válasz hozzáadva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              reply:
+                $ref: '#/definitions/Comment'
+        429:
+          description: Túl sok válasz (rate-limit)
+
+  /comments/{commentId}:
+    put:
+      tags: [Comments]
+      summary: Saját értékelés szerkesztése
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              rating:
+                type: integer
+                minimum: 1
+                maximum: 5
+                description: Csak fő kommentnél módosítható
+              comment:
+                type: string
+                maxLength: 1000
+      responses:
+        200:
+          description: Értékelés frissítve
+        403:
+          description: Nem a saját komment
+
+    delete:
+      tags: [Comments]
+      summary: Értékelés törlése
+      description: Saját kommentet vagy a kemping tulajdonosa törölhet. Ha fő komment, a válaszok is törlődnek (CASCADE).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: commentId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Értékelés törölve
+        403:
+          description: Nincs jogosultság
+
+  # ═══════════════════════════════════════════════════════
+  # BOOKINGS
+  # ═══════════════════════════════════════════════════════
+  /bookings:
+    get:
+      tags: [Bookings]
+      summary: Saját foglalások listázása
+      description: A bejelentkezett felhasználó foglalásai, paginálva (10/oldal).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          type: integer
+      responses:
+        200:
+          description: Paginált foglalások
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Booking'
+              current_page:
+                type: integer
+              last_page:
+                type: integer
+              total:
+                type: integer
+        401:
+          description: Nincs bejelentkezve
+
+    post:
+      tags: [Bookings]
+      summary: Új foglalás létrehozása
+      description: |
+        Hely foglalása. Ellenőrzések:
+        - A hely a megadott kempinghez tartozik
+        - A hely elérhető (is_available)
+        - A vendégszám nem haladja meg a kapacitást
+        - Nincs átfedő foglalás a megadott időszakban
+        
+        Automatikusan generál QR kódot.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - camping_id
+              - camping_spot_id
+              - arrival_date
+              - departure_date
+              - guests
+            properties:
+              camping_id:
+                type: integer
+                example: 1
+              camping_spot_id:
+                type: integer
+                example: 5
+              arrival_date:
+                type: string
+                format: date
+                example: '2026-07-01'
+              departure_date:
+                type: string
+                format: date
+                example: '2026-07-05'
+              guests:
+                type: integer
+                minimum: 1
+                example: 3
+      responses:
+        201:
+          description: Foglalás létrehozva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              booking:
+                $ref: '#/definitions/Booking'
+        422:
+          description: Hely foglalt / kapacitás túllépve / validációs hiba
+
+  /bookings/getAll:
+    get:
+      tags: [Bookings]
+      summary: Összes foglalás lekérése
+      description: Admin célra – összes foglalás paginálva (20/oldal).
+      parameters:
+        - name: page
+          in: query
+          type: integer
+      responses:
+        200:
+          description: Összes foglalás
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/definitions/Booking'
+
+  /bookings/prices:
+    get:
+      tags: [Bookings]
+      summary: Foglalások árai
+      description: Minden foglalás teljes ára (éjszakák × ár/éjszaka).
+      responses:
+        200:
+          description: Ár lista
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                booking_id:
+                  type: integer
+                total_price:
+                  type: number
+
+  /bookings/{id}:
+    get:
+      tags: [Bookings]
+      summary: Foglalás részletei
+      description: Saját foglalás vagy a kemping tulajdonosaként tekinthető meg. Visszaadja az éjszakák számát és a teljes árat.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Foglalás részletei
+          schema:
+            allOf:
+              - $ref: '#/definitions/Booking'
+              - type: object
+                properties:
+                  nights:
+                    type: integer
+                  total_price:
+                    type: number
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Nem található
+
+    put:
+      tags: [Bookings]
+      summary: Foglalás módosítása
+      description: Csak saját, pending státuszú foglalás módosítható. Csak dátumok változtathatók.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - arrival_date
+              - departure_date
+            properties:
+              arrival_date:
+                type: string
+                format: date
+              departure_date:
+                type: string
+                format: date
+      responses:
+        200:
+          description: Foglalás módosítva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              booking:
+                $ref: '#/definitions/Booking'
+        403:
+          description: Nem saját foglalás
+        422:
+          description: Nem pending státusz / átfedő foglalás
+
+    delete:
+      tags: [Bookings]
+      summary: Foglalás lemondása
+      description: |
+        Saját foglalás vagy a kemping tulajdonosa mondhatja le.
+        Nem törli végleg – a státuszt `cancelled`-re állítja.
+        Completed vagy cancelled foglalás nem mondható le.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Foglalás lemondva
+        403:
+          description: Nincs jogosultság
+        422:
+          description: Már befejezett/lemondott foglalás
+
+  /bookings/{id}/qr-code:
+    get:
+      tags: [QR & Scanning]
+      summary: Foglalás QR kódjának lekérése
+      description: Csak saját foglaláshoz kérhető le.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: QR kód adatok
+          schema:
+            type: object
+            properties:
+              qr_code:
+                type: string
+                example: 'USR1-BKG5-AB12CD34'
+              booking_id:
+                type: integer
+              camping_name:
+                type: string
+              arrival_date:
+                type: string
+              departure_date:
+                type: string
+        403:
+          description: Nem saját foglalás
+        404:
+          description: Nem található
+
+  # ═══════════════════════════════════════════════════════
+  # OWNER BOOKINGS
+  # ═══════════════════════════════════════════════════════
+  /owner/bookings:
+    get:
+      tags: [OwnerBookings]
+      summary: Tulajdonos kempingjeinek foglalásai
+      description: A bejelentkezett tulajdonos összes kempingjéhez érkezett foglalások.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          type: string
+          enum: [pending, confirmed, checked_in, completed, cancelled]
+          description: Státusz szűrő
+        - name: camping_id
+          in: query
+          type: integer
+          description: Kemping szűrő
+      responses:
+        200:
+          description: Foglalások listája
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Booking'
+        401:
+          description: Nincs bejelentkezve
+
+  /bookings/{id}/status:
+    patch:
+      tags: [OwnerBookings]
+      summary: Foglalás státuszának módosítása (Tulajdonos)
+      description: Csak a kemping tulajdonosa módosíthatja.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - status
+            properties:
+              status:
+                type: string
+                enum: [pending, confirmed, checked_in, completed, cancelled]
+      responses:
+        200:
+          description: Státusz módosítva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              booking:
+                $ref: '#/definitions/Booking'
+        403:
+          description: Nem a kemping tulajdonosa
+        404:
+          description: Nem található
+
+  /bookings/scan:
+    post:
+      tags: [QR & Scanning]
+      summary: QR kód beolvasása képből (Sanctum auth)
+      description: |
+        Bejelentkezett tulajdonos tölti fel a QR-képet.
+        Node.js script dekódolja a QR kódot és belépteti a vendéget.
+      security:
+        - BearerAuth: []
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: image
+          in: formData
+          required: true
+          type: file
+          description: 'JPEG kép (max 2MB)'
+        - name: camping_id
+          in: formData
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Sikeres bejelentkezés
+          schema:
+            type: object
+            properties:
+              valid:
+                type: boolean
+              message:
+                type: string
+              booking:
+                $ref: '#/definitions/Booking'
+        401:
+          description: Érvénytelen token
+        404:
+          description: Foglalás nem található
+        422:
+          description: Nem található QR / lejárt foglalás
+
+  /bookings/scan-image:
+    post:
+      tags: [QR & Scanning]
+      summary: ESP32 QR szkenner végpont
+      description: |
+        Az ESP32 kapu által küldött JPEG/PNG képből QR kódot dekódol.
+        
+        **Auth:** Kapu szintű Bearer token (nem Sanctum!).
+        
+        Elfogad raw JPEG/PNG body-t (Content-Type: image/jpeg) vagy multipart form-data-t.
+        Sikeres beolvasás után a foglalás státusza `checked_in`-re vált.
+      security:
+        - GateAuth: []
+      consumes:
+        - image/jpeg
+        - image/png
+        - multipart/form-data
+      parameters:
+        - name: image
+          in: formData
+          type: file
+          description: 'JPEG/PNG kép (multipart esetén) vagy raw body'
+      responses:
+        200:
+          description: Sikeres bejelentkezés
+          schema:
+            type: object
+            properties:
+              valid:
+                type: boolean
+                example: true
+              message:
+                type: string
+                example: 'Sikeres bejelentkezés!'
+              booking:
+                $ref: '#/definitions/Booking'
+        401:
+          description: Hiányzó vagy érvénytelen kapu token
+        404:
+          description: Foglalás nem található
+        422:
+          description: Nem található QR / érvénytelen foglalás
+
+  # ═══════════════════════════════════════════════════════
+  # ENTRANCE GATES
+  # ═══════════════════════════════════════════════════════
+  /campings/{campingId}/gates:
+    get:
+      tags: [EntranceGates]
+      summary: Kemping kapuinak listázása (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Kapuk listája
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id:
+                  type: integer
+                gate_id:
+                  type: integer
+                name:
+                  type: string
+                opening_time:
+                  type: string
+                  example: '08:00'
+                closing_time:
+                  type: string
+                  example: '22:00'
+                created_at:
+                  type: string
+                token_prefix:
+                  type: string
+                  example: 'Ab3kL9xQ...'
+                has_token:
+                  type: boolean
+        403:
+          description: Nincs jogosultság
+
+    post:
+      tags: [EntranceGates]
+      summary: Új kapu létrehozása (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              gate_id:
+                type: integer
+                description: Opcionális egyedi kapu azonosító
+              name:
+                type: string
+                maxLength: 100
+                example: 'Főkapu'
+              opening_time:
+                type: string
+                example: '08:00'
+                description: 'Formátum: HH:mm'
+              closing_time:
+                type: string
+                example: '22:00'
+                description: 'Formátum: HH:mm'
+      responses:
+        201:
+          description: Kapu létrehozva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              gate:
+                $ref: '#/definitions/EntranceGate'
+        403:
+          description: Nincs jogosultság
+
+  /campings/{campingId}/gates/{gateId}:
+    put:
+      tags: [EntranceGates]
+      summary: Kapu módosítása (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: gateId
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              gate_id:
+                type: integer
+              name:
+                type: string
+              opening_time:
+                type: string
+              closing_time:
+                type: string
+      responses:
+        200:
+          description: Kapu frissítve
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Nem található
+
+    delete:
+      tags: [EntranceGates]
+      summary: Kapu törlése (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: gateId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Kapu törölve
+        403:
+          description: Nincs jogosultság
+        404:
+          description: Nem található
+
+  /campings/{campingId}/gates/{gateId}/auth-token:
+    post:
+      tags: [EntranceGates]
+      summary: Kapu auth token generálása (Tulajdonos)
+      description: |
+        Új 16 karakteres token generálása az ESP32-höz.
+        **A teljes token csak egyszer jelenik meg!** Utána már csak az első 8 karakter látható.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: gateId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Token generálva
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              auth_token:
+                type: string
+                example: 'xK9mL2pQ4rT8wZ1v'
+              gate_id:
+                type: integer
+              camping_id:
+                type: integer
+        403:
+          description: Nincs jogosultság
+
+    get:
+      tags: [EntranceGates]
+      summary: Kapu token státusz lekérése (Tulajdonos)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: gateId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Token státusz
+          schema:
+            type: object
+            properties:
+              has_token:
+                type: boolean
+              token_prefix:
+                type: string
+                example: 'xK9mL2pQ...'
+              gate_id:
+                type: integer
+              camping_id:
+                type: integer
+
+    delete:
+      tags: [EntranceGates]
+      summary: Kapu token visszavonása (Tulajdonos)
+      description: A token törlése után az ESP32 nem tud bejelentkeztetni.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: campingId
+          in: path
+          required: true
+          type: integer
+        - name: gateId
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Token visszavonva
+        403:
+          description: Nincs jogosultság
+
+  # ═══════════════════════════════════════════════════════
+  # USER GUESTS
+  # ═══════════════════════════════════════════════════════
+  /user-guests:
+    get:
+      tags: [UserGuests]
+      summary: Vendég adatok listázása
+      description: A bejelentkezett felhasználó mentett vendég adatai.
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Vendég lista
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/UserGuest'
+        401:
+          description: Nincs bejelentkezve
+
+    post:
+      tags: [UserGuests]
+      summary: Új vendég adat létrehozása
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - first_name
+              - last_name
+              - birth_date
+            properties:
+              first_name:
+                type: string
+                maxLength: 255
+                example: 'János'
+              last_name:
+                type: string
+                maxLength: 255
+                example: 'Kovács'
+              birth_date:
+                type: string
+                format: date
+                example: '1990-05-15'
+              place_of_birth:
+                type: string
+                maxLength: 255
+              gender:
+                type: string
+                maxLength: 50
+              citizenship:
+                type: string
+                maxLength: 100
+              mothers_birth_name:
+                type: string
+                maxLength: 255
+              id_card_number:
+                type: string
+                maxLength: 50
+              passport_number:
+                type: string
+                maxLength: 50
+              visa_flight_number:
+                type: string
+                maxLength: 50
+              resident_permit_number:
+                type: string
+                maxLength: 50
+              date_of_entry:
+                type: string
+                format: date
+              place_of_entry:
+                type: string
+                maxLength: 255
+      responses:
+        201:
+          description: Vendég adat létrehozva
+          schema:
+            $ref: '#/definitions/UserGuest'
+        422:
+          description: Validációs hiba
+
+  /user-guests/{id}:
+    get:
+      tags: [UserGuests]
+      summary: Vendég adat részletei
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Vendég adatai
+          schema:
+            $ref: '#/definitions/UserGuest'
+        404:
+          description: Nem található
+
+    put:
+      tags: [UserGuests]
+      summary: Vendég adat módosítása
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              first_name:
+                type: string
+              last_name:
+                type: string
+              birth_date:
+                type: string
+                format: date
+              place_of_birth:
+                type: string
+              gender:
+                type: string
+              citizenship:
+                type: string
+              mothers_birth_name:
+                type: string
+              id_card_number:
+                type: string
+              passport_number:
+                type: string
+              visa_flight_number:
+                type: string
+              resident_permit_number:
+                type: string
+              date_of_entry:
+                type: string
+                format: date
+              place_of_entry:
+                type: string
+      responses:
+        200:
+          description: Vendég adat frissítve
+          schema:
+            $ref: '#/definitions/UserGuest'
+        404:
+          description: Nem található
+
+    delete:
+      tags: [UserGuests]
+      summary: Vendég adat törlése
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+      responses:
+        200:
+          description: Vendég adat törölve
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        404:
+          description: Nem található
+
+  # ═══════════════════════════════════════════════════════
+  # DASHBOARD
+  # ═══════════════════════════════════════════════════════
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Tulajdonosi dashboard
+      description: |
+        Összesített statisztikák a tulajdonos összes kempingjéről:
+        - Havi foglalások száma (aktuális + előző hónap)
+        - Aktív vendégek
+        - Foglalt/összes hely és kihasználtság %
+        - Havi bevétel és átlagos foglalási érték
+        - Legutóbbi 10 foglalás
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Dashboard adatok
+          schema:
+            type: object
+            properties:
+              totalBookings:
+                type: integer
+                description: Aktuális havi foglalások
+              previousTotalBookings:
+                type: integer
+                description: Előző havi foglalások
+              activeGuests:
+                type: integer
+                description: Jelenleg checked_in státuszú vendégek
+              previousActiveGuests:
+                type: integer
+              bookedSpots:
+                type: integer
+                description: Ma foglalt helyek száma
+              previousBookedSpots:
+                type: integer
+              totalSpots:
+                type: integer
+                description: Összes hely
+              occupancyPercentage:
+                type: number
+                description: Kihasználtság %
+              previousOccupancyPercentage:
+                type: number
+              monthlyRevenue:
+                type: number
+                description: Aktuális havi bevétel (Ft)
+              previousMonthlyRevenue:
+                type: number
+              averageBookingValue:
+                type: number
+                description: Átlagos foglalási érték
+              previousAverageBookingValue:
+                type: number
+              recentBookings:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    guestFirstName:
+                      type: string
+                    guestLastName:
+                      type: string
+                    spot:
+                      type: string
+                    checkIn:
+                      type: string
+                    checkOut:
+                      type: string
+                    guests:
+                      type: integer
+                    status:
+                      type: string
+                    price:
+                      type: number
+                    createdAt:
+                      type: string
+        401:
+          description: Nincs bejelentkezve
+
+# ═══════════════════════════════════════════════════════
+# DEFINITIONS (Modellek)
+# ═══════════════════════════════════════════════════════
+definitions:
+  User:
+    type: object
+    properties:
+      id:
+        type: integer
+      owner_first_name:
+        type: string
+      owner_last_name:
+        type: string
+      email:
+        type: string
+      role:
+        type: integer
+        description: '0 = felhasználó, 1 = partner/tulajdonos'
+      phone_number:
+        type: string
+      email_verified_at:
+        type: string
+        format: date-time
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+
+  Location:
+    type: object
+    properties:
+      id:
+        type: integer
+      city:
+        type: string
+      zip_code:
+        type: string
+      street_address:
+        type: string
+      latitude:
+        type: number
+        format: double
+      longitude:
+        type: number
+        format: double
+
+  CampingFull:
+    type: object
+    properties:
+      id:
+        type: integer
+      user_id:
+        type: integer
+      camping_name:
+        type: string
+      description:
+        type: string
+      company_name:
+        type: string
+      tax_id:
+        type: string
+      billing_address:
+        type: string
+      location_id:
+        type: integer
+      geojson:
+        type: object
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      location:
+        $ref: '#/definitions/Location'
+      photos:
+        type: array
+        items:
+          $ref: '#/definitions/CampingPhoto'
+      tags:
+        type: array
+        items:
+          $ref: '#/definitions/CampingTag'
+      spots:
+        type: array
+        items:
+          $ref: '#/definitions/CampingSpot'
+      entrance_gates:
+        type: array
+        items:
+          $ref: '#/definitions/EntranceGate'
+      user:
+        $ref: '#/definitions/User'
+      min_price:
+        type: number
+      max_price:
+        type: number
+      average_rating:
+        type: number
+      reviews_count:
+        type: integer
+
+  CampingListItem:
+    type: object
+    properties:
+      id:
+        type: integer
+      camping_name:
+        type: string
+      description:
+        type: string
+      location:
+        $ref: '#/definitions/Location'
+      photos:
+        type: array
+        items:
+          $ref: '#/definitions/CampingPhoto'
+      tags:
+        type: array
+        items:
+          $ref: '#/definitions/CampingTag'
+      min_price:
+        type: number
+      max_price:
+        type: number
+      average_rating:
+        type: number
+      reviews_count:
+        type: integer
+      available_capacity:
+        type: integer
+      available_spots_count:
+        type: integer
+
+  PaginatedCampings:
+    type: object
+    properties:
+      current_page:
+        type: integer
+      data:
+        type: array
+        items:
+          $ref: '#/definitions/CampingListItem'
+      last_page:
+        type: integer
+      per_page:
+        type: integer
+      total:
+        type: integer
+      first_page_url:
+        type: string
+      last_page_url:
+        type: string
+      next_page_url:
+        type: string
+      prev_page_url:
+        type: string
+
+  CampingSpot:
+    type: object
+    properties:
+      spot_id:
+        type: integer
+        description: Elsődleges kulcs
+      camping_id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+      capacity:
+        type: integer
+      price_per_night:
+        type: number
+      is_available:
+        type: boolean
+      description:
+        type: string
+      row:
+        type: integer
+      column:
+        type: integer
+      rating:
+        type: number
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+
+  CampingPhoto:
+    type: object
+    properties:
+      photo_id:
+        type: integer
+        description: Elsődleges kulcs
+      camping_id:
+        type: integer
+      photo_url:
+        type: string
+      caption:
+        type: string
+      uploaded_at:
+        type: string
+        format: date
+
+  CampingTag:
+    type: object
+    properties:
+      id:
+        type: integer
+      camping_id:
+        type: integer
+      tag:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+
+  Comment:
+    type: object
+    properties:
+      id:
+        type: integer
+      camping_id:
+        type: integer
+      user_id:
+        type: integer
+      parent_id:
+        type: integer
+        description: NULL ha fő komment, szülő komment id-ja ha válasz
+      rating:
+        type: integer
+        description: 1-5, csak fő kommenteknél
+      comment:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      user:
+        $ref: '#/definitions/User'
+      children_recursive:
+        type: array
+        description: Rekurzív válaszok
+        items:
+          $ref: '#/definitions/Comment'
+
+  Booking:
+    type: object
+    properties:
+      id:
+        type: integer
+      user_id:
+        type: integer
+      camping_id:
+        type: integer
+      camping_spot_id:
+        type: integer
+      arrival_date:
+        type: string
+        format: date
+      departure_date:
+        type: string
+        format: date
+      status:
+        type: string
+        enum: [pending, confirmed, checked_in, completed, cancelled]
+      qr_code:
+        type: string
+        example: 'USR1-BKG5-AB12CD34'
+      guests:
+        type: integer
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      user:
+        $ref: '#/definitions/User'
+      camping:
+        $ref: '#/definitions/CampingFull'
+      camping_spot:
+        $ref: '#/definitions/CampingSpot'
+
+  EntranceGate:
+    type: object
+    properties:
+      id:
+        type: integer
+      camping_id:
+        type: integer
+      gate_id:
+        type: integer
+      name:
+        type: string
+      opening_time:
+        type: string
+        example: '08:00'
+      closing_time:
+        type: string
+        example: '22:00'
+      timestamp:
+        type: string
+        format: date-time
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+
+  UserGuest:
+    type: object
+    properties:
+      id:
+        type: integer
+      user_id:
+        type: integer
+      first_name:
+        type: string
+      last_name:
+        type: string
+      birth_date:
+        type: string
+        format: date
+      place_of_birth:
+        type: string
+      gender:
+        type: string
+      citizenship:
+        type: string
+      mothers_birth_name:
+        type: string
+      id_card_number:
+        type: string
+      passport_number:
+        type: string
+      visa_flight_number:
+        type: string
+      resident_permit_number:
+        type: string
+      date_of_entry:
+        type: string
+        format: date
+      place_of_entry:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
