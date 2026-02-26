@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-
+import api from '../api/axios'
 
 const router = useRouter()
 const today = new Date().toISOString().split('T')[0]
@@ -13,6 +13,86 @@ const searchForm = ref({
   adults: 2,
   children: 0
 })
+
+// --- Autocomplete ---
+const suggestions = ref([])
+const showSuggestions = ref(false)
+const activeSuggestionIndex = ref(-1)
+const locationInputRef = ref(null)
+let debounceTimer = null
+
+const fetchSuggestions = async (query) => {
+  if (!query || query.length < 1) {
+    suggestions.value = []
+    showSuggestions.value = false
+    return
+  }
+  try {
+    const response = await api.get('/locations/suggest', { params: { q: query } })
+    suggestions.value = response.data || []
+    showSuggestions.value = suggestions.value.length > 0
+    activeSuggestionIndex.value = -1
+  } catch (err) {
+    console.error('Autocomplete hiba:', err)
+    suggestions.value = []
+    showSuggestions.value = false
+  }
+}
+
+const onLocationInput = () => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    fetchSuggestions(searchForm.value.location)
+  }, 250)
+}
+
+const selectSuggestion = (suggestion) => {
+  searchForm.value.location = suggestion.label
+  showSuggestions.value = false
+  activeSuggestionIndex.value = -1
+}
+
+const onLocationKeydown = (e) => {
+  if (!showSuggestions.value || suggestions.value.length === 0) return
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    activeSuggestionIndex.value = Math.min(activeSuggestionIndex.value + 1, suggestions.value.length - 1)
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    activeSuggestionIndex.value = Math.max(activeSuggestionIndex.value - 1, 0)
+  } else if (e.key === 'Enter' && activeSuggestionIndex.value >= 0) {
+    e.preventDefault()
+    selectSuggestion(suggestions.value[activeSuggestionIndex.value])
+  } else if (e.key === 'Escape') {
+    showSuggestions.value = false
+  }
+}
+
+const onClickOutside = (e) => {
+  const wrapper = document.querySelector('.location-col')
+  if (wrapper && !wrapper.contains(e.target)) {
+    showSuggestions.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', onClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside)
+  clearTimeout(debounceTimer)
+})
+
+// Beírt szöveg kiemelése a javaslatban
+const highlightMatch = (text) => {
+  const query = searchForm.value.location
+  if (!query) return text
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  return text.replace(regex, '<strong>$1</strong>')
+}
+// --- Autocomplete vége ---
 
 const minCheckOut = computed(() => {
   return searchForm.value.checkIn || today
@@ -35,24 +115,22 @@ const decrementChildren = () => {
 }
 
 const handleSearch = async () => {
-  if (!searchForm.value.checkIn || !searchForm.value.checkOut) {
-    alert('Kérlek add meg az érkezés és távozás dátumát!')
-    return
+  showSuggestions.value = false
+
+  const query = {
+    location: searchForm.value.location || undefined,
+    guests: (searchForm.value.adults + searchForm.value.children) || undefined
   }
-  
-  if (searchForm.value.adults + searchForm.value.children < 1) {
-    alert('Legalább 1 vendéget adj meg!')
-    return
+
+  // Dátumokat csak akkor küldjük, ha mindkettő meg van adva
+  if (searchForm.value.checkIn && searchForm.value.checkOut) {
+    query.checkIn = searchForm.value.checkIn
+    query.checkOut = searchForm.value.checkOut
   }
-  
+
   router.push({
     path: '/kereses',
-    query: {
-      location: searchForm.value.location,
-      checkIn: searchForm.value.checkIn,
-      checkOut: searchForm.value.checkOut,
-      guests: searchForm.value.adults + searchForm.value.children
-    }
+    query
   })
 }
 </script>
@@ -70,13 +148,33 @@ const handleSearch = async () => {
         <form class="grid" id="searchForm" @submit.prevent="handleSearch">
           <div class="location-col">
             <label for="location">📍 Helyszín</label>
-            <input 
-              id="location" 
-              name="location" 
-              type="text" 
-              placeholder="Pl. Balaton, Tisza-tó..." 
-              v-model="searchForm.location"
-            />
+            <div class="autocomplete-wrapper">
+              <input 
+                id="location" 
+                ref="locationInputRef"
+                name="location" 
+                type="text" 
+                placeholder="Pl. Balaton, Tisza-tó..." 
+                v-model="searchForm.location"
+                @input="onLocationInput"
+                @keydown="onLocationKeydown"
+                @focus="searchForm.location.length >= 1 && suggestions.length > 0 && (showSuggestions = true)"
+                autocomplete="off"
+              />
+              <ul v-if="showSuggestions" class="suggestions-list">
+                <li 
+                  v-for="(s, idx) in suggestions" 
+                  :key="idx"
+                  :class="{ active: idx === activeSuggestionIndex }"
+                  @mousedown.prevent="selectSuggestion(s)"
+                  @mouseenter="activeSuggestionIndex = idx"
+                >
+                  <span class="suggestion-icon">{{ s.type === 'camping' ? '🏕️' : '📍' }}</span>
+                  <span class="suggestion-label" v-html="highlightMatch(s.label)"></span>
+                  <span class="suggestion-type">{{ s.type === 'camping' ? 'Kemping' : 'Helyszín' }}</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div>
@@ -347,5 +445,60 @@ const handleSearch = async () => {
     .close-btn {
       margin-top: 10px;
       padding: 5px 10px;
+    }
+
+    /* Autocomplete */
+    .autocomplete-wrapper {
+      position: relative;
+    }
+    .suggestions-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-top: none;
+      border-radius: 0 0 .625rem .625rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .suggestions-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      cursor: pointer;
+      font-size: 0.92rem;
+      color: #333;
+      transition: background 0.12s;
+    }
+    .suggestions-list li:hover,
+    .suggestions-list li.active {
+      background: #f0f7ed;
+    }
+    .suggestion-icon {
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .suggestion-label {
+      flex: 1;
+    }
+    .suggestion-label strong {
+      color: #4A7434;
+      font-weight: 700;
+    }
+    .suggestion-type {
+      font-size: 0.75rem;
+      color: #999;
+      flex-shrink: 0;
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 10px;
     }
 </style>
