@@ -504,8 +504,8 @@ onMounted(async () => {
                   </div>
                 </div>
                 <div class="flex items-center gap-1 mb-2" v-if="comment.rating">
-                  <span v-for="i in 5" :key="i" class="text-sm" :class="i <= comment.rating ? 'text-yellow-500' : 'text-gray-300'">&#11088;</span>
-                  <span class="text-sm font-semibold text-gray-700 ml-1">{{ comment.rating }}</span>
+                  <span v-for="i in 5" :key="i" class="text-xl" :class="i <= comment.rating ? 'text-yellow-400' : 'text-gray-300'">&#9733;</span>
+                  <span class="text-sm font-semibold text-gray-700 ml-1">{{ comment.rating }}/5</span>
                 </div>
                 <p class="text-gray-600" v-if="comment.comment">{{ comment.comment }}</p>
 
