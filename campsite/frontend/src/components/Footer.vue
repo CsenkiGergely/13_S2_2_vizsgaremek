@@ -21,19 +21,16 @@
   <!-- 2. oszlop -->
   <div class="footer-column">
     <h3>Gyors linkek</h3>
-        <router-link to="/">
-      <a href="/">Főoldal</a>
+    <router-link to="/">
+      Főoldal
     </router-link>
-            <router-link to="/kereses">
-      <a href="kereses.vue">Keresés</a>
+    <router-link to="/kereses">
+      Keresés
     </router-link>
-                <router-link to="/Tulajdonos">
+    <router-link to="/Tulajdonos">
      <a href="#">Tulajdonos</a>
     </router-link>
-            <router-link to="/foglalas">
-     <a href="#">Foglalás</a>
-    </router-link>
-                <router-link to="/fizetes">
+    <router-link to="/fizetes">
      <a href="#">Fizetés</a>
     </router-link>
   </div>
