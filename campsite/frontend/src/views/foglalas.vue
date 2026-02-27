@@ -485,7 +485,7 @@ onMounted(async () => {
           <div class="border-t border-gray-200 pt-6" v-if="comments.length > 0">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Vendég vélemények</h2>
             <div class="flex items-center gap-2 mb-6" v-if="avgRating > 0">
-              <span class="text-yellow-500 text-xl">&#11088;</span>
+              <span class="text-yellow-500 text-3xl">&#9733;</span>
               <span class="text-2xl font-bold text-gray-800">{{ avgRating.toFixed(1) }}</span>
               <span class="text-gray-500">· {{ reviewsCount }} értékelés</span>
             </div>
