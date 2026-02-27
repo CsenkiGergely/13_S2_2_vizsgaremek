@@ -76,6 +76,8 @@ const mapFileInput = ref(null)
 const mapUploadError = ref(null)
 const mapUploadSuccess = ref(null)
 const mapLoading = ref(false)
+const dashboardLoading = ref(false)
+const pageLoading = ref(true)
 const mapContainerRef = ref(null)
 const mapCodeOpen = ref(false)
 let leafletMap = null
@@ -103,18 +105,21 @@ const loadData = async () => {
     console.warn('Nincs bejelentkezve. Kérjük, lépjen be az alkalmazásba.')
     return
   }
-  
+
+  dashboardLoading.value = true
   try {
     // Dashboard adatok betöltése
     await getDashboard()
-    
+
     // Foglalások betöltése
     await getOwnerBookings()
-    
+
     // Szűrt adatok újraszámolása
     recalculateRevenueData()
   } catch (error) {
     console.error('Hiba az adatok betöltésekor:', error)
+  } finally {
+    dashboardLoading.value = false
   }
 }
 
@@ -984,7 +989,7 @@ async function renderLeafletMap() {
   leafletMap = L.map(mapContainerRef.value, {
     zoomControl: true,
     attributionControl: true,
-  }).setView([47.1625, 19.5033], 7) // magyarorszag kozepe
+  }).setView([47.1625, 19.5033], 7) // Magyarország közepe
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
@@ -1028,19 +1033,27 @@ async function renderLeafletMap() {
   setTimeout(() => leafletMap?.invalidateSize(), 200)
 }
 
-onMounted(async () => {  await fetchMyCampings()
+onMounted(async () => {
+  await fetchMyCampings()
   // Ha van kemping, automatikusan kiválasztjuk az elsőt
   if (myCampings.value.length > 0) {
     selectedCampingId.value = myCampings.value[0].id
     overviewSelectedCampingId.value = myCampings.value[0].id
   }
   loadData()
+  pageLoading.value = false
 })
 
 </script>
 
 <template>
-  <div class="container">
+
+  <!-- Betöltés -->
+  <div v-if="pageLoading" class="text-center py-20">
+    <p class="text-lg text-gray-500">Dashboard betöltése...</p>
+  </div>
+
+  <div v-else class="container">
     <h1>Kemping Tulajdonos</h1>
     <div class="subtitle">Kezelje a foglalásokat és monitorizálja a kemping működését</div>
 
