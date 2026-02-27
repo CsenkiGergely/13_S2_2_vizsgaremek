@@ -10,7 +10,7 @@ const route = useRoute()
 const router = useRouter()
 const { isAuthenticated } = useAuth()
 
-// --- Allapotok ---
+// Állapotok
 const camping = ref(null)
 const comments = ref([])
 const loading = ref(true)
@@ -20,18 +20,18 @@ const selectedSpot = ref(null)
 const bookingLoading = ref(false)
 const bookingError = ref(null)
 
-// Foglalasi form
+// Foglalási form
 const bookingForm = ref({
   checkIn: '',
   checkOut: '',
   guests: 2
 })
 
-// Naptar allapot
+// Naptár állapot
 const currentMonth = ref(new Date().getMonth())
 const currentYear = ref(new Date().getFullYear())
 
-// --- Kemping adatok betoltese ---
+// Kemping adatok betöltése
 const fetchCamping = async () => {
   const id = route.params.id
   if (!id) {
@@ -55,7 +55,7 @@ const fetchCamping = async () => {
   }
 }
 
-// --- Computed adatok ---
+// Computed adatok
 const images = computed(() => {
   if (!camping.value) return []
   if (camping.value.photos && camping.value.photos.length > 0) {
@@ -115,7 +115,7 @@ const hasGeoJson = computed(() => {
   return !!(camping.value?.geojson)
 })
 
-// --- Galeria navigacio ---
+// Galéria navigáció
 const nextImage = () => {
   currentImage.value = (currentImage.value + 1) % images.value.length
 }
@@ -123,7 +123,7 @@ const prevImage = () => {
   currentImage.value = (currentImage.value - 1 + images.value.length) % images.value.length
 }
 
-// --- Naptar ---
+//  Naptár
 const monthNames = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június',
   'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December']
 
@@ -206,13 +206,13 @@ const formatDate = (dateStr) => {
   return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}.`
 }
 
-// --- Spot kivalasztas ---
+// Spot kiválasztás
 const selectSpot = (spot) => {
   if (!spot.is_available) return
   selectedSpot.value = spot
 }
 
-// --- Foglalas letrehozasa ---
+// Foglalás létrehozása
 const handleBooking = async () => {
   bookingError.value = null
 
@@ -265,7 +265,7 @@ const handleBooking = async () => {
   }
 }
 
-// --- Terkep inicializalas ---
+// Térkép inicializálás
 let map = null
 const initMap = async () => {
   await nextTick()
@@ -288,7 +288,7 @@ const initMap = async () => {
       const parsed = typeof geojsonData === 'string' ? JSON.parse(geojsonData) : geojsonData
       const geojsonLayer = L.geoJSON(parsed, {
         style: (feature) => {
-          // Feature properties-ből stílus ha van, különben alapértelmezett
+      // Feature properties-ből stílus, ha van – különben alapértelmezett
           const props = feature.properties || {}
           return {
             color: props.stroke || '#16a34a',
@@ -320,7 +320,7 @@ const initMap = async () => {
         }
       }).addTo(map)
 
-      // Térkép igazítás a GeoJSON kiterjedéséhez
+      // Térkép igazítása a GeoJSON kiterjedéséhez
       const bounds = geojsonLayer.getBounds()
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [30, 30] })
@@ -348,7 +348,7 @@ const initMap = async () => {
   })
 }
 
-// --- Inicializalas ---
+// Inicializálás
 onMounted(async () => {
   if (route.query.checkIn) bookingForm.value.checkIn = route.query.checkIn
   if (route.query.checkOut) bookingForm.value.checkOut = route.query.checkOut
@@ -365,7 +365,7 @@ onMounted(async () => {
 <template>
   <div class="container mx-auto px-4 py-6 space-y-6">
 
-    <!-- Betoltes -->
+    <!-- Betöltés -->
     <div v-if="loading" class="text-center py-20">
       <p class="text-lg text-gray-500">Kemping betöltése...</p>
     </div>
@@ -379,7 +379,7 @@ onMounted(async () => {
     <!-- Tartalom -->
     <template v-else-if="camping">
 
-      <!-- Kepgaleria -->
+      <!-- Képgaléria -->
       <div class="relative rounded-xl overflow-hidden shadow-lg" v-if="images.length > 0">
         <img :src="images[currentImage]" :alt="camping.camping_name" class="w-full h-96 md:h-[500px] object-cover"
              @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'" />
@@ -394,13 +394,13 @@ onMounted(async () => {
         </template>
       </div>
 
-      <!-- 2 oszlopos layout -->
+      <!-- 2 oszlopos elrendezés -->
       <div class="flex flex-col md:flex-row gap-6">
 
-        <!-- BAL OLDAL: Informaciok -->
+        <!-- Bal oldal: Információk -->
         <div class="md:w-2/3 space-y-6">
 
-          <!-- Cimsor es ertekeles -->
+          <!-- Címsor és értékelés -->
           <div>
             <h1 class="text-3xl font-bold text-gray-800 mb-2">{{ camping.camping_name }}</h1>
             <div class="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
@@ -413,7 +413,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Tagek / tulajdonsagok -->
+          <!-- Tagek / tulajdonságok -->
           <div class="flex flex-wrap gap-3" v-if="tags.length > 0">
             <div v-for="tag in tags" :key="tag.id"
                  class="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg text-sm">
@@ -421,7 +421,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Leiras -->
+          <!-- Leírás -->
           <div class="border-t border-gray-200 pt-6" v-if="camping.description">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">A szállásról</h2>
             <p class="text-gray-600 leading-relaxed whitespace-pre-line">{{ camping.description }}</p>
@@ -431,7 +431,7 @@ onMounted(async () => {
           <div class="border-t border-gray-200 pt-6" v-if="spots.length > 0">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Helyek</h2>
 
-            <!-- Jelmagyarazat + Terkep (csak ha van GeoJSON) -->
+            <!-- Jelmagyarázat + Térkép (csak ha van GeoJSON) -->
             <template v-if="hasGeoJson">
               <div class="flex gap-4 mb-4 text-sm">
                 <span class="flex items-center gap-1">
@@ -451,7 +451,7 @@ onMounted(async () => {
               <div id="campingMap" class="w-full rounded-lg border border-gray-200 mb-4" style="height: 400px; z-index: 0;"></div>
             </template>
 
-            <!-- Spot kartyak -->
+            <!-- Spot kártyák -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div v-for="spot in spots" :key="spot.spot_id"
                    @click="selectSpot(spot)"
@@ -481,11 +481,11 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Vendeg velemenyek -->
+          <!-- Vendég vélemények -->
           <div class="border-t border-gray-200 pt-6" v-if="comments.length > 0">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Vendég vélemények</h2>
             <div class="flex items-center gap-2 mb-6" v-if="avgRating > 0">
-              <span class="text-yellow-500 text-xl">&#11088;</span>
+              <span class="text-yellow-500 text-3xl">&#9733;</span>
               <span class="text-2xl font-bold text-gray-800">{{ avgRating.toFixed(1) }}</span>
               <span class="text-gray-500">· {{ reviewsCount }} értékelés</span>
             </div>
@@ -504,12 +504,12 @@ onMounted(async () => {
                   </div>
                 </div>
                 <div class="flex items-center gap-1 mb-2" v-if="comment.rating">
-                  <span v-for="i in 5" :key="i" class="text-sm" :class="i <= comment.rating ? 'text-yellow-500' : 'text-gray-300'">&#11088;</span>
-                  <span class="text-sm font-semibold text-gray-700 ml-1">{{ comment.rating }}</span>
+                  <span v-for="i in 5" :key="i" class="text-xl" :class="i <= comment.rating ? 'text-yellow-400' : 'text-gray-300'">&#9733;</span>
+                  <span class="text-sm font-semibold text-gray-700 ml-1">{{ comment.rating }}/5</span>
                 </div>
                 <p class="text-gray-600" v-if="comment.comment">{{ comment.comment }}</p>
 
-                <!-- Valaszok -->
+                <!-- Válaszok -->
                 <div v-if="comment.children_recursive && comment.children_recursive.length > 0" class="ml-12 mt-3 space-y-3">
                   <div v-for="reply in comment.children_recursive" :key="reply.id" class="bg-gray-50 rounded-lg p-3">
                     <div class="flex items-center gap-2 mb-1">
@@ -526,10 +526,10 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- JOBB OLDAL: Foglalasi panel -->
+        <!-- Jobb oldal: Foglalási panel -->
         <div class="md:w-1/3">
           <div class="booking-panel bg-white p-5 rounded-xl shadow-md">
-            <!-- Ar -->
+            <!-- Ár -->
             <div class="mb-4">
               <div class="flex items-baseline gap-2 mb-1">
                 <span class="text-2xl font-bold text-gray-800">{{ pricePerNight.toLocaleString('hu-HU') }} Ft</span>
@@ -543,7 +543,7 @@ onMounted(async () => {
               </p>
             </div>
 
-            <!-- Datum kivalaszto kartyak -->
+            <!-- Dátum választó kártyák -->
             <div class="grid grid-cols-2 gap-2 mb-4">
               <div class="border border-gray-300 rounded-lg p-3 cursor-pointer hover:border-gray-400 transition"
                    :class="{ 'border-[#4A7434]': bookingForm.checkIn && !bookingForm.checkOut }">
@@ -560,7 +560,7 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- Naptar -->
+            <!-- Naptár -->
             <div class="mb-4 border border-gray-200 rounded-lg p-4">
               <div class="flex items-center justify-between mb-4">
                 <button @click="previousMonth" type="button" class="nav-btn p-1 hover:bg-gray-100 rounded text-lg">&#8249;</button>
@@ -586,7 +586,7 @@ onMounted(async () => {
               </div>
             </div>
 
-            <!-- Vendegek -->
+            <!-- Vendégek -->
             <div class="border border-gray-300 rounded-lg p-3 mb-4">
               <label class="text-xs font-semibold text-gray-600 uppercase">Vendégek</label>
               <select v-model.number="bookingForm.guests" class="w-full text-sm mt-1 border-0 p-0 focus:ring-0 text-gray-700 bg-transparent">
@@ -594,7 +594,7 @@ onMounted(async () => {
               </select>
             </div>
 
-            <!-- Kivalasztott hely info -->
+            <!-- Kiválasztott hely info -->
             <div v-if="selectedSpot" class="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
               <p class="font-semibold text-sm text-gray-800">{{ selectedSpot.name }}</p>
               <p class="text-xs text-gray-500 mt-1">{{ selectedSpot.type }} · Max {{ selectedSpot.capacity }} fő · {{ selectedSpot.price_per_night?.toLocaleString('hu-HU') }} Ft/éj</p>
@@ -603,12 +603,12 @@ onMounted(async () => {
               <p class="text-xs text-yellow-700">Válassz egy helyet a foglaláshoz!</p>
             </div>
 
-            <!-- Hiba uzenet -->
+            <!-- Hiba üzenet -->
             <div v-if="bookingError" class="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
               <p class="text-sm text-red-600">{{ bookingError }}</p>
             </div>
 
-            <!-- Foglalas gomb -->
+            <!-- Foglalás gomb -->
             <button
               @click="handleBooking"
               :disabled="bookingLoading"
@@ -618,7 +618,7 @@ onMounted(async () => {
 
             <p class="text-center text-xs text-gray-500 mt-3">Még nem kerül felszámításra</p>
 
-            <!-- Osszesito -->
+            <!-- Összesítő -->
             <div v-if="bookingForm.checkIn && bookingForm.checkOut && nightCount > 0 && selectedSpot"
                  class="mt-6 pt-6 border-t border-gray-200 space-y-2">
               <div class="flex justify-between text-sm text-gray-600">
@@ -638,48 +638,51 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.gallery-btn {
-  background: rgba(255,255,255,0.8);
-  border: none;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.2s;
-  color: #333;
-}
-.gallery-btn:hover {
-  background: rgba(255,255,255,1);
-}
+  .gallery-btn {
+    background: rgba(255,255,255,0.8);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    color: #333;
+  }
 
-.nav-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: #555;
-  width: auto;
-  padding: 4px 8px;
-}
-.nav-btn:hover {
-  background: #f3f4f6;
-  border-radius: 6px;
-}
+  .gallery-btn:hover {
+    background: rgba(255,255,255,1);
+  }
 
-.booking-panel {
-  position: sticky;
-  top: 90px;
-  z-index: 10;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
-}
+  .nav-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #555;
+    width: auto;
+    padding: 4px 8px;
+  }
 
-img {
-  border-radius: 0.5rem;
-  object-fit: cover;
-}
+  .nav-btn:hover {
+    background: #f3f4f6;
+    border-radius: 6px;
+  }
+
+  .booking-panel {
+    position: sticky;
+    top: 90px;
+    z-index: 10;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+  }
+
+  img {
+    border-radius: 0.5rem;
+    object-fit: cover;
+  }
+  
 </style>
