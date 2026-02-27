@@ -5,23 +5,227 @@ Library           SeleniumLibrary
 Regiszter
     Open Browser    http://localhost:5173/    chrome
     Maximize Browser Window
-    Sleep    5
-    Execute JavaScript    document.querySelector('button.text-gray-700').click()
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'text-gray-700') and contains(text(), 'Regisztráció')]
     Sleep    2
-    Input Text    id=register-name    Gergely
+    Input Text    id=register-lastname    Csenki
+    Input Text    id=register-firstname    Gergely
     Input Text    id=register-email    gergely@example.com
-    Input Text    id=register-password    Csenki12
-    Input Text    id=register-password-confirm    Csenki12
-    Click Element    xpath=//button[contains(@class,"bg-[#4A7434]") and contains(., "Regisztráció")]
+    Input Text    id=register-password    Csenki1234!
+    Input Text    id=register-password-confirm    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Regisztráció')]
+    Sleep    5
+    Close Browser
+
+Regiszter hiba
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'text-gray-700') and contains(text(), 'Regisztráció')]
+    Sleep    2
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Regisztráció')]
+    Sleep    1
+    Input Text    id=register-lastname    Csenki
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Regisztráció')]
+    Sleep    1
+    Input Text    id=register-firstname    Gergely
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Regisztráció')]
+    Sleep    1
+    Input Text    id=register-email    gergely@example.com
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Regisztráció')]
+    Sleep    1
+    Input Text    id=register-password    Csenki1234!
+    Sleep    1
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Regisztráció')]
+    Sleep    1
+    Input Text    id=register-password-confirm    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Regisztráció')]
     Sleep    5
     Close Browser
 
 bejelentkezes
     Open Browser    http://localhost:5173/    chrome
     Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
     Sleep    2
-    Click Element    xpath=//button[contains(text(),' Bejelentkezés ')]
     Input Text    id=login-email    gergely@example.com
-    Input Text    id=login-password    Csenki12
-    Click Element    xpath=//button[contains(@class,'4A7434')]
+    Input Text    id=login-password    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    5
+    Close Browser
+
+bejelentkezes hiba
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
+    Sleep    2
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    1
+    Input Text    id=login-email    gergely@example.com
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    1
+    Input Text    id=login-password    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    5
+    Close Browser
+
+Partner hiba - nincs bejelentkezve
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(text(), 'Legyél partnerünk')]
+    Sleep    2
+    Input Text    id=phone-login    +36 70 123 4567
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Partner leszek')]
+    Sleep    3
+    Close Browser
+
+Partner hiba - rossz telefonszam
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
+    Sleep    2
+    Input Text    id=login-email    gergely@example.com
+    Input Text    id=login-password    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    3
+    Click Element    xpath=//button[contains(text(), 'Legyél partnerünk')]
+    Sleep    2
+    Input Text    id=phone-login    +36 70 123
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Partner leszek')]
+    Sleep    2
+    Press Keys    id=phone-login    CTRL+a
+    Press Keys    id=phone-login    DELETE
+    Input Text    id=phone-login    +1 234 567 8901
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Partner leszek')]
+    Sleep    2
+    Press Keys    id=phone-login    CTRL+a
+    Press Keys    id=phone-login    DELETE
+    Input Text    id=phone-login    +36 70 123 4567
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Partner leszek')]
+    Sleep    5
+    Close Browser
+
+Partner sikeres
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
+    Sleep    2
+    Input Text    id=login-email    gergely@example.com
+    Input Text    id=login-password    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    3
+    Click Element    xpath=//button[contains(text(), 'Legyél partnerünk')]
+    Sleep    2
+    Input Text    id=phone-login    +36 70 123 4567
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Partner leszek')]
+    Sleep    5
+    Close Browser
+
+Kemping letrehozas hiba
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
+    Sleep    2
+    Input Text    id=login-email    gergely@example.com
+    Input Text    id=login-password    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    3
+    Go To    http://localhost:5173/Tulajdonos
+    Sleep    3
+    Click Element    xpath=//div[contains(@class, 'tab') and contains(text(), 'Új kemping')]
+    Sleep    2
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    2
+    Input Text    xpath=//input[@placeholder='pl. Napfény Kemping']    Teszt Kemping
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Input Text    xpath=//textarea[@placeholder='Írj egy rövid leírást a kempingről...']    Ez egy teszt kemping a Robot Framework teszthez.
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Input Text    xpath=//input[@placeholder='pl. Budapest']    Budapest
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Input Text    xpath=//input[@placeholder='pl. 1011']    abc
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Press Keys    xpath=//input[@placeholder='pl. 1011']    CTRL+a
+    Press Keys    xpath=//input[@placeholder='pl. 1011']    DELETE
+    Input Text    xpath=//input[@placeholder='pl. 1011']    1011
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Input Text    xpath=//input[@placeholder='pl. Fő utca, 12.']    Teszt utca 1
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Input Text    xpath=//input[@placeholder='pl. Napfény Kemping Kft.']    Teszt Kemping Kft.
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Input Text    xpath=//input[@placeholder='pl. 12345678-1-41']    123456
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Press Keys    xpath=//input[@placeholder='pl. 12345678-1-41']    CTRL+a
+    Press Keys    xpath=//input[@placeholder='pl. 12345678-1-41']    DELETE
+    Input Text    xpath=//input[@placeholder='pl. 12345678-1-41']    12345678-1-41
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    1
+    Input Text    xpath=//input[@placeholder='pl. Budapest, Fő u. 12.']    Budapest, Teszt utca 1
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    5
+    Close Browser
+
+Kemping letrehozas sikeres
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
+    Sleep    2
+    Input Text    id=login-email    gergely@example.com
+    Input Text    id=login-password    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    3
+    Go To    http://localhost:5173/Tulajdonos
+    Sleep    3
+    Click Element    xpath=//div[contains(@class, 'tab') and contains(text(), 'Új kemping')]
+    Sleep    2
+    Input Text    xpath=//input[@placeholder='pl. Napfény Kemping']    Sikeres Teszt Kemping
+    Input Text    xpath=//textarea[@placeholder='Írj egy rövid leírást a kempingről...']    Ez egy sikeres teszt kemping létrehozása helyes adatokkal.
+    Input Text    xpath=//input[@placeholder='pl. Budapest']    Siófok
+    Input Text    xpath=//input[@placeholder='pl. 1011']    8600
+    Input Text    xpath=//input[@placeholder='pl. Fő utca, 12.']    Balatoni út 42
+    Input Text    xpath=//input[@placeholder='pl. Napfény Kemping Kft.']    Sikeres Kemping Kft.
+    Input Text    xpath=//input[@placeholder='pl. 12345678-1-41']    87654321-2-42
+    Input Text    xpath=//input[@placeholder='pl. Budapest, Fő u. 12.']    Siófok, Balatoni út 42
+    Click Element    xpath=//label[contains(@class, 'tag-checkbox-item')]//span[text()='WiFi']
+    Click Element    xpath=//label[contains(@class, 'tag-checkbox-item')]//span[text()='Parkoló']
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Kemping létrehozása')]
+    Sleep    5
+    Close Browser
+
+Kemping terkep feltoltes
+    Open Browser    http://localhost:5173/    chrome
+    Maximize Browser Window
+    Sleep    3
+    Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
+    Sleep    2
+    Input Text    id=login-email    gergely@example.com
+    Input Text    id=login-password    Csenki1234!
+    Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
+    Sleep    3
+    Go To    http://localhost:5173/Tulajdonos
+    Sleep    3
+    Click Element    xpath=//div[contains(@class, 'tab') and contains(text(), 'Térkép')]
+    Sleep    2
+    Click Element    xpath=//select[contains(@class, 'form-select')]
+    Sleep    1
+    Click Element    xpath=//select[contains(@class, 'form-select')]/option[2]
+    Sleep    2
+    Choose File    xpath=//input[@type='file' and @accept='.geojson,.json']    C:\\Users\\csenkigergely\\Downloads\\test.geojson
+    Sleep    3
+    Click Button    xpath=//button[@type='button' and contains(text(), 'Feltöltés')]
+    Sleep    5
     Close Browser
