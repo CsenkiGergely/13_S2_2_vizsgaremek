@@ -337,12 +337,16 @@ const getCampingGeojson = async (campingId) => {
   }
 }
 
-// GeoJSON feltöltése
-const uploadCampingGeojson = async (campingId, data) => {
+// GeoJSON feltöltése (fájlként)
+const uploadCampingGeojson = async (campingId, file) => {
   loading.value = true
   error.value = null
   try {
-    const response = await api.post(`/campings/${campingId}/geojson`, data)
+    const formData = new FormData()
+    formData.append('geojson', file)
+    const response = await api.post(`/campings/${campingId}/geojson`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
     return response.data.data || response.data
   } catch (err) {
     console.error('Hiba a GeoJSON feltöltésekor:', err)

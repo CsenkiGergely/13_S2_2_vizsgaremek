@@ -1,9 +1,19 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const activeTab = ref('visa') // visa, mastercard, amex
+const paymentSuccess = ref(false)
+const paymentLoading = ref(false)
+
+// Foglalási adatok a query-ből
+const bookingId = computed(() => route.query.bookingId || null)
+const totalAmount = computed(() => Number(route.query.total) || 0)
+const nightsCount = computed(() => Number(route.query.nights) || 0)
+const campingName = computed(() => route.query.campingName || '')
+const spotName = computed(() => route.query.spotName || '')
 
 const paymentForm = ref({
   cardNumber: '',
@@ -200,12 +210,15 @@ const handlePayment = () => {
   if (postalCodeError) errors.value.postalCode = postalCodeError
   
   if (Object.keys(errors.value).length > 0) {
-    alert('Kérlek javítsd a hibákat!')
     return
   }
   
-  console.log('Fizetési adatok:', { ...paymentForm.value, cardType: activeTab.value })
-  alert('Fizetés feldolgozása folyamatban...')
+  // Nincs valódi fizetés — ha az adatok helyesek, a foglalás megerősítve
+  paymentLoading.value = true
+  setTimeout(() => {
+    paymentLoading.value = false
+    paymentSuccess.value = true
+  }, 1500)
 }
 </script>
 
@@ -213,9 +226,68 @@ const handlePayment = () => {
   <div class="page-payment">
     <div class="hero" role="banner">
       <div class="container">
+
+        <!-- Sikeres foglalás -->
+        <div v-if="paymentSuccess" class="success-card">
+          <div class="success-icon">&#10004;</div>
+          <h1 class="success-title">Foglalás megerősítve!</h1>
+          <p class="success-text">A foglalásod sikeresen rögzítettük. Köszönjük!</p>
+
+          <div class="success-details" v-if="bookingId">
+            <div class="detail-row" v-if="campingName">
+              <span class="detail-label">Kemping</span>
+              <span class="detail-value">{{ campingName }}</span>
+            </div>
+            <div class="detail-row" v-if="spotName">
+              <span class="detail-label">Hely</span>
+              <span class="detail-value">{{ spotName }}</span>
+            </div>
+            <div class="detail-row" v-if="nightsCount > 0">
+              <span class="detail-label">Éjszakák</span>
+              <span class="detail-value">{{ nightsCount }} éjszaka</span>
+            </div>
+            <div class="detail-row total" v-if="totalAmount > 0">
+              <span class="detail-label">Összesen</span>
+              <span class="detail-value">{{ totalAmount.toLocaleString('hu-HU') }} Ft</span>
+            </div>
+            <div class="detail-row" v-if="bookingId">
+              <span class="detail-label">Foglalás azonosító</span>
+              <span class="detail-value">#{{ bookingId }}</span>
+            </div>
+          </div>
+
+          <div class="success-actions">
+            <button class="btn btn-primary" @click="router.push('/')">Vissza a főoldalra</button>
+            <button class="btn btn-outline" @click="router.push('/kereses')">Új keresés</button>
+          </div>
+        </div>
+
+        <!-- Fizetési űrlap -->
+        <template v-else>
         <div class="title">
           <h1>Fizetési adatok</h1>
           <p class="lead">Add meg a fizetési és számlázási adataidat</p>
+        </div>
+
+        <!-- Foglalási összesítő -->
+        <div v-if="bookingId" class="booking-summary">
+          <h3>Foglalás összesítő</h3>
+          <div class="summary-row" v-if="campingName">
+            <span>Kemping:</span>
+            <span class="summary-value">{{ campingName }}</span>
+          </div>
+          <div class="summary-row" v-if="spotName">
+            <span>Hely:</span>
+            <span class="summary-value">{{ spotName }}</span>
+          </div>
+          <div class="summary-row" v-if="nightsCount > 0">
+            <span>Éjszakák:</span>
+            <span class="summary-value">{{ nightsCount }} éjszaka</span>
+          </div>
+          <div class="summary-row total" v-if="totalAmount > 0">
+            <span>Összesen:</span>
+            <span class="summary-value">{{ totalAmount.toLocaleString('hu-HU') }} Ft</span>
+          </div>
         </div>
 
         <div class="payment-card">
@@ -363,10 +435,13 @@ const handlePayment = () => {
             </div>
 
             <div class="submit-col">
-              <button class="btn" type="submit">✅ Küldés</button>
+              <button class="btn" type="submit" :disabled="paymentLoading">
+                {{ paymentLoading ? 'Feldolgozás...' : '✅ Foglalás megerősítése' }}
+              </button>
             </div>
           </form>
         </div>
+        </template>
       </div>
     </div>
   </div>
@@ -589,5 +664,153 @@ input[type="text"].error {
     padding: 0.9rem 3.5rem;
     font-size: 1.05rem;
   }
+}
+
+.booking-summary {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.booking-summary h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #166534;
+  margin-bottom: 0.75rem;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0;
+  font-size: 0.95rem;
+  color: #555;
+}
+.summary-row.total {
+  border-top: 1px solid #bbf7d0;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  font-weight: 700;
+  color: #166534;
+  font-size: 1.05rem;
+}
+.summary-value {
+  font-weight: 600;
+}
+
+/* Sikeres foglalás */
+.success-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: #22c55e;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.success-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #166534;
+  margin-bottom: 0.5rem;
+}
+
+.success-text {
+  color: #555;
+  font-size: 1rem;
+  margin-bottom: 2rem;
+}
+
+.success-details {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.95rem;
+}
+
+.detail-label {
+  color: #6b7280;
+}
+
+.detail-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.detail-row.total {
+  border-top: 1px solid #bbf7d0;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  font-weight: 700;
+}
+
+.detail-row.total .detail-label,
+.detail-row.total .detail-value {
+  color: #166534;
+  font-size: 1.05rem;
+}
+
+.success-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: #4A7434;
+  color: #fff;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.625rem;
+  border: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #3d6129;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #4A7434;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.625rem;
+  border: 2px solid #4A7434;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-outline:hover {
+  background: #4A7434;
+  color: #fff;
 }
 </style>

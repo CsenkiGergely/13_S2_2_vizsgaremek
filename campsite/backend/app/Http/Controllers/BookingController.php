@@ -36,11 +36,12 @@ class BookingController extends Controller
 
     public function getPrices(Request $request)
     {
+        // postgresql: date kulonbseg EXTRACT-tal szamolva (napokban)
         $totalPrices = DB::table('bookings')
         ->join('camping_spots', 'camping_spots.spot_id', '=', 'bookings.camping_spot_id')
         ->selectRaw('
             bookings.id AS booking_id,
-            (departure_date - arrival_date) 
+            EXTRACT(EPOCH FROM (bookings.departure_date::timestamp - bookings.arrival_date::timestamp)) / 86400
             * camping_spots.price_per_night AS total_price'
         )
         ->orderBy('bookings.id', 'asc')
@@ -380,70 +381,276 @@ class BookingController extends Controller
         }
         
         $bookings = $bookings->orderBy('arrival_date', 'desc')
-            ->paginate(20);
+            ->get();
 
         return response()->json($bookings);
     }
 
-    public function scanQrCode(Request $request)
+    /**
+     * POST /api/bookings/scan-image
+     *
+     * Az ESP32 által küldött JPEG képből QR kódot dekódol,
+     * majd bejelentkezteti a vendéget.
+     *
+     * Auth: Authorization: Bearer <kemping_auth_token>
+     *   – a token egyedi kempingenként, a tulajdonos generálja
+     *     a POST /api/campings/{id}/esp32-token végponton.
+     */
+    public function scanImage(Request $request)
     {
-        $validated = $request->validate([
-            'qr_code' => 'required|string',
-            'camping_id' => 'required|exists:campings,id'
+        //  Kapu token ellenőrzés 
+        $authHeader    = $request->header('Authorization', '');
+        $providedToken = str_starts_with($authHeader, 'Bearer ')
+            ? substr($authHeader, 7)
+            : '';
+
+        if (!$providedToken) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Hiányzó hitelesítési token.'
+            ], 401);
+        }
+
+        $gate = \App\Models\EntranceGate::whereRaw('auth_token = ?', [$providedToken])
+            ->with('camping')
+            ->first();
+
+        if (!$gate) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Érvénytelen token – kapu nem található.'
+            ], 401);
+        }
+
+        $camping = $gate->camping;
+
+        //  Kép olvasása (raw body vagy multipart)
+        $contentType = $request->header('Content-Type', '');
+        $isRawJpeg   = str_starts_with($contentType, 'image/jpeg') || str_starts_with($contentType, 'image/jpg');
+        $isRawPng    = str_starts_with($contentType, 'image/png');
+
+        if ($isRawJpeg || $isRawPng) {
+           
+            $imageData = $request->getContent();
+            if (empty($imageData)) {
+                return response()->json([
+                    'valid'   => false,
+                    'message' => 'Üres kép body.',
+                ], 422);
+            }
+            $ext     = $isRawPng ? '.png' : '.jpg';
+            $tmpFile = tempnam(sys_get_temp_dir(), 'esp32_qr_') . $ext;
+            file_put_contents($tmpFile, $imageData);
+        } else {
+            // multipart/form-data (Postman tesztelés) – JPEG és PNG is elfogadott
+            $request->validate([
+                'image' => 'required|file|mimes:jpeg,jpg,png|max:10240',
+            ]);
+            $uploadedFile = $request->file('image');
+            $ext          = strtolower($uploadedFile->getClientOriginalExtension()) === 'png' ? '.png' : '.jpg';
+            $tmpFile      = tempnam(sys_get_temp_dir(), 'esp32_qr_') . $ext;
+            file_put_contents($tmpFile, file_get_contents($uploadedFile->getRealPath()));
+        }
+
+        \Log::info('[scan-image] Temp fájl mentve', [
+            'path' => $tmpFile,
+            'size' => filesize($tmpFile),
         ]);
 
-        // Megkeressük a foglalást 
-        $booking = Booking::where('qr_code', $validated['qr_code'])
-            ->where('camping_id', $validated['camping_id'])
+        // Node.js QR dekódoló hívása 
+        $scriptPath = base_path('scripts/decode-qr.js');
+        $nodePath   = env('NODE_PATH', 'node');
+        $escapedTmp = escapeshellarg($tmpFile);
+        $escapedScr = escapeshellarg($scriptPath);
+
+        $lines    = [];
+        $exitCode = 0;
+        exec("$nodePath $escapedScr $escapedTmp 2>&1", $lines, $exitCode);
+        @unlink($tmpFile);
+
+        $rawOutput = implode('', $lines);
+        $decoded   = json_decode($rawOutput, true);
+
+        if (!$decoded || !($decoded['success'] ?? false)) {
+            $error = $decoded['error'] ?? 'Ismeretlen hiba a QR dekódolás során.';
+            \Log::warning('[scan-image] QR dekódolás sikertelen', [
+                'camping_id' => $camping->id,
+                'error'      => $error,
+                'node_exit'  => $exitCode,
+                'node_raw'   => $rawOutput,
+            ]);
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Nem található QR kód a képen.',
+                'detail'  => $error,
+            ], 422);
+        }
+
+        $qrCode = $decoded['data'];
+        \Log::info('[scan-image] QR dekódolva', [
+            'qr_code'    => $qrCode,
+            'camping_id' => $camping->id,
+        ]);
+
+        //foglalás keresése a kempinghez 
+        $booking = Booking::where('qr_code', $qrCode)
+            ->where('camping_id', $camping->id)
             ->with(['user', 'campingSpot'])
             ->first();
 
-        // Ha nincs foglalás 
         if (!$booking) {
             return response()->json([
-                'valid' => false,
-                'message' => 'Érvénytelen QR kód.'
+                'valid'   => false,
+                'message' => 'Érvénytelen QR kód – nem található foglalás.'
             ], 404);
         }
 
-        // Ha a foglalás le van mondva
         if ($booking->status == 'cancelled') {
             return response()->json([
-                'valid' => false,
+                'valid'   => false,
                 'message' => 'Ez a foglalás le lett mondva.',
                 'booking' => $booking
             ], 422);
         }
 
-        // Megnézzük, hogy a mai nap benne van-e a foglalási időszakban
         $today = date('Y-m-d');
-        
-        if ($today <= $booking->arrival_date) {
+
+        if ($today <= $booking->arrival_date->format('Y-m-d')) {
             return response()->json([
-                'valid' => false,
-                'message' => 'Ez a foglalás csak ' . $booking->arrival_date . '-től érvényes.',
-                'booking' => $booking
-            ], 422);
-        }
-        
-        if ($today >= $booking->departure_date) {
-            return response()->json([
-                'valid' => false,
-                'message' => 'Ez a foglalás ' . $booking->departure_date . '-ig volt érvényes.',
+                'valid'   => false,
+                'message' => 'Ez a foglalás csak ' . $booking->arrival_date->format('Y-m-d') . '-től érvényes.',
                 'booking' => $booking
             ], 422);
         }
 
-        // Ha pending vagy confirmed akkor bejelentkeztetjük ????
+        if ($today >= $booking->departure_date->format('Y-m-d')) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Ez a foglalás ' . $booking->departure_date->format('Y-m-d') . '-ig volt érvényes.',
+                'booking' => $booking
+            ], 422);
+        }
+
         if ($booking->status == 'pending' || $booking->status == 'confirmed') {
             $booking->status = 'checked_in';
             $booking->save();
         }
 
         return response()->json([
-            'valid' => true,
+            'valid'   => true,
             'message' => 'Sikeres bejelentkezés!',
             'booking' => $booking
         ]);
     }
+
+    public function scanQrCode(Request $request)
+    {
+        // Token ellenőrzés 
+        $expectedToken = env('ESP32_SECRET_TOKEN');
+        $authHeader    = $request->header('Authorization', '');
+        $providedToken = str_starts_with($authHeader, 'Bearer ')
+            ? substr($authHeader, 7)
+            : '';
+
+        if (!$expectedToken || $providedToken !== $expectedToken) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Érvénytelen hitelesítési token.'
+            ], 401);
+        }
+
+        // Validáció 
+        $validated = $request->validate([
+            'image'      => 'required|file|mimes:jpeg,jpg|max:2048',
+            'camping_id' => 'required|exists:campings,id',
+        ]);
+
+        // Kép mentése ideiglenes fájlba
+        $tmpFile = tempnam(sys_get_temp_dir(), 'esp32_qr_') . '.jpg';
+        file_put_contents($tmpFile, file_get_contents($request->file('image')->getRealPath()));
+
+        // Node.js QR dekódoló hívása 
+        $scriptPath = base_path('scripts/decode-qr.js');
+        $nodePath   = env('NODE_PATH', 'node');
+        $escapedTmp = escapeshellarg($tmpFile);
+        $escapedScr = escapeshellarg($scriptPath);
+
+        $output   = '';
+        $exitCode = 0;
+        exec("$nodePath $escapedScr $escapedTmp 2>&1", $lines, $exitCode);
+        @unlink($tmpFile); // ideiglenes fájl törlése
+
+        $output = implode('', $lines);
+        $decoded = json_decode($output, true);
+
+        if (!$decoded || !($decoded['success'] ?? false)) {
+            $error = $decoded['error'] ?? 'Ismeretlen hiba a QR dekódolás során.';
+            \Log::warning('[scan-image] QR dekódolás sikertelen', [
+                'camping_id' => $validated['camping_id'],
+                'error'      => $error,
+            ]);
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Nem található QR kód a képen.',
+                'detail'  => $error,
+            ], 422);
+        }
+
+        $qrCode = $decoded['data'];
+        \Log::info('[scan-image] QR dekódolva', [
+            'qr_code'    => $qrCode,
+            'camping_id' => $validated['camping_id'],
+        ]);
+
+        // Meglévő scan logika (QR string alapján foglalás keresése)
+        $booking = Booking::where('qr_code', $qrCode)
+            ->where('camping_id', $validated['camping_id'])
+            ->with(['user', 'campingSpot'])
+            ->first();
+
+        if (!$booking) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Érvénytelen QR kód – nem található foglalás.'
+            ], 404);
+        }
+
+        if ($booking->status == 'cancelled') {
+            return response()->json([
+                'valid'    => false,
+                'message'  => 'Ez a foglalás le lett mondva.',
+                'booking'  => $booking
+            ], 422);
+        }
+
+        $today = date('Y-m-d');
+
+        if ($today <= $booking->arrival_date->format('Y-m-d')) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Ez a foglalás csak ' . $booking->arrival_date->format('Y-m-d') . '-től érvényes.',
+                'booking' => $booking
+            ], 422);
+        }
+
+        if ($today >= $booking->departure_date->format('Y-m-d')) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Ez a foglalás ' . $booking->departure_date->format('Y-m-d') . '-ig volt érvényes.',
+                'booking' => $booking
+            ], 422);
+        }
+
+        if ($booking->status == 'pending' || $booking->status == 'confirmed') {
+            $booking->status = 'checked_in';
+            $booking->save();
+        }
+
+        return response()->json([
+            'valid'   => true,
+            'message' => 'Sikeres bejelentkezés!',
+            'booking' => $booking
+        ]);
+    }
+
 }
