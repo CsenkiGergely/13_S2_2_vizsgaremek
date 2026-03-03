@@ -221,7 +221,7 @@ const handleSearch = async () => {
   
   <main class="content" role="main">
     
-    <h2 class="section-title">Népszerű régiók</h2>
+    <h2 class="section-title">Népszerű Kempingek</h2>
     <p class="muted">Válogatásunk a legkedveltebb kempingek közül — kattints a képekre a részletekért.</p>
 
    
