@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useRouter } from 'vue-router'
 
-const { login, register, forgotPassword, upgradeToPartner, loading } = useAuth()
+const { login, register, forgotPassword, upgradeToPartner, loading, passwordStrength: getPasswordStrength } = useAuth()
 const router = useRouter()
 
 const props = defineProps({
@@ -77,25 +77,7 @@ const toggleRegisterPasswordConfirm = () => {
 }
 
 // jelszó erősség
-const passwordStrength = computed(() => {
-  const password = registerForm.value.password
-  if (!password) return { level: 0, text: '', color: '' }
-
-  let score = 0
-  if (password.length >= 12) score += 3
-  else if (password.length >= 8) score += 2
-  else score += 1
-
-  if (/[a-z]/.test(password)) score += 1
-  if (/[A-Z]/.test(password)) score += 1
-  if (/[0-9]/.test(password)) score += 1
-  if (/[^a-zA-Z0-9]/.test(password)) score += 2
-  if (password.length <= 6) score = 0
-
-  if (score <= 4) return { level: 1, text: 'Gyenge jelszó', color: 'text-red-400' }
-  else if (score <= 7) return { level: 2, text: 'Közepes jelszó', color: 'text-yellow-400' }
-  else return { level: 3, text: 'Erős jelszó', color: 'text-[#4A7434]' }
-})
+const passwordStrength = computed(() => getPasswordStrength(registerForm.value.password))
 
 // modal bezárás + form reset
 const closeModal = () => {
@@ -225,8 +207,7 @@ const handlePhoneLogin = async () => {
                 <template v-if="isLogin">Bejelentkezés</template>
                 <template v-else-if="isRegister">Regisztráció</template>
                 <template v-else-if="isForgotPassword">Elfelejtett jelszó</template>
-                <template v-else-if="isPhoneLogin"></template>
-                 <template v-else-if="isPhoneLogin">Partner státusz igénylése</template>
+                <template v-else-if="isPhoneLogin">Partner státusz igénylése</template>
               </h2>
 
               <!-- hiba/siker üzenet -->
