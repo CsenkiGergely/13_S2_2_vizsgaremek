@@ -11,3 +11,13 @@ Ez a repository a vizsgaremeket és dokumentációját tartalmazza.
 ## Határidő
 - **2026. február vége** – Tesztesetek
 
+## Összegyűjtött TODO-k a projekt hiányosságainak javítására:
+
+- Jelszó erősség tesztelő backendbe való átvitele
+- UI hibák javítása a kereső oldalon lévő szűrőn
+- Csillag rendszer (értékelő) rögzítése, hibák javítása
+- Home oldalon a "Népszerű régiók" és "Kiemelt kempingünk" szekciók megfelelő kitöltése
+- Footer telefonos nézet UI fixálása
+- QR kód generálása belépéshez
+- Saját profilon lévő funkciók integrálása
+- Térkép integrálása
