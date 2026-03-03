@@ -9,6 +9,12 @@ const error = ref(null) // utolsó hibaüzenet
 // Gyors ellenőrzés, hogy be van-e jelentkezve a felhasználó
 const isAuthenticated = computed(() => !!token.value)
 
+// Ha az axios interceptor 401-et kap, töröljük a reaktív állapotot is
+window.addEventListener('auth:unauthenticated', () => {
+  token.value = null
+  user.value = null
+})
+
 // Regisztráció
 // userData: { owner_first_name, owner_last_name, email, password, password_confirmation }
 const register = async (userData) => {
@@ -68,11 +74,13 @@ const login = async (credentials) => {
     // Sikeres bejelentkezés: user és token várható
     const { user: userData, token: newToken } = response.data
     
-    token.value = newToken
+    // Laravel Sanctum esetén lehet plainTextToken, egyébként csak token
+    const plainToken = newToken?.plainTextToken || newToken
+    token.value = plainToken
     user.value = userData
     
     // Mentés lokálisan a következő oldalletöltéshez
-    localStorage.setItem('auth_token', newToken)
+    localStorage.setItem('auth_token', plainToken)
     localStorage.setItem('user', JSON.stringify(userData))
     
     return { success: true, user: userData }

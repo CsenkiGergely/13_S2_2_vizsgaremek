@@ -27,10 +27,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token lejárt vagy érvénytelen
+      // Token lejárt vagy érvénytelen — töröljük a lokális adatokat
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user')
-      // Opcionális: átirányítás a login oldalra
+      // Értesítjük az app többi részét (pl. useAuth), hogy a session lejárt
+      window.dispatchEvent(new CustomEvent('auth:unauthenticated'))
     }
     return Promise.reject(error)
   }
