@@ -1,23 +1,29 @@
 import { ref } from 'vue'
 import api from '../api/axios'
 
-const stored = localStorage.getItem('searchResults')
-const results = ref(stored ? JSON.parse(stored) : null)
+const results = ref([])
 const loading = ref(false)
+const error = ref(null)
 
+const getErrorMessage = (err) => {
+  return err.response?.data?.message || err.message
+}
+
+// Általános keresés
 const search = async (q) => {
   loading.value = true
+  error.value = null
 
   try {
     const response = await api.get('/search', {
-      params: { q }
+      params: { search: q }
     })
-    results.value = response.data
-    localStorage.setItem('searchResults', JSON.stringify(results.value))
+    results.value = response.data.data || response.data
     return results.value
-  } catch (error) {
-    console.error('Search error:', error)
-    throw error
+  } catch (err) {
+    console.error('Hiba a keresés során:', err)
+    error.value = getErrorMessage(err)
+    throw err
   } finally {
     loading.value = false
   }
@@ -27,6 +33,7 @@ export function useSearch() {
   return {
     results,
     loading,
+    error,
     search
   }
 }

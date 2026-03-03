@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('entrance_gates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('camping_id')->constrained('campings')->onDelete('cascade');
+            $table->string('name', 100)->nullable();
+            $table->string('auth_token', 16)->nullable()->unique();
             $table->dateTime('timestamp');
             $table->integer('gate_id')->nullable();
             $table->time('opening_time')->nullable();

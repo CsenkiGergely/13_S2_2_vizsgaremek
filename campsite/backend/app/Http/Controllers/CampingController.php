@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\Camping;
 use App\Models\Location;
@@ -10,6 +11,17 @@ use App\Models\Booking;
 
 class CampingController extends Controller
 {
+    /**
+     * GET /api/my-campings
+     * Bejelentkezett felhasználó saját kempingjei (tulajdonosi dropdown-hoz).
+     */
+    public function myCampings(Request $request)
+    {
+        $campings = Camping::with('location')->where('user_id', $request->user()->id)->get();
+
+        return response()->json($campings);
+    }
+
     /**
      * Kempingek listázása szűrőkkel
      */
@@ -411,5 +423,83 @@ class CampingController extends Controller
         $camping->save();
 
         return response()->json(['message' => 'Térkép törölve!'], 200);
+    }
+
+    /**
+     * POST /api/campings/{id}/esp32-token
+     * Új token generálása (felülírja a régit).
+     * A generált tokent egyszer adja vissza teljes egészében 
+     * utána csak az első 8 karaktere látható.
+     */
+    public function generateEsp32Token(Request $request, $id)
+    {
+        $camping = Camping::find($id);
+
+        if (!$camping) {
+            return response()->json(['message' => 'Kemping nem található.'], 404);
+        }
+
+        if ($camping->user_id != $request->user()->id) {
+            return response()->json(['message' => 'Nincs jogosultságod!'], 403);
+        }
+
+        $token = Str::random(16);
+        $camping->auth_token = $token;
+        $camping->save();
+
+        return response()->json([
+            'message'     => 'Token sikeresen generálva. Mentsd el, többé nem jelenik meg teljes egészében!',
+            'auth_token'  => $token,
+            'camping_id'  => $camping->id,
+            'camping_name'=> $camping->camping_name,
+        ]);
+    }
+
+    /**
+     * GET /api/campings/{id}/esp32-token
+     * Token státusz lekérése (létezik-e, első 8 karakter).
+     */
+    public function getEsp32TokenStatus(Request $request, $id)
+    {
+        $camping = Camping::find($id);
+
+        if (!$camping) {
+            return response()->json(['message' => 'Kemping nem található.'], 404);
+        }
+
+        if ($camping->user_id != $request->user()->id) {
+            return response()->json(['message' => 'Nincs jogosultságod!'], 403);
+        }
+
+        $hasToken = !empty($camping->auth_token);
+
+        return response()->json([
+            'has_token'    => $hasToken,
+            'token_prefix' => $hasToken ? substr($camping->getRawOriginal('auth_token'), 0, 8) . '...' : null,
+            'camping_id'   => $camping->id,
+            'camping_name' => $camping->camping_name,
+        ]);
+    }
+
+    /**
+     * DELETE /api/campings/{id}/esp32-token
+     * Token visszavonása (az ESP32 ezután nem tud bejelentkeztetni).
+     */
+    public function revokeEsp32Token(Request $request, $id)
+    {
+        $camping = Camping::find($id);
+
+        if (!$camping) {
+            return response()->json(['message' => 'Kemping nem található.'], 404);
+        }
+
+        if ($camping->user_id != $request->user()->id) {
+            return response()->json(['message' => 'Nincs jogosultságod!'], 403);
+        }
+
+        $camping->auth_token = null;
+        $camping->save();
+
+        return response()->json(['message' => 'Token visszavonva. A szkenner többé nem tud bejelentkeztetni.']);
     }
 }

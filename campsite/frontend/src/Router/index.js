@@ -23,12 +23,15 @@ const routes = [
   { path: '/kemping/:id/helyek', name: 'SpotKezeles', component: SpotKezeles, meta: { requiresAuth: true } },
   { path: '/verify-email', name: 'VerifyEmail', component: VerifyEmail },
   { path: '/fizetes', name: 'Fizetes', component: Fizetes },
-    { path: '/profil', name: 'Profil', component: Profil }
+  { path: '/profil', name: 'Profil', component: Profil }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior() {
+    return { top: 0 }
+  }
 })
 
 export default router

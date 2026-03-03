@@ -18,7 +18,6 @@ return new class extends Migration
             $table->unsignedBigInteger('parent_id')->nullable();
             $table->integer('rating')->nullable();
             $table->text('comment')->nullable();
-            $table->date('upload_date')->nullable();
             $table->timestamps();
 
             $table->foreign('parent_id')->references('id')->on('comments')->onDelete('cascade');

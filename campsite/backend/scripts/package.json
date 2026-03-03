@@ -1,0 +1,9 @@
+{
+  "name": "qr-decoder",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "jimp": "^0.22.12",
+    "jsqr": "^1.4.0"
+  }
+}

@@ -2,8 +2,8 @@ import { ref, computed } from 'vue'
 import api from '../api/axios'
 
 const user = ref(JSON.parse(localStorage.getItem('user')) || null) // aktuális felhasználó objektuma (ha van)
-const token = ref(localStorage.getItem('auth_token') || null) // auth token string
-const loading = ref(false) // általános betöltés állapot
+const token = ref(localStorage.getItem('auth_token') || null) // hitelesítési token
+const loading = ref(false) // általános betöltési állapot
 const error = ref(null) // utolsó hibaüzenet
 
 // Gyors ellenőrzés, hogy be van-e jelentkezve a felhasználó
@@ -40,7 +40,7 @@ const register = async (userData) => {
     return { success: true, user: userData2 }
   } catch (err) {
     // Hibák egyszerűsített összegyűjtése a UI számára
-    error.value = err.response?.data?.message || err.response?.data?.errors || 'Regisztrációs hiba történt'
+    error.value = err.response?.data?.message || err.response?.data?.errors || 'Regisztrációs hiba történt.'
     return { success: false, error: error.value }
   } finally {
     loading.value = false
@@ -53,7 +53,6 @@ const login = async (credentials) => {
   error.value = null
   
   try {
-    console.log("useAuth")
     // POST a /login végpontra
     const response = await api.post('/login', {
       email: credentials.email,
@@ -62,7 +61,7 @@ const login = async (credentials) => {
     
     // Ha a backend explicit "Invalid credentials" üzenetet ad vissza
     if (response.data.message === 'Invalid credentials') {
-      error.value = 'Hibás email cím vagy jelszó'
+      error.value = 'Hibás email-cím vagy jelszó.'
       return { success: false, error: error.value }
     }
     
@@ -86,11 +85,11 @@ const login = async (credentials) => {
       } else if (errors?.password) {
         error.value = errors.password[0]
       } else {
-        error.value = 'Hibás adatok'
+        error.value = 'Hibás adatok.'
       }
     } else {
       // Egyéb hibák: backend üzenet vagy általános hibaüzenet
-      error.value = err.response?.data?.message || 'Bejelentkezési hiba történt'
+      error.value = err.response?.data?.message || 'Bejelentkezési hiba történt.'
     }
     return { success: false, error: error.value }
   } finally {
@@ -115,7 +114,7 @@ const upgradeToPartner = async (phoneNumber) => {
     return {
       success: true,
       user: updatedUser,
-      message: response.data.message || 'Sikeres partner státusz váltás.'
+      message: response.data.message || 'Sikeres partnerstátusz-váltás.'
     }
   } catch (err) {
     if (err.response?.status === 401) {
@@ -123,7 +122,7 @@ const upgradeToPartner = async (phoneNumber) => {
     } else if (err.response?.status === 422) {
       error.value = err.response?.data?.errors?.phone_number?.[0] || 'Érvénytelen telefonszám.'
     } else {
-      error.value = err.response?.data?.message || 'Hiba történt partner státusz váltás közben.'
+      error.value = err.response?.data?.message || 'Hiba történt partnerstátusz-váltás közben.'
     }
 
     return { success: false, error: error.value }
@@ -150,8 +149,8 @@ const logout = async () => {
   }
 }
 
-// Felhasználó adatainak lekérése a szerverről
-// Visszatér a felhasználó objektummal vagy null-lal ha nincs token vagy hiba történt
+// Felhasználói adatok lekérése a szerverről
+// Visszatér a felhasználó objektummal, vagy null-lal, ha nincs token vagy hiba történt
 const fetchUser = async () => {
   if (!token.value) return null
   
@@ -177,7 +176,7 @@ const fetchUser = async () => {
   }
 }
 
-// Elfelejtett jelszó: emailet küld a backendre (password reset link)
+// Elfelejtett jelszó: e-mail küldése a backendre (jelszó-visszaállító link)
 const forgotPassword = async (email) => {
   loading.value = true
   error.value = null
@@ -186,7 +185,7 @@ const forgotPassword = async (email) => {
     const response = await api.post('/forgot-password', { email })
     return { 
       success: true, 
-      message: response.data.message || 'Jelszó visszaállító linket elküldtük az email címedre.' 
+      message: response.data.message || 'Jelszó-visszaállító linket elküldtük az e-mail-címedre.' 
     }
   } catch (err) {
     // Hibák lehetnek általános üzenetben vagy mezőspecifikus validációs hibákban
@@ -197,7 +196,7 @@ const forgotPassword = async (email) => {
   }
 }
 
-// Jelszó átállítása a reset formról érkező adatokkal (token, email, password, password_confirmation)
+// Jelszó módosítása a reset űrlapról érkező adatokkal (token, email, password, password_confirmation)
 const resetPassword = async (data) => {
   loading.value = true
   error.value = null
@@ -207,7 +206,7 @@ const resetPassword = async (data) => {
     const response = await api.post('/reset-password', data)
     return { 
       success: true, 
-      message: response.data.message || 'Jelszó sikeresen megváltoztatva!' 
+      message: response.data.message || 'Jelszó sikeresen megváltoztatva.' 
     }
   } catch (err) {
     // Kezeljük a lehetséges hibaválaszokat: általános üzenet vagy mezőspecifikus hibák

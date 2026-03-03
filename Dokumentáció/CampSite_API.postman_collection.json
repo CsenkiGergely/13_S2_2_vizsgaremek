@@ -1,0 +1,3290 @@
+{
+	"info": {
+		"_postman_id": "campsite-api-full-test-collection",
+		"name": "CampSite API - Teljes Teszt Gyűjtemény",
+		"description": "CampSite kemping foglalási és beléptetőrendszer teljes API tesztgyűjteménye.\n\nBase URL: http://127.0.0.1:8000/api\n\nA tesztek automatikusan mentik a token-t és egyéb változókat.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "partner_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "partner_user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "camping_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "spot_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "booking_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "comment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "reply_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "guest_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "photo_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tag_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "gate_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "gate_auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "qr_code",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_email",
+			"value": "tesztuser@example.com",
+			"type": "string"
+		},
+		{
+			"key": "partner_email",
+			"value": "tesztpartner@example.com",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "01 - Autentikáció",
+			"description": "Felhasználó regisztráció, bejelentkezés, kijelentkezés, jelszó visszaállítás, email megerősítés",
+			"item": [
+				{
+					"name": "01.1 - Regisztráció (normál felhasználó)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sikeres regisztráció - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Válasz tartalmazza a user és token mezőket', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('user');",
+									"    pm.expect(json).to.have.property('token');",
+									"    pm.expect(json).to.have.property('message');",
+									"    pm.expect(json.user).to.have.property('id');",
+									"    pm.expect(json.user).to.have.property('email');",
+									"    pm.expect(json.user).to.have.property('owner_first_name');",
+									"    pm.expect(json.user).to.have.property('owner_last_name');",
+									"});",
+									"",
+									"pm.test('Token mentése változóba', function () {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('token', json.token);",
+									"    pm.collectionVariables.set('user_id', json.user.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"owner_first_name\": \"Teszt\",\n  \"owner_last_name\": \"Felhasználó\",\n  \"email\": \"{{user_email}}\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": ["{{base_url}}"],
+							"path": ["register"]
+						}
+					}
+				},
+				{
+					"name": "01.2 - Regisztráció (partner felhasználó)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sikeres regisztráció - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Token mentése partner változóba', function () {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('partner_token', json.token);",
+									"    pm.collectionVariables.set('partner_user_id', json.user.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"owner_first_name\": \"Partner\",\n  \"owner_last_name\": \"Tulajdonos\",\n  \"email\": \"{{partner_email}}\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": ["{{base_url}}"],
+							"path": ["register"]
+						}
+					}
+				},
+				{
+					"name": "01.3 - Regisztráció - Validációs hiba (hiányzó mezők)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Validációs hiba - 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"pm.test('Hibaüzenet tartalmazza a hibás mezőket', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('errors');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"hibas\",\n  \"password\": \"rövid\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": ["{{base_url}}"],
+							"path": ["register"]
+						}
+					}
+				},
+				{
+					"name": "01.4 - Regisztráció - Duplikált email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Duplikált email - 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"pm.test('Hibaüzenet az email mezőre', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.errors).to.have.property('email');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"owner_first_name\": \"Teszt\",\n  \"owner_last_name\": \"Felhasználó\",\n  \"email\": \"{{user_email}}\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": ["{{base_url}}"],
+							"path": ["register"]
+						}
+					}
+				},
+				{
+					"name": "01.5 - Email megerősítés",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Email megerősítés válasz - 200 vagy 400', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+									"});",
+									"",
+									"pm.test('Válasz tartalmaz üzenetet', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"token\": \"test-token-placeholder\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/verify-email",
+							"host": ["{{base_url}}"],
+							"path": ["verify-email"]
+						}
+					}
+				},
+				{
+					"name": "01.6 - Aktiváló email újraküldése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Újraküldés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Válasz tartalmaz üzenetet', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/resend-verification",
+							"host": ["{{base_url}}"],
+							"path": ["resend-verification"]
+						}
+					}
+				},
+				{
+					"name": "01.7 - Bejelentkezés (normál felhasználó)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sikeres bejelentkezés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Válasz tartalmazza a user és token mezőket', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('user');",
+									"    pm.expect(json).to.have.property('token');",
+									"    pm.expect(json.user).to.have.property('id');",
+									"    pm.expect(json.user).to.have.property('email');",
+									"});",
+									"",
+									"pm.test('Token mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('token', json.token);",
+									"    pm.collectionVariables.set('user_id', json.user.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "01.8 - Bejelentkezés (partner felhasználó)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sikeres bejelentkezés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Partner token mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('partner_token', json.token);",
+									"    pm.collectionVariables.set('partner_user_id', json.user.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "01.9 - Bejelentkezés - Hibás jelszó",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Hibás jelszó - 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test('Hibaüzenet ellenőrzése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"rosszjelszo\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "01.10 - Bejelentkezés - Nem létező email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Nem létező email - 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"nemletezik@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						}
+					}
+				},
+				{
+					"name": "01.11 - Elfelejtett jelszó",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Elfelejtett jelszó - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Üzenet ellenőrzése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/forgot-password",
+							"host": ["{{base_url}}"],
+							"path": ["forgot-password"]
+						}
+					}
+				},
+				{
+					"name": "01.12 - Jelszó visszaállítás",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Jelszó visszaállítás válasz - 200 vagy 400', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+									"});",
+									"",
+									"pm.test('Válasz tartalmaz üzenetet', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"token\": \"test-reset-token\",\n  \"password\": \"ujjelszo123\",\n  \"password_confirmation\": \"ujjelszo123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/reset-password",
+							"host": ["{{base_url}}"],
+							"path": ["reset-password"]
+						}
+					}
+				},
+				{
+					"name": "01.13 - Partner státuszra váltás",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Partner státusz - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Felhasználó partner lett', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"    pm.expect(json).to.have.property('user');",
+									"    pm.expect(json.user.role).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone_number\": \"+36301234567\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/upgrade-to-partner",
+							"host": ["{{base_url}}"],
+							"path": ["upgrade-to-partner"]
+						}
+					}
+				},
+				{
+					"name": "01.14 - Partner státusz - Auth nélkül (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Auth nélkül - 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone_number\": \"+36301234567\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/upgrade-to-partner",
+							"host": ["{{base_url}}"],
+							"path": ["upgrade-to-partner"]
+						}
+					}
+				},
+				{
+					"name": "01.15 - Bejelentkezett felhasználó lekérése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('User lekérés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('User adatok rendben', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('id');",
+									"    pm.expect(json).to.have.property('email');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/user",
+							"host": ["{{base_url}}"],
+							"path": ["user"]
+						}
+					}
+				},
+				{
+					"name": "01.16 - Kijelentkezés",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Sikeres kijelentkezés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Üzenet ellenőrzése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/logout",
+							"host": ["{{base_url}}"],
+							"path": ["logout"]
+						}
+					}
+				},
+				{
+					"name": "01.17 - Kijelentkezés utáni hozzáférés (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kijelentkezés után - 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/user",
+							"host": ["{{base_url}}"],
+							"path": ["user"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "02 - Kempingek (Publikus)",
+			"description": "Kempingek listázása, keresés, részletek - nem igényel autentikációt",
+			"item": [
+				{
+					"name": "02.1 - Kempingek listázása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kempingek lista - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Pagináció struktúra helyes', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('data');",
+									"    pm.expect(json).to.have.property('current_page');",
+									"    pm.expect(json).to.have.property('total');",
+									"});",
+									"",
+									"pm.test('Első kemping ID mentése', function () {",
+									"    var json = pm.response.json();",
+									"    if (json.data && json.data.length > 0) {",
+									"        pm.collectionVariables.set('camping_id', json.data[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings",
+							"host": ["{{base_url}}"],
+							"path": ["campings"]
+						}
+					}
+				},
+				{
+					"name": "02.2 - Kempingek keresés szöveggel",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Keresés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Pagináció struktúra', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings?search=kemping",
+							"host": ["{{base_url}}"],
+							"path": ["campings"],
+							"query": [
+								{ "key": "search", "value": "kemping" }
+							]
+						}
+					}
+				},
+				{
+					"name": "02.3 - Kempingek ár szűréssel",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Ár szűrés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings?min_price=1000&max_price=5000",
+							"host": ["{{base_url}}"],
+							"path": ["campings"],
+							"query": [
+								{ "key": "min_price", "value": "1000" },
+								{ "key": "max_price", "value": "5000" }
+							]
+						}
+					}
+				},
+				{
+					"name": "02.4 - Kemping részletek",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kemping részletek - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Kemping adatok struktúra', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('id');",
+									"    pm.expect(json).to.have.property('camping_name');",
+									"    pm.expect(json).to.have.property('description');",
+									"    pm.expect(json).to.have.property('location');",
+									"    pm.expect(json).to.have.property('photos');",
+									"    pm.expect(json).to.have.property('tags');",
+									"    pm.expect(json).to.have.property('spots');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}"]
+						}
+					}
+				},
+				{
+					"name": "02.5 - Kemping nem található (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Nem létező kemping - 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/99999",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "99999"]
+						}
+					}
+				},
+				{
+					"name": "02.6 - Kemping elérhetőség lekérése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Elérhetőség - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Availability struktúra', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('camping_id');",
+									"    pm.expect(json).to.have.property('availability');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/availability?start_date=2026-07-01&end_date=2026-07-15",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "availability"],
+							"query": [
+								{ "key": "start_date", "value": "2026-07-01" },
+								{ "key": "end_date", "value": "2026-07-15" }
+							]
+						}
+					}
+				},
+				{
+					"name": "02.7 - GeoJSON térkép lekérése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('GeoJSON - 200 vagy 404', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/geojson",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "geojson"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "03 - Keresés",
+			"description": "Általános keresés és helyszín javaslatok",
+			"item": [
+				{
+					"name": "03.1 - Általános keresés",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Keresés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmények tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=kemping",
+							"host": ["{{base_url}}"],
+							"path": ["search"],
+							"query": [
+								{ "key": "q", "value": "kemping" }
+							]
+						}
+					}
+				},
+				{
+					"name": "03.2 - Keresés ár szűrővel",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Keresés szűrővel - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/search?q=kemping&min_price=1000&max_price=5000&min_rating=3",
+							"host": ["{{base_url}}"],
+							"path": ["search"],
+							"query": [
+								{ "key": "q", "value": "kemping" },
+								{ "key": "min_price", "value": "1000" },
+								{ "key": "max_price", "value": "5000" },
+								{ "key": "min_rating", "value": "3" }
+							]
+						}
+					}
+				},
+				{
+					"name": "03.3 - Keresés tag szűrővel",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Tag szűrő - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/search?tags=wifi,strand",
+							"host": ["{{base_url}}"],
+							"path": ["search"],
+							"query": [
+								{ "key": "tags", "value": "wifi,strand" }
+							]
+						}
+					}
+				},
+				{
+					"name": "03.4 - Helyszín javaslatok (autocomplete)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Javaslatok - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmények tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/locations/suggest?q=bal",
+							"host": ["{{base_url}}"],
+							"path": ["locations", "suggest"],
+							"query": [
+								{ "key": "q", "value": "bal" }
+							]
+						}
+					}
+				},
+				{
+					"name": "03.5 - Foglalás keresés (dátum + vendég)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Foglalás keresés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Pagináció struktúra', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('data');",
+									"    pm.expect(json).to.have.property('total');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/booking/search?arrival_date=2026-07-01&departure_date=2026-07-05&guests=2",
+							"host": ["{{base_url}}"],
+							"path": ["booking", "search"],
+							"query": [
+								{ "key": "arrival_date", "value": "2026-07-01" },
+								{ "key": "departure_date", "value": "2026-07-05" },
+								{ "key": "guests", "value": "2" }
+							]
+						}
+					}
+				},
+				{
+					"name": "03.6 - Foglalás keresés helyszínnel",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Foglalás keresés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/booking/search?location=Budapest&arrival_date=2026-07-01&departure_date=2026-07-05&guests=2",
+							"host": ["{{base_url}}"],
+							"path": ["booking", "search"],
+							"query": [
+								{ "key": "location", "value": "Budapest" },
+								{ "key": "arrival_date", "value": "2026-07-01" },
+								{ "key": "departure_date", "value": "2026-07-05" },
+								{ "key": "guests", "value": "2" }
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "04 - Kemping kezelés (Partner)",
+			"description": "Kemping CRUD műveletek - partner autentikáció szükséges",
+			"item": [
+				{
+					"name": "04.1 - Kemping létrehozás",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kemping létrehozva - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Kemping adatok mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('camping');",
+									"    pm.expect(json.camping).to.have.property('id');",
+									"    pm.collectionVariables.set('camping_id', json.camping.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"camping_name\": \"Teszt Kemping a Tóparton\",\n  \"description\": \"Gyönyörű kemping a Balaton partján, modern felszereltséggel.\",\n  \"company_name\": \"Teszt Kft.\",\n  \"tax_id\": \"12345678-1-23\",\n  \"billing_address\": \"1234 Budapest, Teszt utca 1.\",\n  \"city\": \"Balatonfüred\",\n  \"zip_code\": \"8230\",\n  \"street_address\": \"Parti sétány 15.\",\n  \"latitude\": 46.9567,\n  \"longitude\": 17.8931\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings",
+							"host": ["{{base_url}}"],
+							"path": ["campings"]
+						}
+					}
+				},
+				{
+					"name": "04.2 - Kemping létrehozás - jogosultság nélkül (403)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Jogosultság hiánya - 403', function () {",
+									"    pm.response.to.have.status(403);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"camping_name\": \"Nem engedélyezett\",\n  \"description\": \"Ez nem fog sikerülni.\",\n  \"city\": \"Budapest\",\n  \"zip_code\": \"1234\",\n  \"street_address\": \"Teszt utca 1.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings",
+							"host": ["{{base_url}}"],
+							"path": ["campings"]
+						}
+					}
+				},
+				{
+					"name": "04.3 - Kemping módosítás",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kemping módosítva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Frissített adatok', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.camping.camping_name).to.eql('Módosított Kemping Név');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"camping_name\": \"Módosított Kemping Név\",\n  \"description\": \"Frissített leírás a kempingről.\",\n  \"city\": \"Siófok\",\n  \"zip_code\": \"8600\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}"]
+						}
+					}
+				},
+				{
+					"name": "04.4 - Saját kempingek listázása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Saját kempingek - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmény tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/my-campings",
+							"host": ["{{base_url}}"],
+							"path": ["my-campings"]
+						}
+					}
+				},
+				{
+					"name": "04.5 - GeoJSON feltöltés",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('GeoJSON feltöltés - 200 vagy 422', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 422]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "geojson",
+									"type": "file",
+									"src": "",
+									"description": "GeoJSON fájl (.geojson kiterjesztéssel)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/geojson",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "geojson"]
+						}
+					}
+				},
+				{
+					"name": "04.6 - GeoJSON törlés",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('GeoJSON törlés - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/geojson",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "geojson"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "05 - Kemping helyek (Spots)",
+			"description": "Kemping helyek CRUD - publikus lekérés + tulajdonosi kezelés",
+			"item": [
+				{
+					"name": "05.1 - Helyek listázása (publikus)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Helyek lista - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmény tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/spots",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "spots"]
+						}
+					}
+				},
+				{
+					"name": "05.2 - Helyek dátum szűréssel",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Helyek dátum szűréssel - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/spots?start_date=2026-07-01&end_date=2026-07-10",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "spots"],
+							"query": [
+								{ "key": "start_date", "value": "2026-07-01" },
+								{ "key": "end_date", "value": "2026-07-10" }
+							]
+						}
+					}
+				},
+				{
+					"name": "05.3 - Új hely létrehozása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Hely létrehozva - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Spot ID mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('spot');",
+									"    pm.collectionVariables.set('spot_id', json.spot.spot_id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"A1 - Tóparti parcella\",\n  \"type\": \"parcella\",\n  \"capacity\": 4,\n  \"price_per_night\": 3500,\n  \"description\": \"Gyönyörű tóparti helyszín fákkal\",\n  \"row\": 1,\n  \"column\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/spots",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "spots"]
+						}
+					}
+				},
+				{
+					"name": "05.4 - Hely részletei",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Hely részletek - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Spot adatok', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('spot_id');",
+									"    pm.expect(json).to.have.property('name');",
+									"    pm.expect(json).to.have.property('capacity');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/spots/{{spot_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "spots", "{{spot_id}}"]
+						}
+					}
+				},
+				{
+					"name": "05.5 - Hely módosítása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Hely módosítva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"A1 - Prémium Tóparti parcella\",\n  \"price_per_night\": 4500,\n  \"capacity\": 6\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/spots/{{spot_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "spots", "{{spot_id}}"]
+						}
+					}
+				},
+				{
+					"name": "05.6 - Hely nem található (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Nem létező hely - 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/spots/99999",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "spots", "99999"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "06 - Foglalások",
+			"description": "Foglalás CRUD, QR kód, tulajdonosi műveletek",
+			"item": [
+				{
+					"name": "06.1 - Foglalás létrehozása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Foglalás létrehozva - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Foglalás adatok mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('booking');",
+									"    pm.expect(json.booking).to.have.property('id');",
+									"    pm.expect(json.booking).to.have.property('qr_code');",
+									"    pm.collectionVariables.set('booking_id', json.booking.id);",
+									"    pm.collectionVariables.set('qr_code', json.booking.qr_code);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"camping_id\": {{camping_id}},\n  \"camping_spot_id\": {{spot_id}},\n  \"arrival_date\": \"2026-07-01\",\n  \"departure_date\": \"2026-07-05\",\n  \"guests\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/bookings",
+							"host": ["{{base_url}}"],
+							"path": ["bookings"]
+						}
+					}
+				},
+				{
+					"name": "06.2 - Foglalás létrehozás - Auth nélkül (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Auth nélkül - 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"camping_id\": {{camping_id}},\n  \"camping_spot_id\": {{spot_id}},\n  \"arrival_date\": \"2026-08-01\",\n  \"departure_date\": \"2026-08-05\",\n  \"guests\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/bookings",
+							"host": ["{{base_url}}"],
+							"path": ["bookings"]
+						}
+					}
+				},
+				{
+					"name": "06.3 - Foglalás létrehozás - Átfedő dátumok (422)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Átfedő foglalás - 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});",
+									"",
+									"pm.test('Hibaüzenet ellenőrzése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"camping_id\": {{camping_id}},\n  \"camping_spot_id\": {{spot_id}},\n  \"arrival_date\": \"2026-07-03\",\n  \"departure_date\": \"2026-07-07\",\n  \"guests\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/bookings",
+							"host": ["{{base_url}}"],
+							"path": ["bookings"]
+						}
+					}
+				},
+				{
+					"name": "06.4 - Saját foglalások listázása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Foglalások lista - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Pagináció struktúra', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('data');",
+									"    pm.expect(json).to.have.property('current_page');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/bookings",
+							"host": ["{{base_url}}"],
+							"path": ["bookings"]
+						}
+					}
+				},
+				{
+					"name": "06.5 - Foglalás részletei",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Foglalás részletek - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Foglalás adatok', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('id');",
+									"    pm.expect(json).to.have.property('camping');",
+									"    pm.expect(json).to.have.property('camping_spot');",
+									"    pm.expect(json).to.have.property('nights');",
+									"    pm.expect(json).to.have.property('total_price');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}"]
+						}
+					}
+				},
+				{
+					"name": "06.6 - Foglalás módosítása (dátum)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Foglalás módosítva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Frissített adatok', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('booking');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"arrival_date\": \"2026-07-10\",\n  \"departure_date\": \"2026-07-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}"]
+						}
+					}
+				},
+				{
+					"name": "06.7 - QR kód lekérése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('QR kód - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('QR kód adatok', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('qr_code');",
+									"    pm.expect(json).to.have.property('booking_id');",
+									"    pm.expect(json).to.have.property('camping_name');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}/qr-code",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}", "qr-code"]
+						}
+					}
+				},
+				{
+					"name": "06.8 - Tulajdonosi foglalások listázása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Owner foglalások - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmény tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/owner/bookings",
+							"host": ["{{base_url}}"],
+							"path": ["owner", "bookings"]
+						}
+					}
+				},
+				{
+					"name": "06.9 - Owner foglalások státusz szűrővel",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Szűrt foglalások - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/owner/bookings?status=pending",
+							"host": ["{{base_url}}"],
+							"path": ["owner", "bookings"],
+							"query": [
+								{ "key": "status", "value": "pending" }
+							]
+						}
+					}
+				},
+				{
+					"name": "06.10 - Foglalás státusz módosítás (owner)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Státusz módosítva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Új státusz ellenőrzés', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.booking.status).to.eql('confirmed');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"confirmed\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}/status",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "06.11 - Foglalás törlés (lemondás)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Foglalás lemondva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Üzenet ellenőrzése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}"]
+						}
+					}
+				},
+				{
+					"name": "06.12 - Összes foglalás lekérése (publikus)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Összes foglalás - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Pagináció struktúra', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('data');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/bookings/getAll",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "getAll"]
+						}
+					}
+				},
+				{
+					"name": "06.13 - Foglalási árak lekérése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Árak - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmény tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/bookings/prices",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "prices"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "07 - Értékelések (Comments)",
+			"description": "Értékelések CRUD, válaszok, tulajdonosi műveletek",
+			"item": [
+				{
+					"name": "07.1 - Értékelések listázása (publikus)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Értékelések - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Struktúra ellenőrzés', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('camping');",
+									"    pm.expect(json).to.have.property('average_rating');",
+									"    pm.expect(json).to.have.property('reviews_count');",
+									"    pm.expect(json).to.have.property('comments');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/comments",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "comments"]
+						}
+					}
+				},
+				{
+					"name": "07.2 - Új értékelés létrehozása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Értékelés létrehozva - 201 vagy 403', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([201, 403]);",
+									"});",
+									"",
+									"pm.test('Comment ID mentése sikeres létrehozás esetén', function () {",
+									"    if (pm.response.code === 201) {",
+									"        var json = pm.response.json();",
+									"        pm.collectionVariables.set('comment_id', json.comment.id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 5,\n  \"comment\": \"Fantasztikus kemping, nagyon tetszett! A személyzet kedves, a helyszín gyönyörű.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/comments",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "comments"]
+						}
+					}
+				},
+				{
+					"name": "07.3 - Válasz értékelésre (owner)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Válasz hozzáadva - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Reply ID mentése', function () {",
+									"    var json = pm.response.json();",
+									"    if (json.reply) {",
+									"        pm.collectionVariables.set('reply_id', json.reply.id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"comment\": \"Köszönjük az értékelést! Örülünk, hogy jól érezte magát nálunk.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/comments/{{comment_id}}/reply",
+							"host": ["{{base_url}}"],
+							"path": ["comments", "{{comment_id}}", "reply"]
+						}
+					}
+				},
+				{
+					"name": "07.4 - Értékelés szerkesztése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Értékelés szerkesztve - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 4,\n  \"comment\": \"Nagyon jó kemping, de a zuhanyzó lehetne jobb. Összességében ajánlom!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/comments/{{comment_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["comments", "{{comment_id}}"]
+						}
+					}
+				},
+				{
+					"name": "07.5 - Értékelés törlése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Értékelés törölve - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/comments/{{comment_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["comments", "{{comment_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "08 - Kemping képek (Photos)",
+			"description": "Képek feltöltése, listázása, törlése",
+			"item": [
+				{
+					"name": "08.1 - Képek listázása (publikus)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Képek lista - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmény tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/photos",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "photos"]
+						}
+					}
+				},
+				{
+					"name": "08.2 - Kép feltöltés (fájl)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kép feltöltve - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Photo ID mentése', function () {",
+									"    var json = pm.response.json();",
+									"    if (json.photo) {",
+									"        pm.collectionVariables.set('photo_id', json.photo.photo_id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "photo",
+									"type": "file",
+									"src": "",
+									"description": "Kép fájl (jpg, jpeg, png, webp, max 10MB)"
+								},
+								{
+									"key": "caption",
+									"value": "Teszt kép a kempingről",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/photos",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "photos"]
+						}
+					}
+				},
+				{
+					"name": "08.3 - Kép hozzáadás URL-lel",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kép URL hozzáadva - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Photo ID mentése', function () {",
+									"    var json = pm.response.json();",
+									"    if (json.photo) {",
+									"        pm.collectionVariables.set('photo_id', json.photo.photo_id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"photo_url\": \"https://example.com/images/kemping-foto.jpg\",\n  \"caption\": \"Teszt kép URL-lel\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/photos/url",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "photos", "url"]
+						}
+					}
+				},
+				{
+					"name": "08.4 - Kép törlése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kép törölve - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Maradék helyek ellenőrzése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('remaining_photos');",
+									"    pm.expect(json).to.have.property('remaining_slots');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/photos/{{photo_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "photos", "{{photo_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "09 - Kemping tag-ek",
+			"description": "Tag-ek CRUD kezelése",
+			"item": [
+				{
+					"name": "09.1 - Tag-ek listázása (publikus)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Tag-ek - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmény tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/tags",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "tags"]
+						}
+					}
+				},
+				{
+					"name": "09.2 - Új tag hozzáadása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Tag hozzáadva - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Tag ID mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('tag_id', json.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tag\": \"wifi\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/tags",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "tags"]
+						}
+					}
+				},
+				{
+					"name": "09.3 - Duplikált tag (422)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Duplikált tag - 422', function () {",
+									"    pm.response.to.have.status(422);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tag\": \"wifi\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/tags",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "tags"]
+						}
+					}
+				},
+				{
+					"name": "09.4 - Tag törlése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Tag törölve - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/tags/{{tag_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "tags", "{{tag_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "10 - Vendég adatok (User Guests)",
+			"description": "Vendég adatok CRUD kezelése",
+			"item": [
+				{
+					"name": "10.1 - Vendégek listázása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Vendégek lista - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmény tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/user-guests",
+							"host": ["{{base_url}}"],
+							"path": ["user-guests"]
+						}
+					}
+				},
+				{
+					"name": "10.2 - Új vendég létrehozása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Vendég létrehozva - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Guest ID mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('guest_id', json.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"first_name\": \"János\",\n  \"last_name\": \"Kovács\",\n  \"birth_date\": \"1990-05-15\",\n  \"place_of_birth\": \"Budapest\",\n  \"gender\": \"férfi\",\n  \"citizenship\": \"magyar\",\n  \"mothers_birth_name\": \"Kis Mária\",\n  \"id_card_number\": \"123456AB\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/user-guests",
+							"host": ["{{base_url}}"],
+							"path": ["user-guests"]
+						}
+					}
+				},
+				{
+					"name": "10.3 - Vendég részletei",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Vendég részletek - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Vendég adatok', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('id');",
+									"    pm.expect(json).to.have.property('first_name');",
+									"    pm.expect(json).to.have.property('last_name');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/user-guests/{{guest_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["user-guests", "{{guest_id}}"]
+						}
+					}
+				},
+				{
+					"name": "10.4 - Vendég módosítása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Vendég módosítva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"first_name\": \"Péter\",\n  \"last_name\": \"Nagy\",\n  \"citizenship\": \"magyar\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/user-guests/{{guest_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["user-guests", "{{guest_id}}"]
+						}
+					}
+				},
+				{
+					"name": "10.5 - Vendég törlése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Vendég törölve - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Üzenet ellenőrzése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/user-guests/{{guest_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["user-guests", "{{guest_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "11 - Bejárati kapuk (Entrance Gates)",
+			"description": "Kapu kezelés, ESP32 token generálás",
+			"item": [
+				{
+					"name": "11.1 - Kapuk listázása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kapuk lista - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Eredmény tömb', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/gates",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "gates"]
+						}
+					}
+				},
+				{
+					"name": "11.2 - Új kapu létrehozása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kapu létrehozva - 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Gate ID mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('gate_id', json.gate.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Főbejárat\",\n  \"gate_id\": 1,\n  \"opening_time\": \"06:00\",\n  \"closing_time\": \"22:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/gates",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "gates"]
+						}
+					}
+				},
+				{
+					"name": "11.3 - Kapu módosítása",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kapu módosítva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Főbejárat - Módosított\",\n  \"opening_time\": \"07:00\",\n  \"closing_time\": \"23:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/gates/{{gate_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "gates", "{{gate_id}}"]
+						}
+					}
+				},
+				{
+					"name": "11.4 - ESP32 token generálás",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Token generálva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Token mentése', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('auth_token');",
+									"    pm.collectionVariables.set('gate_auth_token', json.auth_token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/gates/{{gate_id}}/auth-token",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "gates", "{{gate_id}}", "auth-token"]
+						}
+					}
+				},
+				{
+					"name": "11.5 - ESP32 token státusz lekérése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Token státusz - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Token státusz adatok', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('has_token');",
+									"    pm.expect(json.has_token).to.eql(true);",
+									"    pm.expect(json).to.have.property('token_prefix');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/gates/{{gate_id}}/auth-token",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "gates", "{{gate_id}}", "auth-token"]
+						}
+					}
+				},
+				{
+					"name": "11.6 - ESP32 QR szkenner teszt (scan-image)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Scan válasz érkezett', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 401, 404, 422]);",
+									"});",
+									"",
+									"pm.test('Válasz struktúra', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('valid');",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{gate_auth_token}}", "type": "string" }]
+						},
+						"method": "POST",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": "",
+									"description": "QR kódot tartalmazó JPEG/PNG kép"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/bookings/scan-image",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "scan-image"]
+						}
+					}
+				},
+				{
+					"name": "11.7 - ESP32 token visszavonás",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Token visszavonva - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/gates/{{gate_id}}/auth-token",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "gates", "{{gate_id}}", "auth-token"]
+						}
+					}
+				},
+				{
+					"name": "11.8 - Kapu törlése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kapu törölve - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/gates/{{gate_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "gates", "{{gate_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "12 - Dashboard",
+			"description": "Tulajdonosi dashboard statisztikák",
+			"item": [
+				{
+					"name": "12.1 - Dashboard lekérése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Dashboard - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Dashboard adatok', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('totalBookings');",
+									"    pm.expect(json).to.have.property('activeGuests');",
+									"    pm.expect(json).to.have.property('bookedSpots');",
+									"    pm.expect(json).to.have.property('totalSpots');",
+									"    pm.expect(json).to.have.property('occupancyPercentage');",
+									"    pm.expect(json).to.have.property('monthlyRevenue');",
+									"    pm.expect(json).to.have.property('averageBookingValue');",
+									"    pm.expect(json).to.have.property('recentBookings');",
+									"    pm.expect(json.recentBookings).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/dashboard",
+							"host": ["{{base_url}}"],
+							"path": ["dashboard"]
+						}
+					}
+				},
+				{
+					"name": "12.2 - Dashboard - Auth nélkül (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Auth nélkül - 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/dashboard",
+							"host": ["{{base_url}}"],
+							"path": ["dashboard"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "13 - Kemping törlés és takarítás",
+			"description": "Kemping helyek és kemping törlése a tesztek végén",
+			"item": [
+				{
+					"name": "13.1 - Kemping hely törlése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Hely törölve - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}/spots/{{spot_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}", "spots", "{{spot_id}}"]
+						}
+					}
+				},
+				{
+					"name": "13.2 - Kemping törlése",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Kemping törölve - 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{ "key": "token", "value": "{{partner_token}}", "type": "string" }]
+						},
+						"method": "DELETE",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/campings/{{camping_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["campings", "{{camping_id}}"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

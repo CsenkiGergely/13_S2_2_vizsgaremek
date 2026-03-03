@@ -8,11 +8,15 @@ class EntranceGate extends Model
 {
     protected $fillable = [
         'camping_id',
+        'name',
+        'auth_token',
         'timestamp',
         'gate_id',
         'opening_time',
         'closing_time',
     ];
+
+    protected $hidden = ['auth_token'];
 
     protected function casts(): array
     {
