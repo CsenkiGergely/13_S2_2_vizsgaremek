@@ -121,6 +121,20 @@ class SearchController extends Controller
             })->values();
         }
 
-        return response()->json($results);
+        $page = $request->get('page', 1);
+        $perPage = 6;
+        $offset = ($page - 1) * $perPage;
+
+        $paginatedItems = $results->slice($offset, $perPage)->values();
+
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedItems,
+            $results->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return response()->json($paginator);
     }
 }
