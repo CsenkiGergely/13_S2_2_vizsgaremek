@@ -4,7 +4,7 @@ import { useAuth } from '../composables/useAuth'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
 
-const { user, logout } = useAuth()
+const { user, logout, isAuthenticated } = useAuth()
 const router = useRouter()
 
 // --- Állapotok ---
@@ -92,14 +92,16 @@ const handleLogout = async () => {
 // --- Tab váltás ---
 const switchTab = (tab) => {
   activeTab.value = tab
-  if (tab === 'bookings' && bookings.value.length === 0 && !bookingsLoading.value) {
+  if (tab === 'bookings' && bookings.value.length === 0 && !bookingsLoading.value && isAuthenticated.value) {
     fetchBookings()
   }
 }
 
 onMounted(() => {
-  // Előre betöltjük a foglalásokat a statisztikákhoz
-  fetchBookings()
+  // Csak bejelentkezve töltjük be a foglalásokat
+  if (isAuthenticated.value) {
+    fetchBookings()
+  }
 })
 </script>
 
