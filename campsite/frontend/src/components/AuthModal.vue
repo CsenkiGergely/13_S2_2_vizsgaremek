@@ -20,29 +20,31 @@ const mode = ref(props.initialMode)
 const formError = ref(null)
 const successMessage = ref(null)
 
-// watch a prop változására
+// Figyeli az initialMode prop változását és frissíti a módot
 watch(() => props.initialMode, (newVal) => {
   mode.value = newVal
 })
 
+// Megnyitáskor visszaállítja a módot az alapértelmezett értékre
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     mode.value = props.initialMode
   }
 })
 
-// computedek a template-hez
+// Az aktuális mód alapján meghatározza, melyik nézet aktív
 const isLogin = computed(() => mode.value === 'login')
 const isRegister = computed(() => mode.value === 'register')
 const isForgotPassword = computed(() => mode.value === 'forgot-password')
 const isPhoneLogin = computed(() => mode.value === 'phone-login')
 
-// form adatok
+// Bejelentkezési űrlap adatai
 const loginForm = ref({
   email: '',
   password: ''
 })
 
+// Regisztrációs űrlap adatai
 const registerForm = ref({
   owner_first_name: '',
   owner_last_name: '',
@@ -51,35 +53,40 @@ const registerForm = ref({
   password_confirmation: ''
 })
 
+// Elfelejtett jelszó űrlap adatai
 const forgotPasswordForm = ref({
   email: ''
 })
 
+// Telefonszámos bejelentkezési űrlap adatai
 const phoneLoginForm = ref({
   phone: ''
 })
 
-// Jelszó láthatóság toggle
+// Jelszó láthatóság állapota mindhárom mezőhöz
 const showLoginPassword = ref(false)
 const showRegisterPassword = ref(false)
 const showRegisterPasswordConfirm = ref(false)
 
+// Bejelentkezési jelszó megjelenítésének váltása
 const toggleLoginPassword = () => {
   showLoginPassword.value = !showLoginPassword.value
 }
 
+// Regisztrációs jelszó megjelenítésének váltása
 const toggleRegisterPassword = () => {
   showRegisterPassword.value = !showRegisterPassword.value
 }
 
+// Jelszó megerősítés megjelenítésének váltása
 const toggleRegisterPasswordConfirm = () => {
   showRegisterPasswordConfirm.value = !showRegisterPasswordConfirm.value
 }
 
-// jelszó erősség
+// Jelszó erősségének kiszámítása a useAuth-ból importált függvénnyel
 const passwordStrength = computed(() => getPasswordStrength(registerForm.value.password))
 
-// modal bezárás + form reset
+// Modal bezárása és az összes űrlap visszaállítása alapértelmezett értékre
 const closeModal = () => {
   emit('close')
   formError.value = null
@@ -91,25 +98,25 @@ const closeModal = () => {
   forgotPasswordForm.value = { email: '' }
   phoneLoginForm.value = { phone: '' }
   
-  // Jelszó láthatóság reset
+  // Jelszó láthatóság visszaállítása
   showLoginPassword.value = false
   showRegisterPassword.value = false
   showRegisterPasswordConfirm.value = false
 }
 
-// switchMode
+// Nézet váltása és hibaüzenetek törlése
 const switchMode = (newMode) => {
   mode.value = newMode
   formError.value = null
   successMessage.value = null
   
-  // Jelszó láthatóság reset mode váltáskor
+  // Jelszó láthatóság visszaállítása nézet váltáskor
   showLoginPassword.value = false
   showRegisterPassword.value = false
   showRegisterPasswordConfirm.value = false
 }
 
-// login
+// Bejelentkezés kezelése
 const handleLogin = async () => {
   formError.value = null
   const result = await login(loginForm.value)
@@ -121,7 +128,7 @@ const handleLogin = async () => {
   }
 }
 
-// register
+// Regisztráció kezelése jelszóerősség és egyezés ellenőrzéssel
 const handleRegister = async () => {
   formError.value = null
   if (passwordStrength.value.level < 2) {
@@ -143,7 +150,7 @@ const handleRegister = async () => {
   }
 }
 
-// forgot password
+// Elfelejtett jelszó e-mail küldésének kezelése
 const handleForgotPassword = async () => {
   formError.value = null
   successMessage.value = null
@@ -152,7 +159,7 @@ const handleForgotPassword = async () => {
   else formError.value = result.error
 }
 
-// phone login
+// Partner státusz igénylésének kezelése telefonszám alapján
 const handlePhoneLogin = async () => {
   formError.value = null
   successMessage.value = null
