@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/axios'
 import { searchCampings } from '../api/searchService'
+import Slider from 'primevue/slider'
 
 const route = useRoute()
 const router = useRouter()
@@ -22,6 +23,12 @@ const actualPriceMin = ref(0)
 const actualPriceMax = ref(50000)
 const selectedTags = ref([])
 const minRating = ref(null)
+const showAllTags = ref(false)
+
+const TAG_LIMIT = 5
+const visibleTags = computed(() =>
+  showAllTags.value ? availableTags.value : availableTags.value.slice(0, TAG_LIMIT)
+)
 
 // Mobil szűrő kihúzható panel
 const showMobileFilters = ref(false)
@@ -46,7 +53,7 @@ const hasAvailabilitySearch = ref(false)
 const priceBoundsInitialized = ref(false)
 
 // Értékelés opciók
-const ratingOptions = [4.5, 4.0, 3.5, 3.0, 2.5, 2.0]
+const ratingOptions = [4.5, 4.0, 3.0, 2.0]
 
 // API hívás
 const fetchCampsites = async () => {
@@ -336,61 +343,78 @@ watch(() => route.query, (newQuery) => {
             <span>Szűrők</span>
             <button class="close-filters" @click="showMobileFilters = false">&times;</button>
         </div>
-        <!-- Keresési összefoglaló -->
-        <div v-if="hasAvailabilitySearch" class="search-summary">
-            <h2>🔍 Keresési feltételek</h2>
-            <p v-if="searchQuery">📍 {{ searchQuery }}</p>
-            <p v-if="checkIn && checkOut">📅 {{ checkIn }} – {{ checkOut }}</p>
-            <p v-if="guests">👥 {{ guests }} vendég</p>
-            <hr />
-        </div>
 
         <div class="price-filter-section">
             <h3 class="filter-heading">Költségkeret (éjszakánként)</h3>
-            <div class="price-range-text">
-                {{ formatPrice(priceMin) }} – {{ formatPrice(priceMax) }}
+            <div class="price-range-labels">
+                <div class="price-input-group">
+                    <span class="price-label-tag">Min</span>
+                    <div class="price-input-wrap">
+                        <input
+                            type="number"
+                            class="price-input"
+                            :value="priceMin"
+                            :min="actualPriceMin"
+                            :max="priceMax"
+                            step="500"
+                            @change="onMinInput"
+                        />
+                        <span class="price-input-suffix">Ft</span>
+                    </div>
+                </div>
+                <span class="price-dash">–</span>
+                <div class="price-input-group">
+                    <span class="price-label-tag">Max</span>
+                    <div class="price-input-wrap">
+                        <input
+                            type="number"
+                            class="price-input"
+                            :value="priceMax"
+                            :min="priceMin"
+                            :max="actualPriceMax"
+                            step="500"
+                            @change="onMaxInput"
+                        />
+                        <span class="price-input-suffix">Ft</span>
+                    </div>
+                </div>
             </div>
-            <div class="dual-range">
-                <div class="range-track"></div>
-                <div class="range-fill" :style="sliderTrackStyle"></div>
-                <input 
-                    type="range" 
-                    :min="actualPriceMin" 
-                    :max="actualPriceMax" 
-                    step="500" 
-                    v-model.number="priceMin"
-                    @input="onPriceMinInput"
-                    class="range-min"
-                />
-                <input 
-                    type="range" 
-                    :min="actualPriceMin" 
-                    :max="actualPriceMax" 
-                    step="500" 
-                    v-model.number="priceMax"
-                    @input="onPriceMaxInput"
-                    class="range-max"
-                />
-            </div>
+            <Slider
+                v-model="priceRange"
+                range
+                :min="actualPriceMin"
+                :max="actualPriceMax"
+                :step="500"
+                class="price-slider"
+            />
         </div>
 
-        <h3>Tulajdonságok</h3>
+        <h3>Szolgáltatások</h3>
         <div v-if="availableTags.length === 0" class="no-tags-hint">
             Nincs elérhető szűrő.
         </div>
-        <div class="tag-filter" v-for="tag in availableTags" :key="tag.name">
-            <label class="tag-label">
-                <input 
-                    type="checkbox" 
-                    :checked="selectedTags.includes(tag.name)"
-                    @change="toggleTag(tag.name)"
-                />
-                <span class="tag-name">{{ tag.name }}</span>
-                <span class="tag-count">({{ tag.count }})</span>
-            </label>
+        <div :class="['tag-list', { 'tag-list-expanded': showAllTags }]">
+            <div class="tag-filter" v-for="tag in visibleTags" :key="tag.name">
+                <label class="tag-label">
+                    <input 
+                        type="checkbox" 
+                        :checked="selectedTags.includes(tag.name)"
+                        @change="toggleTag(tag.name)"
+                    />
+                    <span class="tag-name">{{ tag.name }}</span>
+                    <span class="tag-count">({{ tag.count }})</span>
+                </label>
+            </div>
         </div>
+        <button
+            v-if="availableTags.length > TAG_LIMIT"
+            class="show-more-tags"
+            @click="showAllTags = !showAllTags"
+        >
+            {{ showAllTags ? '▲ Kevesebb mutatása' : `▼ Több mutatása (${availableTags.length - TAG_LIMIT})` }}
+        </button>
 
-        <h3>Minimum értékelés</h3>
+        <h3 class="rating-heading">Minimum értékelés</h3>
         <label v-for="rating in ratingOptions" :key="rating">
             <input 
                 type="radio" 
@@ -424,7 +448,7 @@ watch(() => route.query, (newQuery) => {
             <button class="reset" @click="resetFilters" style="margin-top: 1rem;">Szűrők törlése</button>
         </div>
         
-        <!-- Eredmények száma -->
+        <!-- Eredmények száma + keresési feltételek -->
         <div v-if="!loading && !error && searchResults.length > 0" class="results-header">
             <p>{{ totalItems > 0 ? totalItems : searchResults.length }} kemping található<span v-if="totalPages > 1"> ({{ currentPage }}. oldal / {{ totalPages }})</span></p>
         </div>
