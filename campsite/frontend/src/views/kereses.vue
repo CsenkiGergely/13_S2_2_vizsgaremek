@@ -41,7 +41,9 @@ const loading = ref(false)
 const error = ref(null)
 const currentPage = ref(1)
 const totalPages = ref(1)
+const totalItems = ref(0)
 const hasAvailabilitySearch = ref(false)
+const priceBoundsInitialized = ref(false)
 
 // Értékelés opciók
 const ratingOptions = [4.5, 4.0, 3.5, 3.0, 2.5, 2.0]
@@ -68,21 +70,31 @@ const fetchCampsites = async () => {
       // Ha lapos tömböt ad vissza, akkor maga a response a tömb
       if (Array.isArray(response)) {
         rawData = response
+        totalPages.value = 1
+        totalItems.value = response.length
       } else {
         rawData = response.data || []
-        if (response.last_page) {
-          totalPages.value = response.last_page
-        }
+        totalPages.value = response.last_page || 1
+        totalItems.value = response.total || rawData.length
       }
     } else {
       // Egyszerű keresés (SearchController vagy CampingController)
       hasAvailabilitySearch.value = false
-      const params = {}
+      const params = { page: currentPage.value }
       if (searchQuery.value) {
         params.q = searchQuery.value
       }
       const response = await api.get('/search', { params })
-      rawData = response.data.data || response.data
+      const data = response.data
+      if (data && !Array.isArray(data) && data.data) {
+        rawData = data.data
+        totalPages.value = data.last_page || 1
+        totalItems.value = data.total || rawData.length
+      } else {
+        rawData = Array.isArray(data) ? data : []
+        totalPages.value = 1
+        totalItems.value = rawData.length
+      }
     }
 
     // Adatok normalizálása egységes frontend formátumra
@@ -156,11 +168,21 @@ const updatePriceBounds = () => {
   const prices = allResults.value.map(c => c.price).filter(p => p > 0)
   const maxPrices = allResults.value.map(c => c.maxPrice || c.price).filter(p => p > 0)
   if (prices.length > 0) {
-    actualPriceMin.value = Math.min(...prices)
-    actualPriceMax.value = Math.max(...maxPrices, ...prices)
-    // Slider értékek inicializálása a tényleges tartományra
-    priceMin.value = actualPriceMin.value
-    priceMax.value = actualPriceMax.value
+    const newMin = Math.min(...prices)
+    const newMax = Math.max(...maxPrices, ...prices)
+    // Slider min/max határait mindig frissítjük (az össz adathalmaz alapján)
+    if (!priceBoundsInitialized.value) {
+      // Első betöltéskor inicializáljuk a slider értékeket is
+      actualPriceMin.value = newMin
+      actualPriceMax.value = newMax
+      priceMin.value = newMin
+      priceMax.value = newMax
+      priceBoundsInitialized.value = true
+    } else {
+      // Lapozáskor csak a határokat terjesztjük ki, a slider pozícióját nem piszkáljuk
+      actualPriceMin.value = Math.min(actualPriceMin.value, newMin)
+      actualPriceMax.value = Math.max(actualPriceMax.value, newMax)
+    }
   }
 }
 
@@ -210,6 +232,7 @@ const resetFilters = () => {
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     fetchCampsites()
   }
 }
@@ -261,6 +284,9 @@ onMounted(() => {
   if (route.query.checkOut) checkOut.value = route.query.checkOut
   if (route.query.guests) guests.value = parseInt(route.query.guests) || 1
 
+  currentPage.value = 1
+  totalPages.value = 1
+  priceBoundsInitialized.value = false
   fetchCampsites()
 })
 
@@ -270,6 +296,9 @@ watch(() => route.query, (newQuery) => {
   if (newQuery.checkIn) checkIn.value = newQuery.checkIn
   if (newQuery.checkOut) checkOut.value = newQuery.checkOut
   if (newQuery.guests) guests.value = parseInt(newQuery.guests) || 1
+  currentPage.value = 1
+  totalPages.value = 1
+  priceBoundsInitialized.value = false
   fetchCampsites()
 }, { deep: true })
 
@@ -383,7 +412,7 @@ watch(() => route.query, (newQuery) => {
         
         <!-- Eredmények száma -->
         <div v-if="!loading && !error && searchResults.length > 0" class="results-header">
-            <p>{{ searchResults.length }} kemping található</p>
+            <p>{{ totalItems > 0 ? totalItems : searchResults.length }} kemping található<span v-if="totalPages > 1"> ({{ currentPage }}. oldal / {{ totalPages }})</span></p>
         </div>
 
         <!-- Találatok -->
@@ -431,12 +460,17 @@ watch(() => route.query, (newQuery) => {
         </div>
 
         <!-- Lapozás (ha van) -->
-        <div v-if="totalPages > 1 && hasAvailabilitySearch" class="pagination">
+        <div v-if="totalPages > 1" class="pagination">
             <button 
                 :disabled="currentPage <= 1" 
                 @click="goToPage(currentPage - 1)"
             >← Előző</button>
-            <span>{{ currentPage }} / {{ totalPages }}</span>
+            <button
+                v-for="p in totalPages"
+                :key="p"
+                :class="{ active: p === currentPage }"
+                @click="goToPage(p)"
+            >{{ p }}</button>
             <button 
                 :disabled="currentPage >= totalPages" 
                 @click="goToPage(currentPage + 1)"
@@ -1020,6 +1054,12 @@ watch(() => route.query, (newQuery) => {
     }
 
     .pagination button:not(:disabled):hover {
+        background: #2f7d32;
+        color: white;
+        border-color: #2f7d32;
+    }
+
+    .pagination button.active {
         background: #2f7d32;
         color: white;
         border-color: #2f7d32;
