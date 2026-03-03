@@ -35,7 +35,7 @@ const selectedTags = ref([])
 const minRating = ref(null)
 const showAllTags = ref(false)
 
-const TAG_LIMIT = 10
+const TAG_LIMIT = 5
 const visibleTags = computed(() =>
   showAllTags.value ? availableTags.value : availableTags.value.slice(0, TAG_LIMIT)
 )
@@ -295,14 +295,6 @@ watch(() => route.query, (newQuery) => {
             <span>Szűrők</span>
             <button class="close-filters" @click="showMobileFilters = false">&times;</button>
         </div>
-        <!-- Keresési összefoglaló -->
-        <div v-if="hasAvailabilitySearch" class="search-summary">
-            <h2>🔍 Keresési feltételek</h2>
-            <p v-if="searchQuery">📍 {{ searchQuery }}</p>
-            <p v-if="checkIn && checkOut">📅 {{ checkIn }} – {{ checkOut }}</p>
-            <p v-if="guests">👥 {{ guests }} vendég</p>
-            <hr />
-        </div>
 
         <div class="price-filter-section">
             <h3 class="filter-heading">Költségkeret (éjszakánként)</h3>
@@ -408,9 +400,14 @@ watch(() => route.query, (newQuery) => {
             <button class="reset" @click="resetFilters" style="margin-top: 1rem;">Szűrők törlése</button>
         </div>
         
-        <!-- Eredmények száma -->
+        <!-- Eredmények száma + keresési feltételek -->
         <div v-if="!loading && !error && searchResults.length > 0" class="results-header">
-            <p>{{ searchResults.length }} kemping található</p>
+            <p class="results-count">{{ searchResults.length }} kemping található</p>
+            <p class="results-params-row" v-if="searchQuery || checkIn || checkOut || guests > 1">
+                <span class="results-param" v-if="searchQuery">📍 {{ searchQuery }}</span>
+                <span class="results-param" v-if="checkIn && checkOut">📅 {{ checkIn }} – {{ checkOut }}</span>
+                <span class="results-param" v-if="guests > 1">👥 {{ guests }} vendég</span>
+            </p>
         </div>
 
         <!-- Találatok -->
@@ -505,6 +502,7 @@ watch(() => route.query, (newQuery) => {
 @media (min-width: 768px) {
   .container {
     flex-direction: row;
+    align-items: flex-start;
     padding-left: 150px;
     padding-right: 20px;
   }
@@ -634,7 +632,31 @@ watch(() => route.query, (newQuery) => {
         align-self: flex-start;
         box-shadow: none;
         transition: none;
-        overflow-y: visible;
+        max-height: calc(100vh - 88px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: transparent transparent;
+    }
+    .sidebar:hover {
+        scrollbar-color: #c1c1c1 transparent;
+    }
+    /* Chromium alapú böngészők */
+    .sidebar::-webkit-scrollbar {
+        width: 5px;
+    }
+    .sidebar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+        background-color: transparent;
+        border-radius: 10px;
+        transition: background-color 0.3s;
+    }
+    .sidebar:hover::-webkit-scrollbar-thumb {
+        background-color: #c1c1c1;
+    }
+    .sidebar:hover::-webkit-scrollbar-thumb:hover {
+        background-color: #a0a0a0;
     }
 }
 
@@ -696,9 +718,43 @@ watch(() => route.query, (newQuery) => {
 
         .results-header {
             margin-bottom: 15px;
+        }
+        .results-count {
             font-size: 15px;
             color: #555;
             font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+        .results-params-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0;
+        }
+        .results-param {
+            font-weight: 400;
+            color: #888;
+            font-size: 13px;
+        }
+        @media (min-width: 768px) {
+            .results-header {
+                display: flex;
+                align-items: baseline;
+                gap: 6px;
+                margin-bottom: 15px;
+            }
+            .results-count {
+                margin: 0;
+            }
+            .results-params-row {
+                display: contents;
+            }
+            .results-param {
+                margin-left: 2px;
+            }
+            .results-param::before {
+                content: '· ';
+            }
         }
 
         .cards {
@@ -838,26 +894,6 @@ watch(() => route.query, (newQuery) => {
             background: #256428;
         }
 
-        /* Search summary */
-        .search-summary {
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-        }
-        .search-summary h2 {
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-        .search-summary p {
-            font-size: 13px;
-            color: #555;
-            margin: 3px 0;
-        }
-        .search-summary hr {
-            border: none;
-            border-top: 1px solid #eee;
-            margin-top: 10px;
-        }
-
         /* Price filter – Booking.com style */
         .price-filter-section {
             padding-bottom: 16px;
@@ -866,7 +902,7 @@ watch(() => route.query, (newQuery) => {
         }
         .filter-heading {
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 400;
             color: #1a1a1a;
             margin: 0 0 8px 0;
         }
@@ -890,7 +926,7 @@ watch(() => route.query, (newQuery) => {
         }
         .price-label-tag {
             font-size: 10px;
-            font-weight: 700;
+            font-weight: 400;
             color: #4A7434;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -915,7 +951,7 @@ watch(() => route.query, (newQuery) => {
             outline: none;
             padding: 5px 4px 5px 8px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 400;
             color: #1a1a1a;
             background: transparent;
             /* Firefox: nyilak elrejtése */
@@ -937,6 +973,25 @@ watch(() => route.query, (newQuery) => {
         .price-slider {
             width: 100%;
             margin-top: 8px;
+        }
+        /* PrimeVue Slider – footer zöld szín, minden állapotban */
+        :deep(.p-slider .p-slider-range) {
+            background: #4A7434;
+        }
+        :deep(.p-slider .p-slider-handle),
+        :deep(.p-slider .p-slider-handle:hover),
+        :deep(.p-slider .p-slider-handle:active),
+        :deep(.p-slider .p-slider-handle-active),
+        :deep(.p-slider:not(.p-disabled) .p-slider-handle:hover),
+        :deep(.p-slider:not(.p-disabled) .p-slider-handle:active),
+        :deep(.p-slider:not(.p-disabled) .p-slider-handle-active) {
+            background: #4A7434 !important;
+            border-color: #4A7434 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        :deep(.p-slider:not(.p-disabled) .p-slider-handle:focus-visible) {
+            box-shadow: 0 0 0 0.2rem rgba(74, 116, 52, 0.25) !important;
         }
 
         /* Tag filters */
