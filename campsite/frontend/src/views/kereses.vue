@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/axios'
 import { searchCampings } from '../api/searchService'
+import Slider from 'primevue/slider'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,8 +19,26 @@ const priceMin = ref(0)
 const priceMax = ref(50000)
 const actualPriceMin = ref(0)   // az eredményekből kiszámolt tényleges min
 const actualPriceMax = ref(50000) // az eredményekből kiszámolt tényleges max
+
+// PrimeVue Slider range tömb: [min, max]
+const priceRange = computed({
+  get: () => [priceMin.value, priceMax.value],
+  set: (val) => {
+    const newMin = val[0]
+    const newMax = val[1]
+    // Max nem lehet kisebb mint min
+    priceMin.value = Math.min(newMin, newMax)
+    priceMax.value = Math.max(newMin, newMax)
+  }
+})
 const selectedTags = ref([])
 const minRating = ref(null)
+const showAllTags = ref(false)
+
+const TAG_LIMIT = 10
+const visibleTags = computed(() =>
+  showAllTags.value ? availableTags.value : availableTags.value.slice(0, TAG_LIMIT)
+)
 
 // --- Mobile filter drawer ---
 const showMobileFilters = ref(false)
@@ -42,7 +61,7 @@ const totalPages = ref(1)
 const hasAvailabilitySearch = ref(false)
 
 // Értékelés opciók
-const ratingOptions = [4.5, 4.0, 3.5, 3.0, 2.5, 2.0]
+const ratingOptions = [4.5, 4.0, 3.0, 2.0]
 
 // --- API hívás ---
 const fetchCampsites = async () => {
@@ -216,34 +235,27 @@ const toggleTag = (tagName) => {
   }
 }
 
-// Slider min ne lehessen nagyobb a max-nál
-const onPriceMinInput = () => {
-  if (priceMin.value > priceMax.value) {
-    priceMin.value = priceMax.value
-  }
-}
-const onPriceMaxInput = () => {
-  if (priceMax.value < priceMin.value) {
-    priceMax.value = priceMin.value
-  }
-}
-
 // --- Ár formázás ---
 const formatPrice = (val) => {
   return val.toLocaleString('hu-HU') + ' Ft'
 }
 
-// --- Slider track fill ---
-const sliderTrackStyle = computed(() => {
-  const range = actualPriceMax.value - actualPriceMin.value
-  if (range <= 0) return { left: '0%', width: '100%' }
-  const left = ((priceMin.value - actualPriceMin.value) / range) * 100
-  const right = ((priceMax.value - actualPriceMin.value) / range) * 100
-  return {
-    left: left + '%',
-    width: (right - left) + '%'
-  }
-})
+// --- Manuális ár input kezelők ---
+const onMinInput = (e) => {
+  let val = parseInt(e.target.value) || actualPriceMin.value
+  val = Math.max(actualPriceMin.value, Math.min(val, priceMax.value))
+  // Legközelebbi step-re kerekítés
+  val = Math.round(val / 500) * 500
+  priceMin.value = val
+  e.target.value = val
+}
+const onMaxInput = (e) => {
+  let val = parseInt(e.target.value) || actualPriceMax.value
+  val = Math.min(actualPriceMax.value, Math.max(val, priceMin.value))
+  val = Math.round(val / 500) * 500
+  priceMax.value = val
+  e.target.value = val
+}
 
 // --- Inicializálás ---
 onMounted(() => {
@@ -294,50 +306,75 @@ watch(() => route.query, (newQuery) => {
 
         <div class="price-filter-section">
             <h3 class="filter-heading">Költségkeret (éjszakánként)</h3>
-            <div class="price-range-text">
-                {{ formatPrice(priceMin) }} – {{ formatPrice(priceMax) }}
+            <div class="price-range-labels">
+                <div class="price-input-group">
+                    <span class="price-label-tag">Min</span>
+                    <div class="price-input-wrap">
+                        <input
+                            type="number"
+                            class="price-input"
+                            :value="priceMin"
+                            :min="actualPriceMin"
+                            :max="priceMax"
+                            step="500"
+                            @change="onMinInput"
+                        />
+                        <span class="price-input-suffix">Ft</span>
+                    </div>
+                </div>
+                <span class="price-dash">–</span>
+                <div class="price-input-group">
+                    <span class="price-label-tag">Max</span>
+                    <div class="price-input-wrap">
+                        <input
+                            type="number"
+                            class="price-input"
+                            :value="priceMax"
+                            :min="priceMin"
+                            :max="actualPriceMax"
+                            step="500"
+                            @change="onMaxInput"
+                        />
+                        <span class="price-input-suffix">Ft</span>
+                    </div>
+                </div>
             </div>
-            <div class="dual-range">
-                <div class="range-track"></div>
-                <div class="range-fill" :style="sliderTrackStyle"></div>
-                <input 
-                    type="range" 
-                    :min="actualPriceMin" 
-                    :max="actualPriceMax" 
-                    step="500" 
-                    v-model.number="priceMin"
-                    @input="onPriceMinInput"
-                    class="range-min"
-                />
-                <input 
-                    type="range" 
-                    :min="actualPriceMin" 
-                    :max="actualPriceMax" 
-                    step="500" 
-                    v-model.number="priceMax"
-                    @input="onPriceMaxInput"
-                    class="range-max"
-                />
-            </div>
+            <Slider
+                v-model="priceRange"
+                range
+                :min="actualPriceMin"
+                :max="actualPriceMax"
+                :step="500"
+                class="price-slider"
+            />
         </div>
 
-        <h3>Tulajdonságok</h3>
+        <h3>Szolgáltatások</h3>
         <div v-if="availableTags.length === 0" class="no-tags-hint">
             Nincs elérhető szűrő.
         </div>
-        <div class="tag-filter" v-for="tag in availableTags" :key="tag.name">
-            <label class="tag-label">
-                <input 
-                    type="checkbox" 
-                    :checked="selectedTags.includes(tag.name)"
-                    @change="toggleTag(tag.name)"
-                />
-                <span class="tag-name">{{ tag.name }}</span>
-                <span class="tag-count">({{ tag.count }})</span>
-            </label>
+        <div :class="['tag-list', { 'tag-list-expanded': showAllTags }]">
+            <div class="tag-filter" v-for="tag in visibleTags" :key="tag.name">
+                <label class="tag-label">
+                    <input 
+                        type="checkbox" 
+                        :checked="selectedTags.includes(tag.name)"
+                        @change="toggleTag(tag.name)"
+                    />
+                    <span class="tag-name">{{ tag.name }}</span>
+                    <span class="tag-count">({{ tag.count }})</span>
+                </label>
+            </div>
         </div>
+        <button
+            v-if="availableTags.length > TAG_LIMIT"
+            class="show-more-tags"
+            @click="showAllTags = !showAllTags"
+        >
+            {{ showAllTags ? '▲ Kevesebb mutatása' : `▼ Több mutatása (${availableTags.length - TAG_LIMIT})` }}
+        </button>
 
-        <h3>Minimum értékelés</h3>
+        <h3 class="rating-heading">Minimum értékelés</h3>
         <label v-for="rating in ratingOptions" :key="rating">
             <input 
                 type="radio" 
@@ -520,7 +557,7 @@ watch(() => route.query, (newQuery) => {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.45);
-    z-index: 99;
+    z-index: 39;
 }
 .filter-overlay.active {
     display: block;
@@ -564,7 +601,7 @@ watch(() => route.query, (newQuery) => {
     max-width: 85vw;
     background: #fff;
     padding: 20px;
-    z-index: 100;
+    z-index: 40;
     overflow-y: auto;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
@@ -589,7 +626,7 @@ watch(() => route.query, (newQuery) => {
     .sidebar {
         display: block;
         position: sticky;
-        top: 20px;
+        top: 68px;
         transform: none;
         width: 260px;
         min-width: 260px;
@@ -597,6 +634,7 @@ watch(() => route.query, (newQuery) => {
         align-self: flex-start;
         box-shadow: none;
         transition: none;
+        overflow-y: visible;
     }
 }
 
@@ -612,7 +650,9 @@ watch(() => route.query, (newQuery) => {
         }
 
         .sidebar label {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             margin: 6px 0;
             font-size: 14px;
             cursor: pointer;
@@ -641,6 +681,9 @@ watch(() => route.query, (newQuery) => {
 
         .reset {
             background: #eee;
+            padding-left: 5px;
+            padding-right: 5px;
+            border-radius: 6px;
         }
 
         .reset:hover {
@@ -827,103 +870,89 @@ watch(() => route.query, (newQuery) => {
             color: #1a1a1a;
             margin: 0 0 8px 0;
         }
-        .price-range-text {
-            font-size: 14px;
-            color: #333;
+        .price-range-labels {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
             margin-bottom: 14px;
+            gap: 6px;
         }
-        .dual-range {
-            position: relative;
-            height: 24px;
+        .price-dash {
+            font-size: 16px;
+            color: #888;
+            padding-bottom: 6px;
+            flex-shrink: 0;
+        }
+        .price-input-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        .price-label-tag {
+            font-size: 10px;
+            font-weight: 700;
+            color: #4A7434;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+        .price-input-wrap {
             display: flex;
             align-items: center;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background: #fff;
+            overflow: hidden;
+            transition: border-color 0.15s;
         }
-        .range-track {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 4px;
-            border-radius: 2px;
-            background: #bdbdbd;
+        .price-input-wrap:focus-within {
+            border-color: #4A7434;
+            box-shadow: 0 0 0 2px rgba(74,116,52,0.15);
         }
-        .range-fill {
-            position: absolute;
-            height: 4px;
-            border-radius: 2px;
-            background: #2f7d32;
-        }
-        .dual-range input[type=range] {
-            position: absolute;
-            left: 0;
-            top: 0;
+        .price-input {
             width: 100%;
-            height: 24px;
-            pointer-events: none;
-            -webkit-appearance: none;
-            appearance: none;
+            border: none;
+            outline: none;
+            padding: 5px 4px 5px 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
             background: transparent;
+            /* Firefox: nyilak elrejtése */
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        /* Chrome/Safari: nyilak elrejtése */
+        .price-input::-webkit-outer-spin-button,
+        .price-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
             margin: 0;
-            z-index: 2;
         }
-        .dual-range input[type=range]::-webkit-slider-thumb {
-            pointer-events: all;
-            -webkit-appearance: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #fff;
-            border: 2px solid #2f7d32;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-            cursor: pointer;
-            position: relative;
-            z-index: 3;
-            transition: border-color 0.15s, box-shadow 0.15s;
-            margin-top: -10px;
+        .price-input-suffix {
+            font-size: 11px;
+            color: #888;
+            padding: 0 6px 0 2px;
+            white-space: nowrap;
         }
-        .dual-range input[type=range]::-webkit-slider-thumb:hover {
-            border-color: #1b5e20;
-            box-shadow: 0 0 0 4px rgba(47,125,50,0.12);
-        }
-        .dual-range input[type=range]::-webkit-slider-thumb:active {
-            border-color: #1b5e20;
-            box-shadow: 0 0 0 6px rgba(47,125,50,0.18);
-        }
-        .dual-range input[type=range]::-moz-range-thumb {
-            pointer-events: all;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #fff;
-            border: 2px solid #2f7d32;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-            cursor: pointer;
-        }
-        .dual-range input[type=range]::-moz-range-thumb:hover {
-            border-color: #1b5e20;
-            box-shadow: 0 0 0 4px rgba(47,125,50,0.12);
-        }
-        .dual-range input[type=range]::-webkit-slider-runnable-track {
-            height: 4px;
-            border-radius: 2px;
-            background: transparent;
-        }
-        .dual-range input[type=range]::-moz-range-track {
-            height: 4px;
-            border-radius: 2px;
-            background: transparent;
-        }
-        .range-max {
-            z-index: 3 !important;
+        .price-slider {
+            width: 100%;
+            margin-top: 8px;
         }
 
         /* Tag filters */
+        .tag-list {
+            overflow: visible;
+        }
+        .tag-list-expanded {
+            overflow: visible;
+        }
         .tag-filter {
             margin: 4px 0;
         }
         .tag-label {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
             cursor: pointer;
             font-size: 14px;
             margin: 0;
@@ -953,6 +982,25 @@ watch(() => route.query, (newQuery) => {
             font-size: 13px;
             color: #999;
             padding: 4px 0;
+        }
+        .show-more-tags {
+            background: none;
+            border: none;
+            color: #4A7434;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 0 2px;
+            margin-top: 0;
+            margin-bottom: 0;
+            width: auto;
+        }
+        .show-more-tags:hover {
+            text-decoration: underline;
+        }
+        /* Minimum értékelés h3 kisebb marginja */
+        .sidebar h3.rating-heading {
+            margin-top: 10px;
         }
 
         /* Pagination */

@@ -160,17 +160,35 @@
   /* Reszponzív mobilon */
   @media (max-width: 600px) {
     .footer {
-      flex-direction: column;      /* Egymás alá kerül minden */
+      flex-direction: column;
       align-items: flex-start;
+      padding: 24px 16px 16px;
+      gap: 24px;
+    }
+
+    .footer-column {
+      flex: 1 1 100%;             /* Teljes szélességű mobilon */
+      width: 100%;
+    }
+
+    .footerr {
+      flex-direction: column;     /* Copyright és linkek egymás alá */
+      align-items: flex-start;
+      gap: 10px;
+      padding: 16px;
+      text-align: left;
+    }
+
+    .footer-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 0;
     }
 
     .footer-right a {
       margin-left: 0;
-      margin-right: 15px;
-    }
-
-    .footer-right {
-      margin-top: 10px;
+      margin-right: 0;
     }
   }
 </style>
