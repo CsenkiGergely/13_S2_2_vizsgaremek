@@ -8,29 +8,19 @@ import Slider from 'primevue/slider'
 const route = useRoute()
 const router = useRouter()
 
-// --- Keresési paraméterek (Home.vue-ból érkezhetnek) ---
+// Keresési paraméterek
 const searchQuery = ref('')
 const checkIn = ref('')
 const checkOut = ref('')
 const guests = ref(1)
 
-// --- Szűrők ---
+// Szűrők
 const priceMin = ref(0)
 const priceMax = ref(50000)
-const actualPriceMin = ref(0)   // az eredményekből kiszámolt tényleges min
-const actualPriceMax = ref(50000) // az eredményekből kiszámolt tényleges max
-
-// PrimeVue Slider range tömb: [min, max]
-const priceRange = computed({
-  get: () => [priceMin.value, priceMax.value],
-  set: (val) => {
-    const newMin = val[0]
-    const newMax = val[1]
-    // Max nem lehet kisebb mint min
-    priceMin.value = Math.min(newMin, newMax)
-    priceMax.value = Math.max(newMin, newMax)
-  }
-})
+// Az eredményekből kiszámolt tényleges min
+const actualPriceMin = ref(0)
+// Az eredményekből kiszámolt tényleges max
+const actualPriceMax = ref(50000)
 const selectedTags = ref([])
 const minRating = ref(null)
 const showAllTags = ref(false)
@@ -40,7 +30,7 @@ const visibleTags = computed(() =>
   showAllTags.value ? availableTags.value : availableTags.value.slice(0, TAG_LIMIT)
 )
 
-// --- Mobile filter drawer ---
+// Mobil szűrő kihúzható panel
 const showMobileFilters = ref(false)
 const activeFilterCount = computed(() => {
   let count = 0
@@ -50,20 +40,22 @@ const activeFilterCount = computed(() => {
   return count
 })
 
-// --- Adatok ---
-const allResults = ref([])       // backend-ről jövő nyers eredmények
-const searchResults = ref([])    // szűrt + megjelenített eredmények
-const availableTags = ref([])    // dinamikus tag lista az eredményekből
+// Adatok
+const allResults = ref([])
+const searchResults = ref([])
+const availableTags = ref([])
 const loading = ref(false)
 const error = ref(null)
 const currentPage = ref(1)
 const totalPages = ref(1)
+const totalItems = ref(0)
 const hasAvailabilitySearch = ref(false)
+const priceBoundsInitialized = ref(false)
 
 // Értékelés opciók
 const ratingOptions = [4.5, 4.0, 3.0, 2.0]
 
-// --- API hívás ---
+// API hívás
 const fetchCampsites = async () => {
   loading.value = true
   error.value = null
@@ -81,19 +73,41 @@ const fetchCampsites = async () => {
         guests: guests.value,
         page: currentPage.value
       })
-      rawData = response.data || response
-      if (response.last_page) {
-        totalPages.value = response.last_page
+      // Ha a backend { data: [...], last_page: X } struktúrát ad vissza
+      // Ha lapos tömböt ad vissza, akkor maga a response a tömb
+      if (Array.isArray(response)) {
+        rawData = response
+        totalPages.value = 1
+        totalItems.value = response.length
+      } else {
+        rawData = response.data || []
+        totalPages.value = response.last_page || 1
+        totalItems.value = response.total || rawData.length
       }
     } else {
       // Egyszerű keresés (SearchController vagy CampingController)
       hasAvailabilitySearch.value = false
-      const params = {}
+      const params = { page: currentPage.value }
       if (searchQuery.value) {
         params.q = searchQuery.value
       }
+      // Szűrőparaméterek küldése a backendre is
+      if (priceMin.value > actualPriceMin.value) params.min_price = priceMin.value
+      if (priceMax.value < actualPriceMax.value) params.max_price = priceMax.value
+      if (selectedTags.value.length > 0) params.tags = selectedTags.value.join(',')
+      if (minRating.value !== null) params.min_rating = minRating.value
+
       const response = await api.get('/search', { params })
-      rawData = response.data.data || response.data
+      const data = response.data
+      if (data && !Array.isArray(data) && data.data) {
+        rawData = data.data
+        totalPages.value = data.last_page || 1
+        totalItems.value = data.total || rawData.length
+      } else {
+        rawData = Array.isArray(data) ? data : []
+        totalPages.value = 1
+        totalItems.value = rawData.length
+      }
     }
 
     // Adatok normalizálása egységes frontend formátumra
@@ -167,23 +181,38 @@ const updatePriceBounds = () => {
   const prices = allResults.value.map(c => c.price).filter(p => p > 0)
   const maxPrices = allResults.value.map(c => c.maxPrice || c.price).filter(p => p > 0)
   if (prices.length > 0) {
-    actualPriceMin.value = Math.min(...prices)
-    actualPriceMax.value = Math.max(...maxPrices, ...prices)
-    // Slider értékek inicializálása a tényleges tartományra
-    priceMin.value = actualPriceMin.value
-    priceMax.value = actualPriceMax.value
+    const newMin = Math.min(...prices)
+    const newMax = Math.max(...maxPrices, ...prices)
+    // Slider min/max határait mindig frissítjük (az össz adathalmaz alapján)
+    if (!priceBoundsInitialized.value) {
+      // Első betöltéskor inicializáljuk a slider értékeket is
+      actualPriceMin.value = newMin
+      actualPriceMax.value = newMax
+      priceMin.value = newMin
+      priceMax.value = newMax
+      priceBoundsInitialized.value = true
+    } else {
+      // Lapozáskor csak a határokat terjesztjük ki, a slider pozícióját nem piszkáljuk
+      actualPriceMin.value = Math.min(actualPriceMin.value, newMin)
+      actualPriceMax.value = Math.max(actualPriceMax.value, newMax)
+    }
   }
 }
 
-// --- Kliens oldali szűrés ---
+// Kliens oldali szűrés — csak akkor fut, ha a backend egyszerre adta vissza az összeset (1 oldal)
 const applyClientFilters = () => {
+  // Ha a backend lapoz (több oldal), az elemeket ne szűrjük tovább kliens oldalon, mert a backend már a helyes lapot adta vissza
+  if (totalPages.value > 1) {
+    searchResults.value = [...allResults.value]
+    return
+  }
+
   let filtered = [...allResults.value]
 
-  // Ár szűrés — a kemping min ára (price) összehasonlítása a slider tartománnyal
+  // Ár szűrés
   filtered = filtered.filter(c => {
     const campMin = c.price || 0
     const campMax = c.maxPrice || campMin
-    // Van átfedés a kemping ártartománya és a szűrő tartománya között?
     return campMin <= priceMax.value && campMax >= priceMin.value
   })
 
@@ -203,29 +232,33 @@ const applyClientFilters = () => {
   searchResults.value = filtered
 }
 
-// --- Szűrők alkalmazása ---
+// Szűrők alkalmazása
 const applyFilters = () => {
-  applyClientFilters()
+  // Ha a backend lapoz, az 1. oldalra visszaugorva új lekérést indítunk a szűrőparaméterekkel
+  currentPage.value = 1
+  fetchCampsites()
 }
 
-// --- Szűrők törlése ---
+// Szűrők törlése
 const resetFilters = () => {
   priceMin.value = actualPriceMin.value
   priceMax.value = actualPriceMax.value
   selectedTags.value = []
   minRating.value = null
-  applyClientFilters()
+  currentPage.value = 1
+  fetchCampsites()
 }
 
-// --- Lapozás ---
+// Lapozás
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
+    window.scrollTo({ top: 0, behavior: 'smooth' })
     fetchCampsites()
   }
 }
 
-// --- Tag checkbox toggle ---
+// Tag checkbox ki/bekapcsolása
 const toggleTag = (tagName) => {
   const idx = selectedTags.value.indexOf(tagName)
   if (idx >= 0) {
@@ -235,29 +268,36 @@ const toggleTag = (tagName) => {
   }
 }
 
-// --- Ár formázás ---
+// Slider min ne lehessen nagyobb a max-nál
+const onPriceMinInput = () => {
+  if (priceMin.value > priceMax.value) {
+    priceMin.value = priceMax.value
+  }
+}
+const onPriceMaxInput = () => {
+  if (priceMax.value < priceMin.value) {
+    priceMax.value = priceMin.value
+  }
+}
+
+// Ár formázás
 const formatPrice = (val) => {
   return val.toLocaleString('hu-HU') + ' Ft'
 }
 
-// --- Manuális ár input kezelők ---
-const onMinInput = (e) => {
-  let val = parseInt(e.target.value) || actualPriceMin.value
-  val = Math.max(actualPriceMin.value, Math.min(val, priceMax.value))
-  // Legközelebbi step-re kerekítés
-  val = Math.round(val / 500) * 500
-  priceMin.value = val
-  e.target.value = val
-}
-const onMaxInput = (e) => {
-  let val = parseInt(e.target.value) || actualPriceMax.value
-  val = Math.min(actualPriceMax.value, Math.max(val, priceMin.value))
-  val = Math.round(val / 500) * 500
-  priceMax.value = val
-  e.target.value = val
-}
+// Csúszka kitöltési stílusa (zöld sáv a két fogantyú között)
+const sliderTrackStyle = computed(() => {
+  const range = actualPriceMax.value - actualPriceMin.value
+  if (range <= 0) return { left: '0%', width: '100%' }
+  const left = ((priceMin.value - actualPriceMin.value) / range) * 100
+  const right = ((priceMax.value - actualPriceMin.value) / range) * 100
+  return {
+    left: left + '%',
+    width: (right - left) + '%'
+  }
+})
 
-// --- Inicializálás ---
+// Inicializálás
 onMounted(() => {
   // Query paraméterek beolvasása a Home.vue-ból
   if (route.query.location) searchQuery.value = route.query.location
@@ -265,6 +305,9 @@ onMounted(() => {
   if (route.query.checkOut) checkOut.value = route.query.checkOut
   if (route.query.guests) guests.value = parseInt(route.query.guests) || 1
 
+  currentPage.value = 1
+  totalPages.value = 1
+  priceBoundsInitialized.value = false
   fetchCampsites()
 })
 
@@ -274,23 +317,28 @@ watch(() => route.query, (newQuery) => {
   if (newQuery.checkIn) checkIn.value = newQuery.checkIn
   if (newQuery.checkOut) checkOut.value = newQuery.checkOut
   if (newQuery.guests) guests.value = parseInt(newQuery.guests) || 1
+  currentPage.value = 1
+  totalPages.value = 1
+  priceBoundsInitialized.value = false
   fetchCampsites()
 }, { deep: true })
+
 </script>
+
 <template>
 <div class="container">
-    <!-- Mobile szűrő gomb -->
+    <!-- Mobil szűrő gomb -->
     <button class="mobile-filter-btn" @click="showMobileFilters = true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg>
         Szűrők
         <span v-if="activeFilterCount" class="filter-badge">{{ activeFilterCount }}</span>
     </button>
 
-    <!-- Mobile overlay -->
+    <!-- Mobil háttérfedő réteg -->
     <div class="filter-overlay" :class="{ active: showMobileFilters }" @click="showMobileFilters = false"></div>
 
     <aside class="sidebar" :class="{ open: showMobileFilters }">
-        <!-- Mobile bezárás gomb -->
+        <!-- Mobil bezárás gomb -->
         <div class="mobile-filter-header">
             <span>Szűrők</span>
             <button class="close-filters" @click="showMobileFilters = false">&times;</button>
@@ -402,12 +450,7 @@ watch(() => route.query, (newQuery) => {
         
         <!-- Eredmények száma + keresési feltételek -->
         <div v-if="!loading && !error && searchResults.length > 0" class="results-header">
-            <p class="results-count">{{ searchResults.length }} kemping található</p>
-            <p class="results-params-row" v-if="searchQuery || checkIn || checkOut || guests > 1">
-                <span class="results-param" v-if="searchQuery">📍 {{ searchQuery }}</span>
-                <span class="results-param" v-if="checkIn && checkOut">📅 {{ checkIn }} – {{ checkOut }}</span>
-                <span class="results-param" v-if="guests > 1">👥 {{ guests }} vendég</span>
-            </p>
+            <p>{{ totalItems > 0 ? totalItems : searchResults.length }} kemping található<span v-if="totalPages > 1"> ({{ currentPage }}. oldal / {{ totalPages }})</span></p>
         </div>
 
         <!-- Találatok -->
@@ -455,12 +498,17 @@ watch(() => route.query, (newQuery) => {
         </div>
 
         <!-- Lapozás (ha van) -->
-        <div v-if="totalPages > 1 && hasAvailabilitySearch" class="pagination">
+        <div v-if="totalPages > 1" class="pagination">
             <button 
                 :disabled="currentPage <= 1" 
                 @click="goToPage(currentPage - 1)"
             >← Előző</button>
-            <span>{{ currentPage }} / {{ totalPages }}</span>
+            <button
+                v-for="p in totalPages"
+                :key="p"
+                :class="{ active: p === currentPage }"
+                @click="goToPage(p)"
+            >{{ p }}</button>
             <button 
                 :disabled="currentPage >= totalPages" 
                 @click="goToPage(currentPage + 1)"
@@ -471,621 +519,593 @@ watch(() => route.query, (newQuery) => {
 </template>
 
 <style scoped>
- * {
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
+    * {
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    .sor {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .kicsi-kep {
+        width: 15px;
+        height: auto;
+    }
+
+    body {
+        margin: 0;
+        background: #f6f7f8;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+    }
+
+    @media (min-width: 768px) {
+        .container {
+            flex-direction: row;
+            padding-left: 150px;
+            padding-right: 20px;
         }
+    }
 
-.sor {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.kicsi-kep {
-  width: 15px;
-  height: auto;
-}
-
-        body {
-            margin: 0;
-            background: #f6f7f8;
+    @media (min-width: 1200px) {
+        .container {
+            padding-left: 250px;
         }
+    }
 
-.container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px;
-}
-
-@media (min-width: 768px) {
-  .container {
-    flex-direction: row;
-    align-items: flex-start;
-    padding-left: 150px;
-    padding-right: 20px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .container {
-    padding-left: 250px;
-  }
-}
-        
-/* Mobile filter button */
-.mobile-filter-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    background: #fff;
-    border: 1px solid #2f7d32;
-    border-radius: 24px;
-    color: #2f7d32;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    position: sticky;
-    top: 10px;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    width: fit-content;
-}
-.mobile-filter-btn:active {
-    background: #e8f5e9;
-}
-.filter-badge {
-    background: #2f7d32;
-    color: #fff;
-    font-size: 12px;
-    min-width: 20px;
-    height: 20px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 6px;
-}
-
-/* Mobile overlay */
-.filter-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 39;
-}
-.filter-overlay.active {
-    display: block;
-}
-
-/* Mobile filter header (hidden on desktop) */
-.mobile-filter-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 14px;
-    border-bottom: 1px solid #e0e0e0;
-    margin-bottom: 14px;
-    font-size: 18px;
-    font-weight: 700;
-    color: #1a1a1a;
-}
-.close-filters {
-    background: none;
-    border: none;
-    font-size: 28px;
-    color: #555;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-    width: auto;
-    margin: 0;
-}
-.close-filters:hover {
-    color: #1a1a1a;
-}
-
-/* Sidebar - mobile first: hidden drawer */
-.sidebar {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 300px;
-    max-width: 85vw;
-    background: #fff;
-    padding: 20px;
-    z-index: 40;
-    overflow-y: auto;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    box-shadow: 2px 0 12px rgba(0,0,0,0.15);
-}
-.sidebar.open {
-    display: block;
-    transform: translateX(0);
-}
-
-/* Desktop: sidebar visible normally */
-@media (min-width: 768px) {
+    /* Mobil szűrő gomb */
     .mobile-filter-btn {
-        display: none;
-    }
-    .filter-overlay {
-        display: none !important;
-    }
-    .mobile-filter-header {
-        display: none;
-    }
-    .sidebar {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        background: #fff;
+        border: 1px solid #2f7d32;
+        border-radius: 24px;
+        color: #2f7d32;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
         position: sticky;
-        top: 68px;
-        transform: none;
-        width: 260px;
-        min-width: 260px;
+        top: 10px;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        width: fit-content;
+    }
+
+    .mobile-filter-btn:active {
+        background: #e8f5e9;
+    }
+
+    .filter-badge {
+        background: #2f7d32;
+        color: #fff;
+        font-size: 12px;
+        min-width: 20px;
+        height: 20px;
         border-radius: 10px;
-        align-self: flex-start;
-        box-shadow: none;
-        transition: none;
-        max-height: calc(100vh - 88px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 6px;
+    }
+
+    /* Mobil háttérfedő réteg */
+    .filter-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 39;
+    }
+
+    .filter-overlay.active {
+        display: block;
+    }
+
+    /* Mobil szűrő fejléc (asztali nézetben rejtve) */
+    .mobile-filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 14px;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 14px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a1a;
+    }
+
+    .close-filters {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: #555;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        width: auto;
+        margin: 0;
+    }
+
+    .close-filters:hover {
+        color: #1a1a1a;
+    }
+
+/* Oldalsáv – mobil első: rejtett kihúzható panel */
+    .sidebar {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 300px;
+        max-width: 85vw;
+        background: #fff;
+        padding: 20px;
+        z-index: 40;
         overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: transparent transparent;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.15);
     }
-    .sidebar:hover {
-        scrollbar-color: #c1c1c1 transparent;
+
+    .sidebar.open {
+        display: block;
+        transform: translateX(0);
     }
-    /* Chromium alapú böngészők */
-    .sidebar::-webkit-scrollbar {
-        width: 5px;
+
+    /* Asztali nézet: oldalsáv mindig látható */
+    @media (min-width: 768px) {
+        .mobile-filter-btn {
+            display: none;
+        }
+        .filter-overlay {
+            display: none !important;
+        }
+        .mobile-filter-header {
+            display: none;
+        }
+        .sidebar {
+            display: block;
+            position: sticky;
+            top: 20px;
+            transform: none;
+            width: 260px;
+            min-width: 260px;
+            border-radius: 10px;
+            align-self: flex-start;
+            box-shadow: none;
+            transition: none;
+        }
     }
-    .sidebar::-webkit-scrollbar-track {
+
+    .sidebar h2 {
+        font-size: 17px;
+        margin-bottom: 10px;
+        color: #2f7d32;
+    }
+
+    .sidebar h3 {
+        margin-top: 20px;
+        font-size: 15px;
+    }
+
+    .sidebar label {
+        display: block;
+        margin: 6px 0;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .sidebar button.apply, .sidebar button.reset {
+        width: 100%;
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .apply {
+        background: #2f7d32;
+        color: white;
+    }
+
+    .apply:hover {
+        background: #256428;
+    }
+
+    .reset {
+        background: #eee;
+    }
+
+    .reset:hover {
+        background: #ddd;
+    }
+
+    .content {
+        flex: 1;
+    }
+
+    .results-header {
+        margin-bottom: 15px;
+        font-size: 15px;
+        color: #555;
+        font-weight: 600;
+    }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+
+    .card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    .card-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .card h4 {
+        margin: 5px 0;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .rating {
+        color: #f9a825;
+        font-size: 14px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .review-count {
+        color: #888;
+        font-size: 12px;
+    }
+
+    .location {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 10px;
+    }
+
+    .tags span {
+        display: inline-block;
+        background: #eef3ee;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        margin: 3px 3px 0 0;
+    }
+
+    .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+    }
+
+    .price {
+        font-size: 18px;
+        font-weight: bold;
+        color: #2f7d32;
+        line-height: 1.3;
+    }
+
+    .price-from {
+        font-size: 13px;
+        font-weight: 500;
+        color: #555;
+        margin-right: 2px;
+    }
+
+    .price-unit {
+        font-size: 13px;
+        font-weight: 400;
+        color: #666;
+    }
+
+    .loading, .error-message, .no-results {
+        text-align: center;
+        padding: 40px;
+        font-size: 18px;
+        color: #666;
+    }
+
+    .error-message {
+        color: #d32f2f;
+        background: #ffebee;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .info-row {
+        display: flex;
+        gap: 15px;
+        font-size: 13px;
+        color: #666;
+        margin: 10px 0;
+    }
+
+    .capacity, .spots {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .book {
+        background: #2f7d32;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+
+    .book:hover {
+        background: #256428;
+    }
+
+    /* Keresési összefoglaló */
+    .search-summary {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+    }
+
+    .search-summary h2 {
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .search-summary p {
+        font-size: 13px;
+        color: #555;
+        margin: 3px 0;
+    }
+
+    .search-summary hr {
+        border: none;
+        border-top: 1px solid #eee;
+        margin-top: 10px;
+    }
+
+    /* Árszűrő – dupla csúszka */
+    .price-filter-section {
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 16px;
+    }
+
+    .filter-heading {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0 0 8px 0;
+    }
+
+    .price-range-text {
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 14px;
+    }
+
+    .dual-range {
+        position: relative;
+        height: 24px;
+        display: flex;
+        align-items: center;
+    }
+
+    .range-track {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 4px;
+        border-radius: 2px;
+        background: #bdbdbd;
+    }
+
+    .range-fill {
+        position: absolute;
+        height: 4px;
+        border-radius: 2px;
+        background: #2f7d32;
+    }
+
+    .dual-range input[type=range] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 24px;
+        pointer-events: none;
+        -webkit-appearance: none;
+        appearance: none;
+        background: transparent;
+        margin: 0;
+        z-index: 2;
+    }
+
+    .dual-range input[type=range]::-webkit-slider-thumb {
+        pointer-events: all;
+        -webkit-appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #2f7d32;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        cursor: pointer;
+        position: relative;
+        z-index: 3;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        margin-top: -10px;
+    }
+
+    .dual-range input[type=range]::-webkit-slider-thumb:hover {
+        border-color: #1b5e20;
+        box-shadow: 0 0 0 4px rgba(47,125,50,0.12);
+    }
+
+    .dual-range input[type=range]::-webkit-slider-thumb:active {
+        border-color: #1b5e20;
+        box-shadow: 0 0 0 6px rgba(47,125,50,0.18);
+    }
+
+    .dual-range input[type=range]::-moz-range-thumb {
+        pointer-events: all;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #2f7d32;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        cursor: pointer;
+    }
+
+    .dual-range input[type=range]::-moz-range-thumb:hover {
+        border-color: #1b5e20;
+        box-shadow: 0 0 0 4px rgba(47,125,50,0.12);
+    }
+
+    .dual-range input[type=range]::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 2px;
         background: transparent;
     }
-    .sidebar::-webkit-scrollbar-thumb {
-        background-color: transparent;
-        border-radius: 10px;
-        transition: background-color 0.3s;
+
+    .dual-range input[type=range]::-moz-range-track {
+        height: 4px;
+        border-radius: 2px;
+        background: transparent;
     }
-    .sidebar:hover::-webkit-scrollbar-thumb {
-        background-color: #c1c1c1;
+
+    .range-max {
+        z-index: 3 !important;
     }
-    .sidebar:hover::-webkit-scrollbar-thumb:hover {
-        background-color: #a0a0a0;
+
+    /* Tag szűrők */
+    .tag-filter {
+        margin: 4px 0;
     }
-}
 
-        .sidebar h2 {
-            font-size: 17px;
-            margin-bottom: 10px;
-            color: #2f7d32;
-        }
+    .tag-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        margin: 0;
+    }
 
-        .sidebar h3 {
-            margin-top: 20px;
-            font-size: 15px;
-        }
+    .tag-label input[type=checkbox] {
+        accent-color: #2f7d32;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
 
-        .sidebar label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 6px 0;
-            font-size: 14px;
-            cursor: pointer;
-        }
+    .tag-label input[type=radio] {
+        accent-color: #2f7d32;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
 
-        .sidebar button.apply,
-        .sidebar button.reset {
-            width: 100%;
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-        }
+    .tag-name {
+        flex: 1;
+    }
 
-        .apply {
-            background: #2f7d32;
-            color: white;
-        }
+    .tag-count {
+        color: #999;
+        font-size: 12px;
+    }
 
-        .apply:hover {
-            background: #256428;
-        }
+    .no-tags-hint {
+        font-size: 13px;
+        color: #999;
+        padding: 4px 0;
+    }
 
-        .reset {
-            background: #eee;
-            padding-left: 5px;
-            padding-right: 5px;
-            border-radius: 6px;
-        }
+    /* Lapozó */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        margin-top: 30px;
+        padding: 15px;
+    }
 
-        .reset:hover {
-            background: #ddd;
-        }
+    .pagination button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        background: white;
+        cursor: pointer;
+        font-weight: 600;
+    }
 
-.content {
-    flex: 1;
-}
+    .pagination button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
 
-        .results-header {
-            margin-bottom: 15px;
-        }
-        .results-count {
-            font-size: 15px;
-            color: #555;
-            font-weight: 600;
-            margin: 0 0 4px 0;
-        }
-        .results-params-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 0;
-        }
-        .results-param {
-            font-weight: 400;
-            color: #888;
-            font-size: 13px;
-        }
-        @media (min-width: 768px) {
-            .results-header {
-                display: flex;
-                align-items: baseline;
-                gap: 6px;
-                margin-bottom: 15px;
-            }
-            .results-count {
-                margin: 0;
-            }
-            .results-params-row {
-                display: contents;
-            }
-            .results-param {
-                margin-left: 2px;
-            }
-            .results-param::before {
-                content: '· ';
-            }
-        }
+    .pagination button:not(:disabled):hover {
+        background: #2f7d32;
+        color: white;
+        border-color: #2f7d32;
+    }
 
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
+    .pagination button.active {
+        background: #2f7d32;
+        color: white;
+        border-color: #2f7d32;
+    }
 
-        .card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
+    .pagination span {
+        font-size: 14px;
+        color: #555;
+    }
 
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-        }
-
-        .card img {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-        }
-
-        .card-body {
-            padding: 15px;
-        }
-
-        .card-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card h4 {
-            margin: 5px 0;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .rating {
-            color: #f9a825;
-            font-size: 14px;
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .review-count {
-            color: #888;
-            font-size: 12px;
-        }
-
-        .location {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        .tags span {
-            display: inline-block;
-            background: #eef3ee;
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            margin: 3px 3px 0 0;
-        }
-
-        .price-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-        }
-
-        .price {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2f7d32;
-            line-height: 1.3;
-        }
-        .price-from {
-            font-size: 13px;
-            font-weight: 500;
-            color: #555;
-            margin-right: 2px;
-        }
-        .price-unit {
-            font-size: 13px;
-            font-weight: 400;
-            color: #666;
-        }
-
-        .loading, .error-message, .no-results {
-            text-align: center;
-            padding: 40px;
-            font-size: 18px;
-            color: #666;
-        }
-
-        .error-message {
-            color: #d32f2f;
-            background: #ffebee;
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .info-row {
-            display: flex;
-            gap: 15px;
-            font-size: 13px;
-            color: #666;
-            margin: 10px 0;
-        }
-
-        .capacity, .spots {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .book {
-            background: #2f7d32;
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-
-        .book:hover {
-            background: #256428;
-        }
-
-        /* Price filter – Booking.com style */
-        .price-filter-section {
-            padding-bottom: 16px;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 16px;
-        }
-        .filter-heading {
-            font-size: 14px;
-            font-weight: 400;
-            color: #1a1a1a;
-            margin: 0 0 8px 0;
-        }
-        .price-range-labels {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            margin-bottom: 14px;
-            gap: 6px;
-        }
-        .price-dash {
-            font-size: 16px;
-            color: #888;
-            padding-bottom: 6px;
-            flex-shrink: 0;
-        }
-        .price-input-group {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-        .price-label-tag {
-            font-size: 10px;
-            font-weight: 400;
-            color: #4A7434;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-        }
-        .price-input-wrap {
-            display: flex;
-            align-items: center;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            background: #fff;
-            overflow: hidden;
-            transition: border-color 0.15s;
-        }
-        .price-input-wrap:focus-within {
-            border-color: #4A7434;
-            box-shadow: 0 0 0 2px rgba(74,116,52,0.15);
-        }
-        .price-input {
-            width: 100%;
-            border: none;
-            outline: none;
-            padding: 5px 4px 5px 8px;
-            font-size: 13px;
-            font-weight: 400;
-            color: #1a1a1a;
-            background: transparent;
-            /* Firefox: nyilak elrejtése */
-            -moz-appearance: textfield;
-            appearance: textfield;
-        }
-        /* Chrome/Safari: nyilak elrejtése */
-        .price-input::-webkit-outer-spin-button,
-        .price-input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        .price-input-suffix {
-            font-size: 11px;
-            color: #888;
-            padding: 0 6px 0 2px;
-            white-space: nowrap;
-        }
-        .price-slider {
-            width: 100%;
-            margin-top: 8px;
-        }
-        /* PrimeVue Slider – footer zöld szín, minden állapotban */
-        :deep(.p-slider .p-slider-range) {
-            background: #4A7434;
-        }
-        :deep(.p-slider .p-slider-handle),
-        :deep(.p-slider .p-slider-handle:hover),
-        :deep(.p-slider .p-slider-handle:active),
-        :deep(.p-slider .p-slider-handle-active),
-        :deep(.p-slider:not(.p-disabled) .p-slider-handle:hover),
-        :deep(.p-slider:not(.p-disabled) .p-slider-handle:active),
-        :deep(.p-slider:not(.p-disabled) .p-slider-handle-active) {
-            background: #4A7434 !important;
-            border-color: #4A7434 !important;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-        :deep(.p-slider:not(.p-disabled) .p-slider-handle:focus-visible) {
-            box-shadow: 0 0 0 0.2rem rgba(74, 116, 52, 0.25) !important;
-        }
-
-        /* Tag filters */
-        .tag-list {
-            overflow: visible;
-        }
-        .tag-list-expanded {
-            overflow: visible;
-        }
-        .tag-filter {
-            margin: 4px 0;
-        }
-        .tag-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            margin: 0;
-        }
-        .tag-label input[type=checkbox] {
-            accent-color: #2f7d32;
-            width: 16px;
-            height: 16px;
-            flex-shrink: 0;
-            cursor: pointer;
-        }
-        .tag-label input[type=radio] {
-            accent-color: #2f7d32;
-            width: 16px;
-            height: 16px;
-            flex-shrink: 0;
-            cursor: pointer;
-        }
-        .tag-name {
-            flex: 1;
-        }
-        .tag-count {
-            color: #999;
-            font-size: 12px;
-        }
-        .no-tags-hint {
-            font-size: 13px;
-            color: #999;
-            padding: 4px 0;
-        }
-        .show-more-tags {
-            background: none;
-            border: none;
-            color: #4A7434;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            padding: 4px 0 2px;
-            margin-top: 0;
-            margin-bottom: 0;
-            width: auto;
-        }
-        .show-more-tags:hover {
-            text-decoration: underline;
-        }
-        /* Minimum értékelés h3 kisebb marginja */
-        .sidebar h3.rating-heading {
-            margin-top: 10px;
-        }
-
-        /* Pagination */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            margin-top: 30px;
-            padding: 15px;
-        }
-        .pagination button {
-            padding: 8px 16px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background: white;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .pagination button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        .pagination button:not(:disabled):hover {
-            background: #2f7d32;
-            color: white;
-            border-color: #2f7d32;
-        }
-        .pagination span {
-            font-size: 14px;
-            color: #555;
-        }
 </style>

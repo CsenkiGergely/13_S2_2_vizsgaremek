@@ -56,7 +56,8 @@ class SearchController extends Controller
         $query = $request->input('q');
         $location = $request->input('location');
 
-        $builder = Camping::with(['photos', 'location', 'tags', 'spots']);
+        $builder = Camping::with(['photos', 'location', 'tags', 'spots'])
+            ->whereHas('spots');
 
         // Szöveges keresés (név, leírás, helyszín)
         if ($query) {
@@ -121,6 +122,20 @@ class SearchController extends Controller
             })->values();
         }
 
-        return response()->json($results);
+        $page = $request->get('page', 1);
+        $perPage = 6;
+        $offset = ($page - 1) * $perPage;
+
+        $paginatedItems = $results->slice($offset, $perPage)->values();
+
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedItems,
+            $results->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return response()->json($paginator);
     }
 }

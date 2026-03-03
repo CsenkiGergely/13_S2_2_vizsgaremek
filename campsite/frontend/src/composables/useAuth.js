@@ -9,6 +9,12 @@ const error = ref(null) // utolsó hibaüzenet
 // Gyors ellenőrzés, hogy be van-e jelentkezve a felhasználó
 const isAuthenticated = computed(() => !!token.value)
 
+// Ha az axios interceptor 401-et kap, töröljük a reaktív állapotot is
+window.addEventListener('auth:unauthenticated', () => {
+  token.value = null
+  user.value = null
+})
+
 // Regisztráció
 // userData: { owner_first_name, owner_last_name, email, password, password_confirmation }
 const register = async (userData) => {
@@ -68,11 +74,13 @@ const login = async (credentials) => {
     // Sikeres bejelentkezés: user és token várható
     const { user: userData, token: newToken } = response.data
     
-    token.value = newToken
+    // Laravel Sanctum esetén lehet plainTextToken, egyébként csak token
+    const plainToken = newToken?.plainTextToken || newToken
+    token.value = plainToken
     user.value = userData
     
     // Mentés lokálisan a következő oldalletöltéshez
-    localStorage.setItem('auth_token', newToken)
+    localStorage.setItem('auth_token', plainToken)
     localStorage.setItem('user', JSON.stringify(userData))
     
     return { success: true, user: userData }
@@ -131,20 +139,28 @@ const upgradeToPartner = async (phoneNumber) => {
   }
 }
 // Kijelentkezés
-// Megpróbálunk a szerver felé logout-olni, de lokálisan mindig eltávolítjuk az adatokat
+// Először töröljük a lokális adatokat, majd megpróbáljuk értesíteni a szervert
 const logout = async () => {
   loading.value = true
-  
+
+  // Lokális állapot azonnali törlése (a szerver válaszától függetlenül)
+  const currentToken = token.value
+  token.value = null
+  user.value = null
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('user')
+
   try {
-    await api.post('/logout')
+    // Szerver értesítése a tokennel (amit még eltettünk)
+    await api.post('/logout', {}, {
+      headers: { Authorization: `Bearer ${currentToken}` }
+    })
   } catch (err) {
-    // Ha a hálózati kérés meghiúsul, az így sem akadályozza a lokális kijelentkezést
-    console.error('Logout error:', err)
+    // 401 vagy hálózati hiba esetén sem probléma — már kijelentkeztünk lokálisan
+    if (err.response?.status !== 401) {
+      console.error('Logout error:', err)
+    }
   } finally {
-    token.value = null
-    user.value = null
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user')
     loading.value = false
   }
 }
@@ -218,6 +234,26 @@ const resetPassword = async (data) => {
 }
 
 
+// Jelszó erősség számítása a megadott jelszó alapján
+const passwordStrength = (password) => {
+  if (!password) return { level: 0, text: '', color: '' }
+
+  let score = 0
+  if (password.length >= 12) score += 3
+  else if (password.length >= 8) score += 2
+  else score += 1
+
+  if (/[a-z]/.test(password)) score += 1
+  if (/[A-Z]/.test(password)) score += 1
+  if (/[0-9]/.test(password)) score += 1
+  if (/[^a-zA-Z0-9]/.test(password)) score += 2
+  if (password.length <= 6) score = 0
+
+  if (score <= 4) return { level: 1, text: 'Gyenge jelszó', color: 'text-red-400' }
+  else if (score <= 7) return { level: 2, text: 'Közepes jelszó', color: 'text-yellow-400' }
+  else return { level: 3, text: 'Erős jelszó', color: 'text-[#4A7434]' }
+}
+
 export function useAuth() {
   return {
     user,
@@ -231,6 +267,7 @@ export function useAuth() {
     fetchUser,
     forgotPassword,
     resetPassword,
-    upgradeToPartner
+    upgradeToPartner,
+    passwordStrength
   }
 }

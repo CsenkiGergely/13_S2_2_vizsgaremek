@@ -73,7 +73,7 @@ class BookingSearchController extends Controller
         });
 
         $page = $request->get('page', 1);
-        $perPage = 10;
+        $perPage = 6;
         $offset = ($page - 1) * $perPage;
         
         $paginatedItems = $filteredCampings->slice($offset, $perPage)->values();

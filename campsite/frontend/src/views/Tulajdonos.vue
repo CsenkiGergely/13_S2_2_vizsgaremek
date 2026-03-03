@@ -1034,6 +1034,10 @@ async function renderLeafletMap() {
 }
 
 onMounted(async () => {
+  if (!checkAuthentication()) {
+    pageLoading.value = false
+    return
+  }
   await fetchMyCampings()
   // Ha van kemping, automatikusan kiválasztjuk az elsőt
   if (myCampings.value.length > 0) {
