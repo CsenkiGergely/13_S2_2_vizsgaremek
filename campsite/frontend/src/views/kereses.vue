@@ -84,6 +84,12 @@ const fetchCampsites = async () => {
       if (searchQuery.value) {
         params.q = searchQuery.value
       }
+      // Szűrőparaméterek küldése a backendre is
+      if (priceMin.value > actualPriceMin.value) params.min_price = priceMin.value
+      if (priceMax.value < actualPriceMax.value) params.max_price = priceMax.value
+      if (selectedTags.value.length > 0) params.tags = selectedTags.value.join(',')
+      if (minRating.value !== null) params.min_rating = minRating.value
+
       const response = await api.get('/search', { params })
       const data = response.data
       if (data && !Array.isArray(data) && data.data) {
@@ -186,15 +192,20 @@ const updatePriceBounds = () => {
   }
 }
 
-// Kliens oldali szűrés
+// Kliens oldali szűrés — csak akkor fut, ha a backend egyszerre adta vissza az összeset (1 oldal)
 const applyClientFilters = () => {
+  // Ha a backend lapoz (több oldal), az elemeket ne szűrjük tovább kliens oldalon, mert a backend már a helyes lapot adta vissza
+  if (totalPages.value > 1) {
+    searchResults.value = [...allResults.value]
+    return
+  }
+
   let filtered = [...allResults.value]
 
-  // Ár szűrés — a kemping min ára (price) összehasonlítása a slider tartománnyal
+  // Ár szűrés
   filtered = filtered.filter(c => {
     const campMin = c.price || 0
     const campMax = c.maxPrice || campMin
-    // Van átfedés a kemping ártartománya és a szűrő tartománya között?
     return campMin <= priceMax.value && campMax >= priceMin.value
   })
 
@@ -216,7 +227,9 @@ const applyClientFilters = () => {
 
 // Szűrők alkalmazása
 const applyFilters = () => {
-  applyClientFilters()
+  // Ha a backend lapoz, az 1. oldalra visszaugorva új lekérést indítunk a szűrőparaméterekkel
+  currentPage.value = 1
+  fetchCampsites()
 }
 
 // Szűrők törlése
@@ -225,7 +238,8 @@ const resetFilters = () => {
   priceMax.value = actualPriceMax.value
   selectedTags.value = []
   minRating.value = null
-  applyClientFilters()
+  currentPage.value = 1
+  fetchCampsites()
 }
 
 // Lapozás

@@ -56,7 +56,8 @@ class SearchController extends Controller
         $query = $request->input('q');
         $location = $request->input('location');
 
-        $builder = Camping::with(['photos', 'location', 'tags', 'spots']);
+        $builder = Camping::with(['photos', 'location', 'tags', 'spots'])
+            ->whereHas('spots');
 
         // Szöveges keresés (név, leírás, helyszín)
         if ($query) {
