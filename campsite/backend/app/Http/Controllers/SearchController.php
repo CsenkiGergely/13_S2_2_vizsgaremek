@@ -9,10 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class SearchController extends Controller
 {
-    /**
-     * Helyszín javaslatok (autocomplete)
-     * GET /api/locations/suggest?q=bal
-     */
+    // Helyszín javaslatok (autocomplete)
     public function suggest(Request $request)
     {
         $q = $request->input('q', '');
@@ -48,10 +45,7 @@ class SearchController extends Controller
         return response()->json($results);
     }
 
-    /**
-     * Keresés kempingek között név, leírás és helyszín alapján
-     * GET /api/search?q=...&location=...&min_price=...&max_price=...&min_rating=...&tags=...
-     */
+    // Keresés kempingek között név, leírás és helyszín alapján
     public function search(Request $request)
     {
         $query = $request->input('q');
@@ -140,10 +134,7 @@ class SearchController extends Controller
         return response()->json($paginator);
     }
 
-    /**
-     * Az összes kemping globális min/max ára (csak spot-tal rendelkezőknél)
-     * GET /api/search/prices
-     */
+    // Az összes kemping globális min/max ára (csak spot-tal rendelkezőknél)
     public function prices()
     {
         $row = DB::table('camping_spots')
@@ -160,10 +151,7 @@ class SearchController extends Controller
         ]);
     }
 
-    /**
-     * Az összes tag visszaadása a hozzájuk tartozó kemping-számmal
-     * GET /api/search/tags
-     */
+    // Az összes tag visszaadása a hozzájuk tartozó kemping-számmal
     public function tags()
     {
         $tags = DB::table('camping_tags')
