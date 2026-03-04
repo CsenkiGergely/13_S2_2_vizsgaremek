@@ -110,7 +110,6 @@ class CommentController extends Controller
             ], 429);
         }
 
-        // 
         // Globális minimum idő két válasz között ugyanattól a felhasználótól
         $lastReply = Comment::where('user_id', $user->id)
             ->orderBy('created_at', 'desc')

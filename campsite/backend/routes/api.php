@@ -16,6 +16,8 @@ use App\Http\Controllers\EntranceGateController;
 use App\Http\Controllers\DashboardController;
 
 Route::get('/search', [SearchController::class, 'search']);
+Route::get('/search/tags', [SearchController::class, 'tags']);
+Route::get('/search/prices', [SearchController::class, 'prices']);
 Route::get('/locations/suggest', [SearchController::class, 'suggest']);
 
 Route::get('/user', function (Request $request) {
@@ -36,6 +38,7 @@ Route::post('/upgrade-to-partner', [AuthController::class, 'upgradeToPartner'])-
 
 // Kempingek
 Route::get('/campings', [CampingController::class, 'getCampings']);
+Route::get('/campings/top', [CampingController::class, 'getTopCampings']);
 Route::get('/campings/{id}', [CampingController::class, 'show']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);

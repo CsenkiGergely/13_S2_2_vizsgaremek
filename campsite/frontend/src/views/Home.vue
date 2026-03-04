@@ -1,7 +1,53 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
+import 'vue3-carousel/carousel.css'
+import { Carousel, Slide, Navigation, Pagination } from 'vue3-carousel'
+
+// --- Slideshow: Legfelkapottabb kempingek ---
+const topCampings = ref([])
+
+const carouselConfig = {
+  height: 460,
+  itemsToShow: 1,
+  gap: 12,
+  autoplay: 10000,
+  wrapAround: true,
+  pauseAutoplayOnHover: true,
+  snapAlign: 'center',
+  breakpoints: {
+    600: { itemsToShow: 2.0 },
+    900: { itemsToShow: 2.5 },
+    1200: { itemsToShow: 3.5 },
+  },
+}
+
+const fetchTopCampings = async () => {
+  try {
+    const res = await api.get('/campings/top')
+    const data = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    topCampings.value = data.map(c => ({
+        id: c.id,
+        name: c.camping_name || c.name,
+        rating: parseFloat(c.average_rating) || 0,
+        reviews: c.reviews_count || 0,
+        location: c.location?.city || (typeof c.location === 'string' ? c.location : ''),
+        image: c.photos?.[0]?.photo_url || c.photos?.[0]?.url || c.image || 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800',
+        price: c.min_price || 0,
+      }))
+  } catch (e) {
+    console.error('Top kempingek betöltési hiba:', e)
+  }
+}
+// --- Slideshow vége ---
+
+const renderStars = (rating) => {
+  const full  = Math.floor(rating)
+  const half  = rating - full >= 0.5 ? 1 : 0
+  const empty = 5 - full - half
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty)
+}
 
 const router = useRouter()
 const today = new Date().toISOString().split('T')[0]
@@ -78,6 +124,7 @@ const onClickOutside = (e) => {
 
 onMounted(() => {
   document.addEventListener('click', onClickOutside)
+  fetchTopCampings()
 })
 
 onBeforeUnmount(() => {
@@ -135,8 +182,7 @@ const handleSearch = async () => {
 }
 </script>
 <template>
- 
-
+<div>
   <div class="hero" role="banner">
     <div class="container">
       <div class="title">
@@ -220,33 +266,75 @@ const handleSearch = async () => {
   </div>
   
   <main class="content" role="main">
-    
-    <h2 class="section-title">Népszerű Kempingek</h2>
-    <p class="muted">Válogatásunk a legkedveltebb kempingek közül — kattints a képekre a részletekért.</p>
 
-   
-    <div class="gallery" aria-label="Népszerű régiók képei">
-      <router-link to="/foglalas">
-        <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
-      </router-link>
-      <router-link to="/foglalas">
-        <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
-      </router-link>
-      <router-link to="/foglalas">
-        <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
-      </router-link>
-      <router-link to="/foglalas">
-        <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
+    <h2 class="section-title" style="margin-top:2rem">🥇 Kiemelt kempingünk</h2>
+    <p class="muted">A legjobb értékelésű kemping vendégeink szerint</p>
+
+    <div v-if="topCampings.length > 0" class="featured-camping">
+      <router-link :to="'/foglalas/' + topCampings[0].id" class="featured-link">
+        <div class="featured-image-wrap">
+          <img
+            :src="topCampings[0].image"
+            :alt="topCampings[0].name"
+            @error="$event.target.src = '/img/night-1189929_1920.jpg'"
+          />
+          <div class="featured-overlay">
+            <div class="featured-badge">
+              <span class="slide-stars">{{ renderStars(topCampings[0].rating) }}</span>
+              <span class="slide-rating-num">{{ topCampings[0].rating.toFixed(1) }}</span>
+              <span class="slide-reviews" v-if="topCampings[0].reviews > 0">({{ topCampings[0].reviews }} értékelés)</span>
+            </div>
+            <h3 class="featured-name">{{ topCampings[0].name }}</h3>
+            <p class="featured-location" v-if="topCampings[0].location">📍 {{ topCampings[0].location }}</p>
+            <p class="featured-price" v-if="topCampings[0].price > 0">Már <strong>{{ topCampings[0].price.toLocaleString('hu-HU') }} Ft</strong> / éj</p>
+            <span class="featured-btn">Foglalás →</span>
+          </div>
+        </div>
       </router-link>
     </div>
-
-    <h2 class="section-title" style="margin-top:2rem">Kiemelt kempingünk</h2>
-    <p class="muted">Különlegesen ajánlott hely — családbarát szolgáltatásokkal és gyönyörű panorámával.</p>
-   
-    <div class="single-image" aria-hidden="false">
+    <div v-else class="single-image" aria-hidden="false">
       <img src="/img/night-1189929_1920.jpg" alt="Kiemelt kemping nagy panorámakép"/>
     </div>
+
+    <!-- Legfelkapottabb kempingek slideshow -->
+    <h2 class="section-title" style="margin-top:2.5rem">🏆 Legfelkapottabb kempingek</h2>
+    <p class="muted">A legjobb értékelésű kempingek vendégeink szerint</p>
+
+    <div v-if="topCampings.length > 0" class="slideshow">
+      <Carousel v-bind="carouselConfig">
+        <Slide v-for="camping in topCampings" :key="camping.id">
+          <div class="carousel-card">
+            <img
+              :src="camping.image"
+              :alt="camping.name"
+              @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'"
+            />
+            <div class="carousel-overlay">
+              <div class="slide-badge">
+                <span class="slide-stars">{{ renderStars(camping.rating) }}</span>
+                <span class="slide-rating-num">{{ camping.rating.toFixed(1) }}</span>
+                <span class="slide-reviews" v-if="camping.reviews > 0">({{ camping.reviews }})</span>
+              </div>
+              <h3 class="slide-name">{{ camping.name }}</h3>
+              <p class="slide-location" v-if="camping.location">📍 {{ camping.location }}</p>
+              <p class="slide-price" v-if="camping.price > 0">Már <strong>{{ camping.price.toLocaleString('hu-HU') }} Ft</strong> / éj</p>
+              <router-link :to="'/foglalas/' + camping.id">
+                <button class="slide-btn">Foglalás →</button>
+              </router-link>
+            </div>
+          </div>
+        </Slide>
+        <template #addons>
+          <Navigation />
+          <Pagination />
+        </template>
+      </Carousel>
+    </div>
+    <div v-else class="slideshow-placeholder">
+      <p class="muted">⏳ Betöltés...</p>
+    </div>
   </main>
+</div>
 </template>
 
 <style scoped>
@@ -377,22 +465,6 @@ const handleSearch = async () => {
       margin: 1rem 0 0.75rem;
       text-align:center;
     }
-   
-    .gallery{
-      display:grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap:0.75rem;
-      margin-top:1rem;
-    }
-
-    .gallery img{
-      width:100%;
-      height:220px;
-      object-fit:cover;
-      display:block;
-      border-radius:.75rem;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-    }
   
     .single-image{
       margin-top:1.25rem;
@@ -408,9 +480,73 @@ const handleSearch = async () => {
       box-shadow: 0 12px 30px rgba(0,0,0,0.08);
     }
 
+    /* Kiemelt kemping */
+    .featured-camping { margin-top: 1.25rem; }
+    .featured-link { text-decoration: none; display: block; }
+    .featured-image-wrap {
+      position: relative;
+      width: 100%;
+      height: 340px;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    }
+    .featured-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+    .featured-link:hover .featured-image-wrap img {
+      transform: scale(1.04);
+    }
+    .featured-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.75rem 2rem;
+      background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, transparent 55%);
+      color: #fff;
+    }
+    .featured-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+    .featured-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 0.25rem;
+    }
+    .featured-location {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 0.2rem;
+    }
+    .featured-price {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 0.8rem;
+    }
+    .featured-price strong { color: #fff; }
+    .featured-btn {
+      display: inline-block;
+      background: #4A7434;
+      color: #fff;
+      padding: 0.5rem 1.4rem;
+      border-radius: 0.6rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      transition: background 0.2s;
+    }
+    .featured-link:hover .featured-btn { background: #F17E21; }
+
     @media(min-width:880px){
-      .gallery{ grid-template-columns: repeat(4, 1fr); }
-      .gallery img{ height:160px; }
+      .featured-image-wrap { height: 420px; }
       .single-image img{ height:420px; }
     }
    
@@ -500,5 +636,200 @@ const handleSearch = async () => {
       background: #f3f4f6;
       padding: 2px 8px;
       border-radius: 10px;
+    }
+
+    /* Slideshow */
+    .slideshow {
+      margin-top: 1.5rem;
+      margin-bottom: 2.5rem;
+      overflow: hidden;
+    }
+
+    @media (max-width: 599px) {
+      :deep(.carousel__slide) {
+        padding: 0 8px;
+      }
+      :deep(.carousel__prev),
+      :deep(.carousel__next) {
+        top: auto;
+        bottom: 8px;
+        transform: translateY(0);
+        background: transparent;
+        box-shadow: none;
+        --vc-nav-color: #4A7434;
+      }
+      :deep(.carousel__prev:hover),
+      :deep(.carousel__next:hover),
+      :deep(.carousel__prev:active),
+      :deep(.carousel__next:active) {
+        background: transparent !important;
+        --vc-nav-color: #4A7434;
+      }
+      :deep(.carousel__prev) {
+        left: calc(50% - 72px);
+      }
+      :deep(.carousel__next) {
+        right: calc(50% - 72px);
+      }
+    }
+
+    :deep(.carousel) {
+      --vc-nav-background: rgba(255, 255, 255, 0.85);
+      --vc-nav-border-radius: 100%;
+      --vc-nav-color: #4A7434;
+      --vc-nav-color-hover: #fff;
+      padding-bottom: 50px;
+    }
+
+    :deep(.carousel__prev:hover),
+    :deep(.carousel__next:hover) {
+      background: #4A7434;
+    }
+
+    /* 3D fókusz effekt */
+    :deep(.carousel__viewport) {
+      perspective: 2000px;
+      overflow: visible;
+    }
+    :deep(.carousel__track) {
+      transform-style: preserve-3d;
+    }
+    :deep(.carousel__slide--sliding) {
+      transition: opacity 350ms, transform 350ms;
+    }
+    :deep(.carousel__slide) {
+      opacity: 0.55;
+      transform: rotateY(-8deg) scale(0.85);
+      transition: opacity 350ms, transform 350ms;
+      padding: 0 6px;
+    }
+    :deep(.carousel__slide--prev) {
+      opacity: 0.8;
+      transform: rotateY(-5deg) scale(0.92);
+    }
+    :deep(.carousel__slide--active) {
+      opacity: 1;
+      transform: rotateY(0deg) scale(1.08);
+      z-index: 2;
+    }
+    :deep(.carousel__slide--next) {
+      opacity: 0.8;
+      transform: rotateY(5deg) scale(0.92);
+    }
+
+    /* Kártya */
+    .carousel-card {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .carousel-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .carousel-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, transparent 60%);
+      color: #fff;
+    }
+
+    .slide-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-bottom: 0.3rem;
+    }
+    .slide-stars {
+      color: #ffe066;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+    }
+    .slide-rating-num {
+      color: #ffe066;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .slide-reviews {
+      color: rgba(255,255,255,0.7);
+      font-size: 0.78rem;
+    }
+    .slide-name {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .slide-location {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 0.15rem;
+    }
+    .slide-price {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 0.6rem;
+    }
+    .slide-price strong { color: #fff; }
+    .slide-btn {
+      background: #4A7434;
+      color: #fff;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slide-btn:hover { background: #F17E21; }
+
+    .slideshow-placeholder {
+      height: 420px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f3f4f6;
+      border-radius: 10px;
+      margin-top: 1.25rem;
+    }
+
+    /* Pagination pontok */
+    :deep(.carousel__pagination) {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 0 4px;
+      margin: 0;
+      list-style: none;
+    }
+    :deep(.carousel__pagination-button) {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ccc;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s, width 0.2s, border-radius 0.2s;
+    }
+    :deep(.carousel__pagination-button--active) {
+      background: #4A7434;
+      width: 24px;
+      border-radius: 4px;
+    }
+    :deep(.carousel__pagination-button:hover) {
+      background: #6a9a54;
     }
 </style>

@@ -5,13 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Camping;
 use App\Models\Location;
+use Illuminate\Support\Facades\DB;
 
 class SearchController extends Controller
 {
-    /**
-     * Helyszín javaslatok (autocomplete)
-     * GET /api/locations/suggest?q=bal
-     */
+    // Helyszín javaslatok (autocomplete)
     public function suggest(Request $request)
     {
         $q = $request->input('q', '');
@@ -47,10 +45,7 @@ class SearchController extends Controller
         return response()->json($results);
     }
 
-    /**
-     * Keresés kempingek között név, leírás és helyszín alapján
-     * GET /api/search?q=...&location=...&min_price=...&max_price=...&min_rating=...&tags=...
-     */
+    // Keresés kempingek között név, leírás és helyszín alapján
     public function search(Request $request)
     {
         $query = $request->input('q');
@@ -137,5 +132,40 @@ class SearchController extends Controller
         );
 
         return response()->json($paginator);
+    }
+
+    // Az összes kemping globális min/max ára (csak spot-tal rendelkezőknél)
+    public function prices()
+    {
+        $row = DB::table('camping_spots')
+            ->join('campings', 'camping_spots.camping_id', '=', 'campings.id')
+            ->select(
+                DB::raw('MIN(camping_spots.price_per_night) as min_price'),
+                DB::raw('MAX(camping_spots.price_per_night) as max_price')
+            )
+            ->first();
+
+        return response()->json([
+            'min_price' => (int) ($row->min_price ?? 0),
+            'max_price' => (int) ($row->max_price ?? 50000),
+        ]);
+    }
+
+    // Az összes tag visszaadása a hozzájuk tartozó kemping-számmal
+    public function tags()
+    {
+        $tags = DB::table('camping_tags')
+            ->join('campings', 'camping_tags.camping_id', '=', 'campings.id')
+            ->whereExists(function ($q) {
+                $q->select(DB::raw(1))
+                  ->from('camping_spots')
+                  ->whereColumn('camping_spots.camping_id', 'campings.id');
+            })
+            ->select('camping_tags.tag as name', DB::raw('COUNT(*) as count'))
+            ->groupBy('camping_tags.tag')
+            ->orderByDesc('count')
+            ->get();
+
+        return response()->json($tags);
     }
 }
