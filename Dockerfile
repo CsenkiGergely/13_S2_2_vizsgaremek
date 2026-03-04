@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+ROM php:8.2-apache
 
 # Szükséges PHP extensions
 RUN apt-get update && apt-get install -y \
@@ -40,5 +40,5 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 # Port
 EXPOSE 10000
 
-# Apache indítása
-CMD ["apache2-foreground"]
+# Migráció + Apache indítása
+CMD php artisan migrate --force && apache2-foreground
