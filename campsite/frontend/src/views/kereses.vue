@@ -302,15 +302,6 @@ const onMaxInput = (e) => {
   onPriceMaxInput()
 }
 
-// PrimeVue Slider range modell: [priceMin, priceMax] tömbként
-const priceRange = computed({
-  get: () => [priceMin.value, priceMax.value],
-  set: ([min, max]) => {
-    priceMin.value = min
-    priceMax.value = max
-  }
-})
-
 // Ár formázás
 const formatPrice = (val) => {
   return val.toLocaleString('hu-HU') + ' Ft'
