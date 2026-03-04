@@ -771,9 +771,6 @@ watch(() => route.query, (newQuery) => {
 
     .reset {
         background: #eee;
-        border-radius: 5px;
-        padding-left: 5px;
-        padding-right: 5px;
     }
 
     .reset:hover {
