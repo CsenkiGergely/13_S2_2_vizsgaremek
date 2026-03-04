@@ -10,6 +10,7 @@ import Fizetes from '../views/fizetes.vue'
 import SpotKezeles from '../views/SpotKezeles.vue'
 import VerifyEmail from '../views/VerifyEmail.vue'
 import Profil from '../views/profil.vue'
+import Foglalasaim from '../views/Foglalasaim.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -23,7 +24,8 @@ const routes = [
   { path: '/kemping/:id/helyek', name: 'SpotKezeles', component: SpotKezeles, meta: { requiresAuth: true } },
   { path: '/verify-email', name: 'VerifyEmail', component: VerifyEmail },
   { path: '/fizetes', name: 'Fizetes', component: Fizetes },
-  { path: '/profil', name: 'Profil', component: Profil }
+  { path: '/profil', name: 'Profil', component: Profil },
+  { path: '/foglalasaim', name: 'Foglalasaim', component: Foglalasaim, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({

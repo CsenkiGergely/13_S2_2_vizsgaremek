@@ -39,8 +39,38 @@ const visibleTags = computed(() =>
   showAllTags.value ? availableTags.value : availableTags.value.slice(0, TAG_LIMIT)
 )
 
+// Szolgáltatás számok dinamikus frissítése a kiválasztott szűrők alapján
+const filteredTagCounts = computed(() => {
+  const counts = {}
+  // Ha nincs szűrő kiválasztva, az eredeti count-ot mutatjuk
+  if (selectedTags.value.length === 0) {
+    availableTags.value.forEach(t => { counts[t.name] = t.count })
+    return counts
+  }
+  // Van aktív szűrő → az eredményekből számoljuk, hogy a többi tag hány kempingben fordul elő
+  const matchingCampings = allResults.value.filter(c => {
+    const campTagNames = c.tags.map(t => t.name)
+    return selectedTags.value.every(tag => campTagNames.includes(tag))
+  })
+  availableTags.value.forEach(tag => {
+    if (selectedTags.value.includes(tag.name)) {
+      // Az aktív tagnél is a szűrt eredmény számát mutatjuk
+      counts[tag.name] = matchingCampings.filter(c =>
+        c.tags.some(t => t.name === tag.name)
+      ).length
+    } else {
+      // Más tagnél: hány kemping illik a jelenlegi szűrő + ez a tag kombóra
+      counts[tag.name] = matchingCampings.filter(c =>
+        c.tags.some(t => t.name === tag.name)
+      ).length
+    }
+  })
+  return counts
+})
+
 // Mobil szűrő kihúzható panel
 const showMobileFilters = ref(false)
+const showPriceHint = ref(true)
 const activeFilterCount = computed(() => {
   let count = 0
   if (priceMin.value > actualPriceMin.value || priceMax.value < actualPriceMax.value) count++
@@ -368,6 +398,10 @@ watch(() => route.query, (newQuery) => {
 
         <div class="price-filter-section">
             <h3 class="filter-heading">Költségkeret (éjszakánként)</h3>
+            <div v-if="showPriceHint" class="price-hint">
+                <span>A kempingeknél a legolcsóbb hely ára jelenik meg. Egy kempingen belül több ársáv is lehet, ezért előfordulhat eltérés.</span>
+                <button class="price-hint-close" @click="showPriceHint = false">&times;</button>
+            </div>
             <div class="price-range-labels">
                 <div class="price-input-group">
                     <span class="price-label-tag">Min</span>
@@ -424,7 +458,7 @@ watch(() => route.query, (newQuery) => {
                         @change="toggleTag(tag.name)"
                     />
                     <span class="tag-name">{{ tag.name }}</span>
-                    <span class="tag-count">({{ tag.count }})</span>
+                    <span class="tag-count">({{ filteredTagCounts[tag.name] ?? tag.count }})</span>
                 </label>
             </div>
         </div>
@@ -484,19 +518,12 @@ watch(() => route.query, (newQuery) => {
                     @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'"
                 />
                 <div class="card-body">
-                    <div class="card-header-row">
-                        <h4>{{ camping.name }}</h4>
-                        <div class="rating" v-if="camping.rating > 0">
-                            ⭐ {{ camping.rating.toFixed(1) }} <span class="review-count">({{ camping.reviews }} értékelés)</span>
-                        </div>
+                    <h4>{{ camping.name }}</h4>
+                    <div class="rating" v-if="camping.rating > 0">
+                        ⭐ {{ camping.rating.toFixed(1) }} <span class="review-count">({{ camping.reviews }} értékelés)</span>
                     </div>
                     <div class="location" v-if="camping.location">
                         📍 {{ camping.location }}
-                    </div>
-                    <div class="tags" v-if="camping.tags && camping.tags.length > 0">
-                        <span v-for="tag in camping.tags.slice(0, 4)" :key="tag.id || tag.name">
-                            {{ tag.name }}
-                        </span>
                     </div>
                     <div class="info-row">
                         <div class="capacity">
@@ -567,19 +594,14 @@ watch(() => route.query, (newQuery) => {
         flex-direction: column;
         gap: 20px;
         padding: 20px;
+        max-width: 1140px;
+        margin: 0 auto;
+        width: 100%;
     }
 
     @media (min-width: 768px) {
         .container {
             flex-direction: row;
-            padding-left: 150px;
-            padding-right: 20px;
-        }
-    }
-
-    @media (min-width: 1200px) {
-        .container {
-            padding-left: 250px;
         }
     }
 
@@ -698,15 +720,16 @@ watch(() => route.query, (newQuery) => {
         }
         .sidebar {
             display: block;
-            position: sticky;
-            top: 20px;
+            position: static;
             transform: none;
             width: 260px;
             min-width: 260px;
+            flex-shrink: 0;
             border-radius: 10px;
             align-self: flex-start;
             box-shadow: none;
             transition: none;
+            z-index: 5;
         }
     }
 
@@ -790,8 +813,20 @@ watch(() => route.query, (newQuery) => {
 
     .cards {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
+    }
+
+    @media (max-width: 1024px) {
+        .cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .cards {
+            grid-template-columns: 1fr;
+        }
     }
 
     .card {
@@ -961,7 +996,38 @@ watch(() => route.query, (newQuery) => {
         font-size: 14px;
         font-weight: 400;
         color: #1a1a1a;
-        margin: 0 0 10px 0;
+        margin: 0 0 8px 0;
+    }
+
+    .price-hint {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        background: #f0f7ed;
+        border: 1px solid #c8dfc0;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #3a5a2a;
+    }
+
+    .price-hint-close {
+        background: none;
+        border: none;
+        font-size: 16px;
+        color: #6a8a5a;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        flex-shrink: 0;
+        width: auto;
+        margin: 0;
+    }
+
+    .price-hint-close:hover {
+        color: #2f5a1a;
     }
 
     /* Min / Max input sor */
@@ -1142,35 +1208,40 @@ watch(() => route.query, (newQuery) => {
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 15px;
+        gap: 6px;
         margin-top: 30px;
         padding: 15px;
+        flex-wrap: wrap;
     }
 
     .pagination button {
-        padding: 8px 16px;
+        padding: 8px 14px;
         border-radius: 6px;
-        border: 1px solid #ccc;
+        border: 1px solid #ddd;
         background: white;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 400;
+        font-size: 14px;
+        color: #333;
+        transition: all 0.15s;
     }
 
     .pagination button:disabled {
-        opacity: 0.4;
+        opacity: 0.35;
         cursor: not-allowed;
     }
 
     .pagination button:not(:disabled):hover {
-        background: #2f7d32;
-        color: white;
+        background: #f0f7f0;
         border-color: #2f7d32;
+        color: #2f7d32;
     }
 
     .pagination button.active {
         background: #2f7d32;
         color: white;
         border-color: #2f7d32;
+        font-weight: 600;
     }
 
     .pagination span {
