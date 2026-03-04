@@ -1,4 +1,4 @@
-ROM php:8.2-apache
+FROM php:8.2-apache
 
 # Szükséges PHP extensions
 RUN apt-get update && apt-get install -y \
