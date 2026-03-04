@@ -85,16 +85,19 @@ const login = async (credentials) => {
     
     return { success: true, user: userData }
   } catch (err) {
-    // 422 validációs hibák kezelése, különös tekintettel email/jelszó mezőkre
+    // 422 validációs hibák kezelése
     if (err.response?.status === 422) {
       const errors = err.response?.data?.errors
-      if (errors?.email) {
-        error.value = errors.email[0]
-      } else if (errors?.password) {
-        error.value = errors.password[0]
+      if (errors && Object.keys(errors).length > 0) {
+        // Az első mezőhöz tartozó első hibaüzenetet jelenítjük meg
+        error.value = Object.values(errors).flat()[0]
       } else {
-        error.value = 'Hibás adatok.'
+        error.value = err.response?.data?.message || 'Hibás adatok.'
       }
+    } else if (err.response?.status === 401) {
+      error.value = 'Hibás email-cím vagy jelszó.'
+    } else if (err.response?.status === 403) {
+      error.value = err.response?.data?.message || 'A fiók nincs aktiválva.'
     } else {
       // Egyéb hibák: backend üzenet vagy általános hibaüzenet
       error.value = err.response?.data?.message || 'Bejelentkezési hiba történt.'

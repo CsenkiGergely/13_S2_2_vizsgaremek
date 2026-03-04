@@ -65,9 +65,27 @@ const priceBoundsInitialized = ref(false)
 const ratingOptions = [4.5, 4.0, 3.0, 2.0]
 
 // API hívás
-const fetchCampsites = async () => {
+const fetchCampsites = async (isNewSearch = true) => {
   loading.value = true
   error.value = null
+
+  // Első (új) kereséskor frissítjük a tag-listát és az ár határokat a backendről
+  if (isNewSearch) {
+    api.get('/search/tags').then(res => {
+      availableTags.value = res.data
+    }).catch(() => {})
+
+    api.get('/search/prices').then(res => {
+      const { min_price, max_price } = res.data
+      actualPriceMin.value = min_price
+      actualPriceMax.value = max_price
+      if (!priceBoundsInitialized.value) {
+        priceMin.value = min_price
+        priceMax.value = max_price
+        priceBoundsInitialized.value = true
+      }
+    }).catch(() => {})
+  }
   
   try {
     let rawData = []
@@ -137,8 +155,7 @@ const fetchCampsites = async () => {
       available_spots_count: camping.available_spots_count || (camping.spots ? camping.spots.length : 0)
     }))
 
-    // Dinamikus tag-ek és ár határok kiszámolása az eredményekből
-    updateAvailableTags()
+    // Ár határok kiszámolása az eredményekből
     updatePriceBounds()
 
     applyClientFilters()
@@ -169,39 +186,25 @@ const normalizeTags = (tags) => {
   return []
 }
 
-// Dinamikus tag-ek összegyűjtése
-const updateAvailableTags = () => {
-  const tagMap = new Map()
-  allResults.value.forEach(c => {
-    c.tags.forEach(t => {
-      const name = t.name
-      if (name && !tagMap.has(name)) {
-        tagMap.set(name, { name, count: 0 })
-      }
-      if (name) tagMap.get(name).count++
-    })
-  })
-  availableTags.value = Array.from(tagMap.values()).sort((a, b) => b.count - a.count)
-}
-
-// Ár határok kiszámolása az eredményekből
+// Ár határok kiszámolása az eredményekből (lapozásnál sem szükséges, a backend adja)
 const updatePriceBounds = () => {
+  // A valódi globális min/max-ot a backend /search/prices adja vissza.
+  // Ez a függvény csak akkor fut, ha az eredményekből kiolvasható ár
+  // kívül esne a jelenlegi határokon (pl. elérhetőségi keresésnél).
   if (allResults.value.length === 0) return
   const prices = allResults.value.map(c => c.price).filter(p => p > 0)
   const maxPrices = allResults.value.map(c => c.maxPrice || c.price).filter(p => p > 0)
   if (prices.length > 0) {
     const newMin = Math.min(...prices)
     const newMax = Math.max(...maxPrices, ...prices)
-    // Slider min/max határait mindig frissítjük (az össz adathalmaz alapján)
     if (!priceBoundsInitialized.value) {
-      // Első betöltéskor inicializáljuk a slider értékeket is
       actualPriceMin.value = newMin
       actualPriceMax.value = newMax
       priceMin.value = newMin
       priceMax.value = newMax
       priceBoundsInitialized.value = true
     } else {
-      // Lapozáskor csak a határokat terjesztjük ki, a slider pozícióját nem piszkáljuk
+      // Lapozáskor csak kiterjesszük a határokat, a slider pozícióját nem piszkáljuk
       actualPriceMin.value = Math.min(actualPriceMin.value, newMin)
       actualPriceMax.value = Math.max(actualPriceMax.value, newMax)
     }
@@ -263,7 +266,7 @@ const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
     window.scrollTo({ top: 0, behavior: 'smooth' })
-    fetchCampsites()
+    fetchCampsites(false) // lapozásnál ne töröljük az összesített tageket
   }
 }
 
@@ -288,6 +291,25 @@ const onPriceMaxInput = () => {
     priceMax.value = priceMin.value
   }
 }
+
+// Aliasok a template-ben használt névhez
+const onMinInput = (e) => {
+  priceMin.value = Number(e.target.value)
+  onPriceMinInput()
+}
+const onMaxInput = (e) => {
+  priceMax.value = Number(e.target.value)
+  onPriceMaxInput()
+}
+
+// PrimeVue Slider range modell: [priceMin, priceMax] tömbként
+const priceRange = computed({
+  get: () => [priceMin.value, priceMax.value],
+  set: ([min, max]) => {
+    priceMin.value = min
+    priceMax.value = max
+  }
+})
 
 // Ár formázás
 const formatPrice = (val) => {
