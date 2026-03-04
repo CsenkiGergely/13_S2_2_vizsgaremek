@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Camping;
 use App\Models\Location;
+use Illuminate\Support\Facades\DB;
 
 class SearchController extends Controller
 {
@@ -137,5 +138,46 @@ class SearchController extends Controller
         );
 
         return response()->json($paginator);
+    }
+
+    /**
+     * Az összes kemping globális min/max ára (csak spot-tal rendelkezőknél)
+     * GET /api/search/prices
+     */
+    public function prices()
+    {
+        $row = DB::table('camping_spots')
+            ->join('campings', 'camping_spots.camping_id', '=', 'campings.id')
+            ->select(
+                DB::raw('MIN(camping_spots.price_per_night) as min_price'),
+                DB::raw('MAX(camping_spots.price_per_night) as max_price')
+            )
+            ->first();
+
+        return response()->json([
+            'min_price' => (int) ($row->min_price ?? 0),
+            'max_price' => (int) ($row->max_price ?? 50000),
+        ]);
+    }
+
+    /**
+     * Az összes tag visszaadása a hozzájuk tartozó kemping-számmal
+     * GET /api/search/tags
+     */
+    public function tags()
+    {
+        $tags = DB::table('camping_tags')
+            ->join('campings', 'camping_tags.camping_id', '=', 'campings.id')
+            ->whereExists(function ($q) {
+                $q->select(DB::raw(1))
+                  ->from('camping_spots')
+                  ->whereColumn('camping_spots.camping_id', 'campings.id');
+            })
+            ->select('camping_tags.tag as name', DB::raw('COUNT(*) as count'))
+            ->groupBy('camping_tags.tag')
+            ->orderByDesc('count')
+            ->get();
+
+        return response()->json($tags);
     }
 }
