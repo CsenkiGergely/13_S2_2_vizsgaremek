@@ -25,6 +25,15 @@ const selectedTags = ref([])
 const minRating = ref(null)
 const showAllTags = ref(false)
 
+// PrimeVue Slider range tömb: [min, max]
+const priceRange = computed({
+  get: () => [priceMin.value, priceMax.value],
+  set: (val) => {
+    priceMin.value = Math.min(val[0], val[1])
+    priceMax.value = Math.max(val[0], val[1])
+  }
+})
+
 const TAG_LIMIT = 5
 const visibleTags = computed(() =>
   showAllTags.value ? availableTags.value : availableTags.value.slice(0, TAG_LIMIT)
@@ -357,7 +366,7 @@ watch(() => route.query, (newQuery) => {
                             :min="actualPriceMin"
                             :max="priceMax"
                             step="500"
-                            @change="onMinInput"
+                            @change="onPriceMinInput"
                         />
                         <span class="price-input-suffix">Ft</span>
                     </div>
@@ -373,7 +382,7 @@ watch(() => route.query, (newQuery) => {
                             :min="priceMin"
                             :max="actualPriceMax"
                             step="500"
-                            @change="onMaxInput"
+                            @change="onPriceMaxInput"
                         />
                         <span class="price-input-suffix">Ft</span>
                     </div>
@@ -688,6 +697,13 @@ watch(() => route.query, (newQuery) => {
         }
     }
 
+    @media (min-width: 1200px) {
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+        }
+    }
+
     .sidebar h2 {
         font-size: 17px;
         margin-bottom: 10px;
@@ -702,6 +718,20 @@ watch(() => route.query, (newQuery) => {
     .sidebar label {
         display: block;
         margin: 6px 0;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    /* Tag lista sorok – felülírja a .sidebar label általános margóját */
+    .tag-list .tag-filter {
+        margin: 10px 0;
+    }
+
+    .tag-list .tag-label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin: 0;
         font-size: 14px;
         cursor: pointer;
     }
@@ -907,7 +937,7 @@ watch(() => route.query, (newQuery) => {
         margin-top: 10px;
     }
 
-    /* Árszűrő – dupla csúszka */
+    /* Árszűrő – Booking.com stílus */
     .price-filter-section {
         padding-bottom: 16px;
         border-bottom: 1px solid #e0e0e0;
@@ -916,121 +946,131 @@ watch(() => route.query, (newQuery) => {
 
     .filter-heading {
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 400;
         color: #1a1a1a;
-        margin: 0 0 8px 0;
+        margin: 0 0 10px 0;
     }
 
-    .price-range-text {
-        font-size: 14px;
-        color: #333;
+    /* Min / Max input sor */
+    .price-range-labels {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
         margin-bottom: 14px;
     }
 
-    .dual-range {
-        position: relative;
-        height: 24px;
+    .price-dash {
+        font-size: 16px;
+        color: #aaa;
+        padding-bottom: 6px;
+        flex-shrink: 0;
+    }
+
+    .price-input-group {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .price-label-tag {
+        font-size: 10px;
+        font-weight: 400;
+        color: #4A7434;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-bottom: 4px;
+    }
+
+    .price-input-wrap {
         display: flex;
         align-items: center;
-    }
-
-    .range-track {
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 4px;
-        border-radius: 2px;
-        background: #bdbdbd;
-    }
-
-    .range-fill {
-        position: absolute;
-        height: 4px;
-        border-radius: 2px;
-        background: #2f7d32;
-    }
-
-    .dual-range input[type=range] {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 24px;
-        pointer-events: none;
-        -webkit-appearance: none;
-        appearance: none;
-        background: transparent;
-        margin: 0;
-        z-index: 2;
-    }
-
-    .dual-range input[type=range]::-webkit-slider-thumb {
-        pointer-events: all;
-        -webkit-appearance: none;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
+        border: 1px solid #ccc;
+        border-radius: 6px;
         background: #fff;
-        border: 2px solid #2f7d32;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-        cursor: pointer;
-        position: relative;
-        z-index: 3;
+        overflow: hidden;
         transition: border-color 0.15s, box-shadow 0.15s;
-        margin-top: -10px;
     }
 
-    .dual-range input[type=range]::-webkit-slider-thumb:hover {
-        border-color: #1b5e20;
-        box-shadow: 0 0 0 4px rgba(47,125,50,0.12);
+    .price-input-wrap:focus-within {
+        border-color: #4A7434;
+        box-shadow: 0 0 0 2px rgba(74,116,52,0.15);
     }
 
-    .dual-range input[type=range]::-webkit-slider-thumb:active {
-        border-color: #1b5e20;
-        box-shadow: 0 0 0 6px rgba(47,125,50,0.18);
-    }
-
-    .dual-range input[type=range]::-moz-range-thumb {
-        pointer-events: all;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: #fff;
-        border: 2px solid #2f7d32;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-        cursor: pointer;
-    }
-
-    .dual-range input[type=range]::-moz-range-thumb:hover {
-        border-color: #1b5e20;
-        box-shadow: 0 0 0 4px rgba(47,125,50,0.12);
-    }
-
-    .dual-range input[type=range]::-webkit-slider-runnable-track {
-        height: 4px;
-        border-radius: 2px;
+    .price-input {
+        width: 100%;
+        border: none;
+        outline: none;
+        padding: 6px 4px 6px 8px;
+        font-size: 13px;
+        font-weight: 400;
+        color: #1a1a1a;
         background: transparent;
+        -moz-appearance: textfield;
+        appearance: textfield;
     }
 
-    .dual-range input[type=range]::-moz-range-track {
+    .price-input::-webkit-outer-spin-button,
+    .price-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .price-input-suffix {
+        font-size: 11px;
+        color: #999;
+        padding: 0 7px 0 2px;
+        white-space: nowrap;
+        user-select: none;
+    }
+
+    /* PrimeVue Slider */
+    .price-slider {
+        width: 100%;
+        margin-top: 6px;
+    }
+
+    :deep(.p-slider) {
+        background: #ddd;
+        border-radius: 3px;
         height: 4px;
-        border-radius: 2px;
-        background: transparent;
     }
 
-    .range-max {
-        z-index: 3 !important;
+    :deep(.p-slider .p-slider-range) {
+        background: #4A7434;
+        border-radius: 3px;
+    }
+
+    :deep(.p-slider .p-slider-handle),
+    :deep(.p-slider .p-slider-handle:hover),
+    :deep(.p-slider .p-slider-handle:active),
+    :deep(.p-slider .p-slider-handle-active),
+    :deep(.p-slider:not(.p-disabled) .p-slider-handle:hover),
+    :deep(.p-slider:not(.p-disabled) .p-slider-handle:active),
+    :deep(.p-slider:not(.p-disabled) .p-slider-handle-active) {
+        width: 18px !important;
+        height: 18px !important;
+        background: #fff !important;
+        border: 2px solid #4A7434 !important;
+        border-radius: 50% !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.15) !important;
+        transform: none !important;
+        margin-top: -7px !important;
+        transition: box-shadow 0.15s !important;
+    }
+
+    :deep(.p-slider:not(.p-disabled) .p-slider-handle:focus-visible) {
+        box-shadow: 0 0 0 3px rgba(74,116,52,0.25) !important;
     }
 
     /* Tag szűrők */
     .tag-filter {
-        margin: 4px 0;
+        margin: 10px 0;
     }
 
     .tag-label {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 12px;
         cursor: pointer;
         font-size: 14px;
         margin: 0;
@@ -1038,26 +1078,27 @@ watch(() => route.query, (newQuery) => {
 
     .tag-label input[type=checkbox] {
         accent-color: #2f7d32;
-        width: 16px;
-        height: 16px;
+        width: 15px;
+        height: 15px;
         flex-shrink: 0;
         cursor: pointer;
     }
 
     .tag-label input[type=radio] {
         accent-color: #2f7d32;
-        width: 16px;
-        height: 16px;
+        width: 15px;
+        height: 15px;
         flex-shrink: 0;
         cursor: pointer;
     }
 
     .tag-name {
         flex: 1;
+        line-height: 1.4;
     }
 
     .tag-count {
-        color: #999;
+        color: #bbb;
         font-size: 12px;
     }
 
@@ -1065,6 +1106,22 @@ watch(() => route.query, (newQuery) => {
         font-size: 13px;
         color: #999;
         padding: 4px 0;
+    }
+
+    .show-more-tags {
+        background: none;
+        border: none;
+        color: #4A7434;
+        font-size: 13px;
+        font-weight: 400;
+        cursor: pointer;
+        padding: 4px 0 2px;
+        margin-top: 2px;
+        width: auto;
+    }
+
+    .show-more-tags:hover {
+        text-decoration: underline;
     }
 
     /* Lapozó */

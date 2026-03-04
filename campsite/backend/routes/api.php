@@ -36,6 +36,7 @@ Route::post('/upgrade-to-partner', [AuthController::class, 'upgradeToPartner'])-
 
 // Kempingek
 Route::get('/campings', [CampingController::class, 'getCampings']);
+Route::get('/campings/top', [CampingController::class, 'getTopCampings']);
 Route::get('/campings/{id}', [CampingController::class, 'show']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);

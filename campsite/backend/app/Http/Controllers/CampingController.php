@@ -23,6 +23,28 @@ class CampingController extends Controller
     }
 
     /**
+     * GET /api/campings/top
+     * Legjobb értékelésű kempingek (top 10), rating szerint rendezve.
+     */
+    public function getTopCampings()
+    {
+        $campings = Camping::with(['photos', 'location'])->get();
+
+        $result = $campings->map(function ($camp) {
+            $camp->average_rating = $camp->getAverageRating();
+            $camp->reviews_count  = $camp->getReviewsCount();
+            $camp->min_price      = $camp->min_price;
+            return $camp;
+        })
+        ->filter(fn($c) => $c->average_rating !== null)
+        ->sortByDesc('average_rating')
+        ->take(10)
+        ->values();
+
+        return response()->json($result);
+    }
+
+    /**
      * Kempingek listázása szűrőkkel
      */
     public function getCampings(Request $request)
@@ -49,7 +71,8 @@ class CampingController extends Controller
             });
         });
 
-        $campings = $camping->paginate(12); // 12 kemping oldalanként
+        $perPage = min((int) $request->get('per_page', 12), 200);
+        $campings = $camping->paginate($perPage); // oldalanként
         
         // árak és értékelések hozzáadása minden kempinghez
         $campings->getCollection()->transform(function ($camp) {
