@@ -18,8 +18,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Munkamappa
 WORKDIR /var/www
 
-# Projekt fájlok másolása
-COPY . .
+# Projekt fájlok másolása ← EZT JAVÍTOTTUK!
+COPY campsite/backend/ .
 
 # Composer csomagok telepítése
 RUN composer install --no-dev --optimize-autoloader
