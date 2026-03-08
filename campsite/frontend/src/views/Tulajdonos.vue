@@ -70,6 +70,7 @@ const tagModalCampingId = ref(null)
 const tagModalExisting = ref([])
 
 // Térkép tab
+const showGeojsonGuide = ref(false)
 const mapSelectedCampingId = ref(null)
 const mapGeojsonData = ref(null)
 const mapFileInput = ref(null)
@@ -1161,7 +1162,7 @@ onMounted(async () => {
               <div v-if="item.spots.length > 0" class="overview-spots-grid">
                 <div v-for="spot in item.spots" :key="spot.id ?? spot.spot_id" class="overview-spot-card">
                   <div class="overview-spot-header">
-                    <span class="overview-spot-name">{{ spot.name }}</span>
+                    <span class="overview-spot-name">{{ spot.name }} <span class="overview-spot-id">#{{ spot.spot_id || spot.id }}</span></span>
                     <div class="overview-spot-actions">
                       <span class="overview-spot-type">{{ spot.type }}</span>
                       <button class="gate-action-btn edit" title="Szerkesztés" @click="openEditSpotModal(item.camping.id, spot)">
@@ -1675,7 +1676,77 @@ onMounted(async () => {
       <div class="new-camping-header">
         <div>
           <h2 class="gates-title">Térkép kezelés</h2>
-          <p class="gates-subtitle">GeoJSON térkép feltöltése a kempinghez</p>
+          <p class="gates-subtitle">GeoJSON térkép feltöltése a kempinghez · <a href="#" class="geojson-guide-link" @click.prevent="showGeojsonGuide = true">📖 Útmutató a GeoJSON készítéshez</a></p>
+        </div>
+      </div>
+
+      <!-- GeoJSON Útmutató Modal -->
+      <div v-if="showGeojsonGuide" class="geojson-guide-overlay" @click.self="showGeojsonGuide = false">
+        <div class="geojson-guide-modal">
+          <div class="geojson-guide-header">
+            <h2>📖 GeoJSON Térkép Útmutató</h2>
+            <button class="geojson-guide-close" @click="showGeojsonGuide = false">&times;</button>
+          </div>
+          <div class="geojson-guide-body">
+            <p>Használd a <a href="https://geojson.io" target="_blank" rel="noopener">geojson.io</a> online szerkesztőt. Ingyenes, nem kell regisztráció.</p>
+
+            <h3>1. lépés – Kemping határ (LineString)</h3>
+            <p>Rajzold körbe a kemping teljes területét egy <strong>vonallal (Draw a polyline)</strong>. Ez adja meg a kemping határvonalát.</p>
+
+            <h3>2. lépés – Kempinghelyek megjelölése</h3>
+            <p>Két módon jelölhetsz kempinghelyet:</p>
+
+            <h4>a) Terület (Polygon)</h4>
+            <p>A <strong>Draw a rectangle / polygon</strong> eszközzel rajzolj egy területet. Használd, ha a hely méretét is meg akarod mutatni (parcella).</p>
+
+            <h4>b) Pont (Point)</h4>
+            <p>A <strong>Draw a marker</strong> eszközzel helyezz el egy pontot. Használd, ha csak a pozíciót jelölöd.</p>
+
+            <p><strong>Mindkét esetben</strong> írd be a properties-be a hely azonosítóját:</p>
+            <pre class="geojson-guide-code">{ "spot_id": 5 }</pre>
+            <p class="geojson-guide-hint">A spot_id értékét a „Helyek" menüpont alatt találod.</p>
+
+            <h3>3. lépés – Tájékoztató pontok (opcionális)</h3>
+            <p>Nem foglalható jelölők (recepció, mosdó, játszótér). A <strong>Draw a marker</strong> eszközzel, properties:</p>
+            <pre class="geojson-guide-code">{ "type": "info", "label": "Recepció" }</pre>
+
+            <h3>Feature típusok összefoglaló</h3>
+            <table class="geojson-guide-table">
+              <thead>
+                <tr><th>Típus</th><th>Geometria</th><th>Properties</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Határ</td><td>LineString</td><td>–</td></tr>
+                <tr><td>Kempinghely</td><td>Polygon</td><td><code>spot_id: szám</code></td></tr>
+                <tr><td>Kempinghely</td><td>Point</td><td><code>spot_id: szám</code></td></tr>
+                <tr><td>Tájékoztató</td><td>Point</td><td><code>type: "info", label: "..."</code></td></tr>
+              </tbody>
+            </table>
+
+            <h3>Opcionális stílus</h3>
+            <table class="geojson-guide-table">
+              <thead>
+                <tr><th>Property</th><th>Leírás</th><th>Példa</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>stroke</code></td><td>Vonal szín</td><td>#16a34a</td></tr>
+                <tr><td><code>stroke-width</code></td><td>Vonal vastagság</td><td>2</td></tr>
+                <tr><td><code>fill</code></td><td>Kitöltés szín</td><td>#bbf7d0</td></tr>
+                <tr><td><code>fill-opacity</code></td><td>Kitöltés átlátszóság</td><td>0.2</td></tr>
+                <tr><td><code>marker-color</code></td><td>Info pont szín</td><td>#3b82f6</td></tr>
+              </tbody>
+            </table>
+
+            <h3>Feltöltés</h3>
+            <ol>
+              <li>A geojson.io-ban: <strong>Save → GeoJSON</strong></li>
+              <li>A letöltött <code>.geojson</code> fájlt töltsd fel itt a Térkép fülön</li>
+            </ol>
+
+            <div class="geojson-guide-warning">
+              <strong>⚠️ Fontos:</strong> Minden spot_id érték egy létező kempinghely azonosítónak kell megfeleljen. Egy spot_id csak egyszer szerepeljen.
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3298,6 +3369,13 @@ onMounted(async () => {
     color: #1f2937;
   }
 
+  .overview-spot-id {
+    font-weight: 500;
+    font-size: 11px;
+    color: #6b7280;
+    margin-left: 4px;
+  }
+
   .overview-spot-type {
     font-size: 11px;
     font-weight: 600;
@@ -3792,6 +3870,155 @@ onMounted(async () => {
   .geojson-empty p {
     margin: 0;
     font-size: 14px;
+  }
+
+  /* GeoJSON útmutató link */
+  .geojson-guide-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s;
+  }
+  .geojson-guide-link:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  /* GeoJSON útmutató modal */
+  .geojson-guide-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .geojson-guide-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  }
+  .geojson-guide-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+  }
+  .geojson-guide-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+  .geojson-guide-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: #9ca3af;
+    line-height: 1;
+    padding: 0 4px;
+    transition: color 0.15s;
+  }
+  .geojson-guide-close:hover {
+    color: #374151;
+  }
+  .geojson-guide-body {
+    padding: 24px;
+    overflow-y: auto;
+    line-height: 1.6;
+    font-size: 14px;
+    color: #374151;
+  }
+  .geojson-guide-body h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 20px 0 8px;
+  }
+  .geojson-guide-body h3:first-of-type {
+    margin-top: 12px;
+  }
+  .geojson-guide-body h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 12px 0 4px;
+  }
+  .geojson-guide-body p {
+    margin: 4px 0 8px;
+  }
+  .geojson-guide-body a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .geojson-guide-body a:hover {
+    text-decoration: underline;
+  }
+  .geojson-guide-body ol {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  .geojson-guide-body ol li {
+    margin-bottom: 4px;
+  }
+  .geojson-guide-code {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    color: #1f2937;
+    margin: 8px 0;
+    overflow-x: auto;
+  }
+  .geojson-guide-hint {
+    font-size: 13px;
+    color: #6b7280;
+    font-style: italic;
+  }
+  .geojson-guide-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 16px;
+    font-size: 13px;
+  }
+  .geojson-guide-table th,
+  .geojson-guide-table td {
+    border: 1px solid #e5e7eb;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .geojson-guide-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+  }
+  .geojson-guide-table code {
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .geojson-guide-warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #92400e;
   }
 
 </style>
