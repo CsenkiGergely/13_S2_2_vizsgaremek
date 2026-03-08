@@ -1,7 +1,7 @@
 <template>
   <!-- Lábléc -->
   <footer class="backgroundcolor">
-    <div class="container mx-auto px-4">
+    <div class="max-w-[1140px] mx-auto w-full px-4">
       <div class="flex flex-col md:flex-row items-center justify-between">
         <!--Logó -->
       </div>
