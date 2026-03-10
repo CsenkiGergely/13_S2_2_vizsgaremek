@@ -427,8 +427,9 @@ onMounted(() => {
 .booking-image {
   position: relative;
   width: 220px;
-  min-height: 180px;
+  height: 180px;
   flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .booking-image img {
