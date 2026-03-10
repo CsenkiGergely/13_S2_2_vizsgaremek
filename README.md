@@ -13,6 +13,8 @@ Ez a repository a vizsgaremeket és dokumentációját tartalmazza.
 
 ## Összegyűjtött TODO-k a projekt hiányosságainak javítására:
 
+- neondb connection pooler bevezetése (ha lehetséges)
+- képek megjelenítésének fixálása
 - public api timeout, info leak fix
 - képfeltöltés fix - dashboard main kép kijelölés 
 - foglalás anomália 
@@ -23,4 +25,3 @@ Ez a repository a vizsgaremeket és dokumentációját tartalmazza.
 - QR kód generálása belépéshez ✓
 - Térkép integrálása ✓
 - Jelszó erősség tesztelő backendbe való átvitele ✓
-- UI hibák javítása a kereső oldalon lévő szűrőn ✓
