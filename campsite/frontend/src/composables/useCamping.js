@@ -329,6 +329,11 @@ const getCampingGeojson = async (campingId) => {
     campingGeojson.value = response.data.data || response.data
     return campingGeojson.value
   } catch (err) {
+    if (err.response?.status === 404) {
+      // Nincs térkép feltöltve ehhez a kempinghez – normál állapot
+      campingGeojson.value = null
+      return null
+    }
     console.error('Hiba a GeoJSON lekérésekor:', err)
     error.value = getErrorMessage(err)
     throw err
