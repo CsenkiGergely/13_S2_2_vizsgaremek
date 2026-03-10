@@ -19,7 +19,7 @@ const {
   generateToken, revokeToken,
 } = useGate()
 const { dashboard, getDashboard } = useDashboard()
-const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, loading: campingLoading, error: campingError } = useCamping()
+const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, uploadCampingPhoto, deleteCampingPhoto, getCampingPhotoList, loading: campingLoading, error: campingError } = useCamping()
 
 const activeTab = ref('dashboard')
 const monthlyRevenue = ref(0)
@@ -80,6 +80,11 @@ const mapLoading = ref(false)
 const dashboardLoading = ref(false)
 const pageLoading = ref(true)
 const mapContainerRef = ref(null)
+
+// Képfeltöltés
+const photoUploading = ref(false)
+const photoFileInput = ref(null)
+const newCampingPhotoFiles = ref([])  // Új kemping létrehozásnál kiválasztott fájlok
 const mapCodeOpen = ref(false)
 let leafletMap = null
 let geojsonLayer = null
@@ -533,17 +538,47 @@ async function loadOverviewForCamping(campingId) {
   try {
     const camping = myCampings.value.find(c => c.id === campingId)
     if (!camping) return
-    const [spots, tags] = await Promise.all([
+    const [spots, tags, photos] = await Promise.all([
       getCampingSpotList(campingId).catch(() => []),
       getCampingTagList(campingId).catch(() => []),
+      getCampingPhotoList(campingId).catch(() => []),
     ])
     overviewData.value = [{
       camping,
       spots: Array.isArray(spots) ? spots : [],
       tags: Array.isArray(tags) ? tags : [],
+      photos: Array.isArray(photos) ? photos : [],
     }]
   } finally {
     overviewLoading.value = false
+  }
+}
+
+// Kép feltöltése egy kempinghez (áttekintés fül)
+async function handlePhotoUpload(campingId, event) {
+  const files = event.target.files
+  if (!files || files.length === 0) return
+  photoUploading.value = true
+  try {
+    for (const file of files) {
+      await uploadCampingPhoto(campingId, file)
+    }
+    await loadOverviewForCamping(campingId)
+  } catch (err) {
+    console.error('Képfeltöltés hiba:', err)
+  } finally {
+    photoUploading.value = false
+    if (event.target) event.target.value = ''
+  }
+}
+
+// Kép törlése
+async function handlePhotoDelete(campingId, photoId) {
+  try {
+    await deleteCampingPhoto(campingId, photoId)
+    await loadOverviewForCamping(campingId)
+  } catch (err) {
+    console.error('Kép törlési hiba:', err)
   }
 }
 
@@ -768,6 +803,13 @@ async function handleAddCamping() {
       await Promise.all(pendingTags.value.map(tag => addCampingTag(newId, { tag })))
     }
 
+    // Képek feltöltése az újonnan létrehozott kempinghez
+    if (newId && newCampingPhotoFiles.value.length > 0) {
+      for (const file of newCampingPhotoFiles.value) {
+        await uploadCampingPhoto(newId, file)
+      }
+    }
+
     campingFormSuccess.value = 'Kemping sikeresen létrehozva!'
     newCampingForm.value = {
       camping_name: '', description: '', company_name: '', tax_id: '',
@@ -775,6 +817,7 @@ async function handleAddCamping() {
       latitude: '', longitude: '',
     }
     pendingTags.value = []
+    newCampingPhotoFiles.value = []
     await fetchMyCampings()
   } catch (err) {
     campingFormError.value = err.response?.data?.message || campingError.value || 'Hiba történt a kemping létrehozásakor.'
@@ -1154,6 +1197,26 @@ onMounted(async () => {
                 </span>
               </div>
               <p v-else class="tag-empty">Nincsenek tagek hozzáadva.</p>
+            </div>
+
+            <!-- Képek -->
+            <div class="overview-section">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                <h5 class="overview-section-title" style="margin:0;">Képek</h5>
+                <label class="btn-add-gate" style="font-size:12px; padding:5px 12px; cursor:pointer;">
+                  {{ photoUploading ? '⏳ Feltöltés...' : '+ Kép feltöltése' }}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+                    :disabled="photoUploading"
+                    @change="handlePhotoUpload(item.camping.id, $event)" />
+                </label>
+              </div>
+              <div v-if="item.photos && item.photos.length > 0" class="photo-grid">
+                <div v-for="photo in item.photos" :key="photo.photo_id" class="photo-grid-item">
+                  <img :src="'http://localhost:8000' + photo.photo_url" :alt="'Kemping kép'" @error="$event.target.src = '/img/night-1189929_1920.jpg'" />
+                  <button class="photo-delete-btn" @click="handlePhotoDelete(item.camping.id, photo.photo_id)" title="Kép törlése">✕</button>
+                </div>
+              </div>
+              <p v-else class="tag-empty">Nincsenek képek feltöltve.</p>
             </div>
 
             <!-- Kemping helyek -->
@@ -2020,6 +2083,19 @@ onMounted(async () => {
               <label class="form-label">Számlázási cím <span class="required">*</span></label>
               <input type="text" class="form-input" v-model="newCampingForm.billing_address" placeholder="pl. Budapest, Fő u. 12." />
             </div>
+          </div>
+        </div>
+
+        <!-- Képek előválasztása az új kempinghez -->
+        <div class="form-section-block">
+          <h4 style="margin:0 0 12px;">Képek</h4>
+          <label class="btn-add-gate" style="font-size:13px; padding:8px 14px; cursor:pointer; display:inline-block;">
+            + Képek kiválasztása
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+              @change="newCampingPhotoFiles = [...$event.target.files]" />
+          </label>
+          <div v-if="newCampingPhotoFiles.length > 0" style="margin-top:10px; font-size:13px; color:#4b5563;">
+            {{ newCampingPhotoFiles.length }} kép kiválasztva
           </div>
         </div>
 
@@ -4019,6 +4095,46 @@ onMounted(async () => {
     margin-top: 16px;
     font-size: 13px;
     color: #92400e;
+  }
+
+  /* Képgaléria */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .photo-grid-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+  }
+  .photo-grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .photo-grid-item:hover .photo-delete-btn {
+    opacity: 1;
   }
 
 </style>

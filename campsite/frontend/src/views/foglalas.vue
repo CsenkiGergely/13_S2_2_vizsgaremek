@@ -59,7 +59,7 @@ const fetchCamping = async () => {
 const images = computed(() => {
   if (!camping.value) return []
   if (camping.value.photos && camping.value.photos.length > 0) {
-    return camping.value.photos.map(p => p.photo_url)
+    return camping.value.photos.map(p => 'http://localhost:8000' + p.photo_url)
   }
   return ['https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800']
 })
@@ -237,32 +237,23 @@ const handleBooking = async () => {
     return
   }
 
-  try {
-    bookingLoading.value = true
-    const response = await api.post('/bookings', {
-      camping_id: camping.value.id,
-      camping_spot_id: selectedSpot.value.spot_id,
-      arrival_date: bookingForm.value.checkIn,
-      departure_date: bookingForm.value.checkOut,
-      guests: bookingForm.value.guests
-    })
-    const booking = response.data.booking || response.data
-    router.push({
-      path: '/fizetes',
-      query: {
-        bookingId: booking.id,
-        total: totalPrice.value,
-        nights: nightCount.value,
-        campingName: camping.value.camping_name,
-        spotName: selectedSpot.value.name
-      }
-    })
-  } catch (err) {
-    console.error('Foglalási hiba:', err)
-    bookingError.value = err.response?.data?.message || 'Nem sikerült a foglalás. Próbáld újra!'
-  } finally {
-    bookingLoading.value = false
-  }
+  // Foglalás adatai átadása a fizetési oldalnak (a foglalás csak fizetés után jön létre)
+  bookingLoading.value = true
+  router.push({
+    path: '/fizetes',
+    query: {
+      campingId: camping.value.id,
+      campingSpotId: selectedSpot.value.spot_id,
+      arrivalDate: bookingForm.value.checkIn,
+      departureDate: bookingForm.value.checkOut,
+      guests: bookingForm.value.guests,
+      total: totalPrice.value,
+      nights: nightCount.value,
+      campingName: camping.value.camping_name,
+      spotName: selectedSpot.value.name
+    }
+  })
+  bookingLoading.value = false
 }
 
 // Térkép inicializálás

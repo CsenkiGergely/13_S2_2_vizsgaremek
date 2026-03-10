@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import api from '../api/axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -9,11 +10,12 @@ const paymentSuccess = ref(false)
 const paymentLoading = ref(false)
 
 // Foglalási adatok a query-ből
-const bookingId = computed(() => route.query.bookingId || null)
+const bookingId = ref(null)
 const totalAmount = computed(() => Number(route.query.total) || 0)
 const nightsCount = computed(() => Number(route.query.nights) || 0)
 const campingName = computed(() => route.query.campingName || '')
 const spotName = computed(() => route.query.spotName || '')
+const paymentError = ref(null)
 
 const paymentForm = ref({
   cardNumber: '',
@@ -182,7 +184,7 @@ const handleCardTypeChange = () => {
   errors.value = {}
 }
 
-const handlePayment = () => {
+const handlePayment = async () => {
   errors.value = {}
   
   const cardNumberError = validateCardNumber(paymentForm.value.cardNumber)
@@ -213,12 +215,26 @@ const handlePayment = () => {
     return
   }
   
-  // Nincs valódi fizetés — ha az adatok helyesek, a foglalás megerősítve
+  // Fizetés szimulálása, majd foglalás létrehozása
   paymentLoading.value = true
-  setTimeout(() => {
-    paymentLoading.value = false
+  paymentError.value = null
+  try {
+    const response = await api.post('/bookings', {
+      camping_id: route.query.campingId,
+      camping_spot_id: route.query.campingSpotId,
+      arrival_date: route.query.arrivalDate,
+      departure_date: route.query.departureDate,
+      guests: Number(route.query.guests)
+    })
+    const booking = response.data.booking || response.data
+    bookingId.value = booking.id
     paymentSuccess.value = true
-  }, 1500)
+  } catch (err) {
+    console.error('Foglalás hiba fizetés után:', err)
+    paymentError.value = err.response?.data?.message || 'Nem sikerült a foglalás létrehozása. Próbáld újra!'
+  } finally {
+    paymentLoading.value = false
+  }
 }
 </script>
 
@@ -435,6 +451,7 @@ const handlePayment = () => {
             </div>
 
             <div class="submit-col">
+              <p v-if="paymentError" class="error-message" style="margin-bottom: 0.5rem; color: #d32f2f;">{{ paymentError }}</p>
               <button class="btn" type="submit" :disabled="paymentLoading">
                 {{ paymentLoading ? 'Feldolgozás...' : '✅ Foglalás megerősítése' }}
               </button>

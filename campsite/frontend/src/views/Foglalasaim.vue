@@ -198,7 +198,7 @@ onMounted(() => {
           <div class="booking-image">
             <img
               v-if="booking.camping?.photos?.length > 0"
-              :src="booking.camping.photos[0].photo_url"
+              :src="'http://localhost:8000' + booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
               @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400'"
             />
@@ -300,7 +300,7 @@ onMounted(() => {
           <div class="booking-image">
             <img
               v-if="booking.camping?.photos?.length > 0"
-              :src="booking.camping.photos[0].photo_url"
+              :src="'http://localhost:8000' + booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
               @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400'"
             />

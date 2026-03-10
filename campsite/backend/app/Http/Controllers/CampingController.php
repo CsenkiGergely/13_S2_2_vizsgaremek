@@ -24,22 +24,22 @@ class CampingController extends Controller
 
     /**
      * GET /api/campings/top
-     * Legjobb értékelésű kempingek (top 10), rating szerint rendezve.
+     * Legjobb értékelésű kempingek (top 10), egyetlen optimalizált lekérdezéssel.
      */
     public function getTopCampings()
     {
-        $campings = Camping::with(['photos', 'location'])->get();
-
-        $result = $campings->map(function ($camp) {
-            $camp->average_rating = $camp->getAverageRating();
-            $camp->reviews_count  = $camp->getReviewsCount();
-            $camp->min_price      = $camp->min_price;
-            return $camp;
-        })
-        ->filter(fn($c) => $c->average_rating !== null)
-        ->sortByDesc('average_rating')
-        ->take(10)
-        ->values();
+        $result = Camping::with(['photos', 'location'])
+            ->withAvg('comments', 'rating')
+            ->withCount('comments as reviews_count')
+            ->withMin('spots', 'price_per_night')
+            ->whereHas('comments') // csak értékelt kempingek
+            ->orderByDesc('comments_avg_rating')
+            ->limit(10)
+            ->get()
+            ->each(function ($camp) {
+                $camp->average_rating = round((float) $camp->comments_avg_rating, 1);
+                $camp->min_price = $camp->spots_min_price_per_night;
+            });
 
         return response()->json($result);
     }

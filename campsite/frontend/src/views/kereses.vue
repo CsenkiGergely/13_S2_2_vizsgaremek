@@ -201,7 +201,8 @@ const fetchCampsites = async (isNewSearch = true) => {
 // Kép URL kinyerése
 const getFirstPhoto = (camping) => {
   if (camping.photos && camping.photos.length > 0) {
-    return camping.photos[0].photo_url || camping.photos[0].url || camping.photos[0]
+    const url = camping.photos[0].photo_url || camping.photos[0].url || camping.photos[0]
+    return url.startsWith('http') ? url : 'http://localhost:8000' + url
   }
   if (camping.image) return camping.image
   return 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'
