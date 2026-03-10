@@ -316,8 +316,16 @@ const features = [
         </template>
       </Carousel>
     </div>
-    <div v-else class="carousel-placeholder">
-      <p>Kempingek betöltése...</p>
+    <div v-else class="carousel-skeleton-wrap">
+      <div class="carousel-skeleton-card" v-for="n in 3" :key="n">
+        <div class="skel skel-img"></div>
+        <div class="skel-overlay-fake">
+          <div class="skel skel-badge"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-sub"></div>
+          <div class="skel skel-btn"></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -384,8 +392,16 @@ const features = [
         </div>
       </router-link>
     </div>
-    <div v-else class="featured-placeholder">
-      <img src="/img/night-1189929_1920.jpg" alt="Kemping" />
+    <div v-else class="featured-skeleton">
+      <div class="skel skel-featured-img">
+        <div class="featured-skel-overlay-fake">
+          <div class="skel skel-feat-badge"></div>
+          <div class="skel skel-feat-title"></div>
+          <div class="skel skel-feat-loc"></div>
+          <div class="skel skel-feat-price"></div>
+          <div class="skel skel-feat-btn"></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -672,22 +688,49 @@ const features = [
   width: fit-content;
 }
 .featured-link:hover .featured-cta { background: var(--cta); }
-.featured-placeholder {
+/* ===== SKELETON SHIMMER ===== */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skel {
+  background: linear-gradient(90deg, #e8ede5 25%, #f5f8f3 50%, #e8ede5 75%);
+  background-size: 1200px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+
+/* ===== FEATURED SKELETON ===== */
+.featured-skeleton {
   max-width: var(--max-w);
   margin: 0 auto;
-  border-radius: var(--radius);
-  overflow: hidden;
-  height: 320px;
 }
-.featured-placeholder img {
+.skel-featured-img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: 320px;
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
 }
+.featured-skel-overlay-fake {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.2) 0%, transparent 100%);
+}
+.skel-feat-badge  { width: 100px; height: 16px; border-radius: 6px; }
+.skel-feat-title  { width: 55%;   height: 28px; border-radius: 6px; }
+.skel-feat-loc    { width: 35%;   height: 14px; border-radius: 6px; }
+.skel-feat-price  { width: 28%;   height: 14px; border-radius: 6px; }
+.skel-feat-btn    { width: 160px; height: 36px; border-radius: 8px; margin-top: 4px; }
 
 @media (min-width: 768px) {
   .featured-img { height: 400px; }
-  .featured-placeholder { height: 400px; }
+  .skel-featured-img { height: 400px; }
+  .featured-skeleton .skel-feat-title { width: 40%; height: 32px; }
 }
 
 /* ===== CAROUSEL ===== */
@@ -775,16 +818,49 @@ const features = [
 }
 .card-link:hover .card-btn { background: var(--cta); }
 
-.carousel-placeholder {
-  height: 360px;
+.carousel-skeleton-wrap {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f3f4f6;
-  border-radius: var(--radius);
+  gap: 16px;
   max-width: var(--max-w);
   margin: 0 auto;
-  color: #9ca3af;
+  overflow: hidden;
+}
+.carousel-skeleton-card {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+}
+.skel-img {
+  width: 100%;
+  height: 360px;
+  border-radius: var(--radius);
+}
+.skel-overlay-fake {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 100%);
+}
+.skel-badge  { width: 80px;  height: 14px; border-radius: 6px; }
+.skel-title  { width: 65%;   height: 16px; border-radius: 6px; }
+.skel-sub    { width: 45%;   height: 12px; border-radius: 6px; }
+.skel-btn    { width: 90px;  height: 28px; border-radius: 6px; margin-top: 4px; }
+
+/* Hide 2nd and 3rd card on mobile */
+.carousel-skeleton-card:nth-child(2),
+.carousel-skeleton-card:nth-child(3) {
+  display: none;
+}
+@media (min-width: 640px) {
+  .carousel-skeleton-card:nth-child(2) { display: block; }
+}
+@media (min-width: 1024px) {
+  .carousel-skeleton-card:nth-child(3) { display: block; }
 }
 
 /* Carousel stílusok */
@@ -934,7 +1010,8 @@ const features = [
   .hero-sub { font-size: 0.92rem; margin-bottom: 1.25rem; }
   .section { padding: 2rem 1rem; }
   .featured-img { height: 260px; }
-  .featured-placeholder { height: 260px; }
+  .skel-featured-img { height: 260px; }
+  .skel-img { height: 300px; }
   .featured-overlay { padding: 1rem 1.25rem; }
   .featured-overlay h3 { font-size: 1.15rem; }
   .card { height: 300px; }
