@@ -13,11 +13,14 @@ Ez a repository a vizsgaremeket és dokumentációját tartalmazza.
 
 ## Összegyűjtött TODO-k a projekt hiányosságainak javítására:
 
+- public api timeout, info leak fix
+- képfeltöltés fix - dashboard main kép kijelölés 
+- foglalás anomália 
+- Csillag rendszer (értékelő) rögzítése, hibák javítása
+- Saját profilon lévő funkciók integrálása 
+- Home oldalon a "Népszerű régiók" és "Kiemelt kempingünk" szekciók megfelelő kitöltése ✓ nem teljes
+- Footer telefonos nézet UI fixálása ✓
+- QR kód generálása belépéshez ✓
+- Térkép integrálása ✓
 - Jelszó erősség tesztelő backendbe való átvitele ✓
 - UI hibák javítása a kereső oldalon lévő szűrőn ✓
-- Csillag rendszer (értékelő) rögzítése, hibák javítása 
-- Home oldalon a "Népszerű régiók" és "Kiemelt kempingünk" szekciók megfelelő kitöltése 
-- Footer telefonos nézet UI fixálása 
-- QR kód generálása belépéshez 
-- Saját profilon lévő funkciók integrálása 
-- Térkép integrálása 
