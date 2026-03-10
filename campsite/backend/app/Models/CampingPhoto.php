@@ -12,15 +12,9 @@ class CampingPhoto extends Model
         'camping_id',
         'photo_url',
         'caption',
-        'uploaded_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'uploaded_at' => 'date',
-        ];
-    }
+
 
     // Kapcsolatok
     public function camping()
