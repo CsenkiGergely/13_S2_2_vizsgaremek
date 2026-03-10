@@ -45,8 +45,18 @@ const register = async (userData) => {
     
     return { success: true, user: userData2 }
   } catch (err) {
-    // Hibák egyszerűsített összegyűjtése a UI számára
-    error.value = err.response?.data?.message || err.response?.data?.errors || 'Regisztrációs hiba történt.'
+    // 422 validációs hibák kezelése
+    if (err.response?.status === 422) {
+      const errors = err.response?.data?.errors
+      if (errors && Object.keys(errors).length > 0) {
+        // Az összes hibaüzenetet összegyűjtjük és soronként jelenítjük meg
+        error.value = Object.values(errors).flat().join('\n')
+      } else {
+        error.value = err.response?.data?.message || 'Hibás adatok.'
+      }
+    } else {
+      error.value = err.response?.data?.message || 'Regisztrációs hiba történt.'
+    }
     return { success: false, error: error.value }
   } finally {
     loading.value = false
@@ -228,8 +238,17 @@ const resetPassword = async (data) => {
       message: response.data.message || 'Jelszó sikeresen megváltoztatva.' 
     }
   } catch (err) {
-    // Kezeljük a lehetséges hibaválaszokat: általános üzenet vagy mezőspecifikus hibák
-    error.value = err.response?.data?.message || err.response?.data?.errors?.email?.[0] || 'Hiba történt. Próbáld újra később.'
+    // 422 validációs hibák kezelése
+    if (err.response?.status === 422) {
+      const errors = err.response?.data?.errors
+      if (errors && Object.keys(errors).length > 0) {
+        error.value = Object.values(errors).flat().join('\n')
+      } else {
+        error.value = err.response?.data?.message || 'Hibás adatok.'
+      }
+    } else {
+      error.value = err.response?.data?.message || 'Hiba történt. Próbáld újra később.'
+    }
     return { success: false, error: error.value }
   } finally {
     loading.value = false
@@ -237,7 +256,8 @@ const resetPassword = async (data) => {
 }
 
 
-// Jelszó erősség számítása a megadott jelszó alapján
+// Jelszó erősség számítása – csak vizuális visszajelzéshez a frontenden
+// A tényleges validáció a backend AuthController-ben történik (PasswordRule)
 const passwordStrength = (password) => {
   if (!password) return { level: 0, text: '', color: '' }
 
