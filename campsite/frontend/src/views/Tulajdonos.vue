@@ -178,10 +178,10 @@ function recalculateRevenueData() {
   previousMonthlyRevenueValue.value = previousMonthlyRevenue
 
   // Bevételek típusonként
-  revenueByType.value = calculateRevenueByType(bookingList)
+  revenueByType.value = calculateRevenueByType(filtered)
 
   // Havi trend kiszámolása az utolsó 6 hónapra
-  calculateMonthlyTrend(bookingList)
+  calculateMonthlyTrend(filtered)
 }
 
 // Bevétel típusok szerint
@@ -191,11 +191,6 @@ const calculateRevenueByType = (bookingsData) => {
   const typeMap = {}
   
   bookingsData.forEach(booking => {
-    // Kemping szűrő
-    if (revenueFilterCampingId.value) {
-      if (Number(cId) !== Number(revenueFilterCampingId.value)) return
-    }
-
     const type = booking.spot
       || booking.camping_spot?.type
       || booking.campingSpot?.type
@@ -264,7 +259,7 @@ const getBookingPrice = (booking) => {
 }
 
 const formatBookingDate = (dateValue) => {
-  return dateValue ? dayjs(dateValue).format('YYYY. MM D.') : '-'
+  return dateValue ? dayjs(dateValue).format('YYYY. MM. DD.') : '-'
 }
 
 const openLoginModal = () => {
@@ -302,13 +297,6 @@ function calculateMonthlyTrend(bookingList) {
     const dateStr = b.arrival_date || b.checkIn || b.arrivalDate || b.created_at
     if (!dateStr) return
     const d = dayjs(dateStr)
-
-    // Kemping szűrő a bevételek tabhoz
-    if (revenueFilterCampingId.value) {
-      const cId = b.camping_id || b.campingId || b.camping?.id
-      if (Number(cId) !== Number(revenueFilterCampingId.value)) return
-    }
-
     const entry = months.find(m => m.month === d.month() && m.year === d.year())
     if (entry) {
       entry.revenue += calcBookingPrice(b)
@@ -488,7 +476,12 @@ async function handleToggleTagFromModal(campingId, tag, existingTags) {
   if (exists) {
     const found = existingTags.find(t => (t.tag ?? t) === tag)
     if (found && found.id) {
-      await handleDeleteTag(campingId, found.id)
+      try {
+        await deleteCampingTag(campingId, found.id)
+        await loadOverviewForCamping(overviewSelectedCampingId.value)
+      } catch (err) {
+        console.error('Tag törlés hiba:', err)
+      }
     }
   } else {
     try {
@@ -681,7 +674,7 @@ async function handleGenerateToken(gateId) {
 
 async function handleRevokeToken(gateId) {
   if (!selectedCampingId.value) return
-  if (!confirm('Biztosan visszavonod a tokent? Az szkenner nem fog működni ezután.')) return
+  if (!confirm('Biztosan visszavonod a tokent? A szkenner nem fog működni ezután.')) return
   try {
     await revokeToken(selectedCampingId.value, gateId)
   } catch (err) {
@@ -748,7 +741,7 @@ const availableTags = [
   'Árnyékos parcellák',
   'Hulladékgyűjtő pont',
 ]
-const pendingTags = ref([])   // helyi lista, még nem mentve az API-ra
+const pendingTags = ref([]) // helyi lista, még nem mentve az API-ra
 
 function toggleTag(tag) {
   if (pendingTags.value.includes(tag)) {
@@ -1082,14 +1075,21 @@ onMounted(async () => {
     pageLoading.value = false
     return
   }
-  await fetchMyCampings()
-  // Ha van kemping, automatikusan kiválasztjuk az elsőt
-  if (myCampings.value.length > 0) {
-    selectedCampingId.value = myCampings.value[0].id
-    overviewSelectedCampingId.value = myCampings.value[0].id
+  try {
+    await fetchMyCampings()
+    // Ha van kemping, automatikusan kiválasztjuk az elsőt
+    if (myCampings.value.length > 0) {
+      selectedCampingId.value = myCampings.value[0].id
+      overviewSelectedCampingId.value = myCampings.value[0].id
+    }
+    await loadData()
+  } catch (err) {
+    if (err.response?.status === 401) {
+      isAuthenticated.value = false
+    }
+  } finally {
+    pageLoading.value = false
   }
-  loadData()
-  pageLoading.value = false
 })
 
 </script>
@@ -1264,7 +1264,6 @@ onMounted(async () => {
                 <div class="overview-company-row" v-if="item.camping.billing_address"><span>Számlázási cím</span><strong>{{ item.camping.billing_address }}</strong></div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -1633,7 +1632,6 @@ onMounted(async () => {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <span v-if="gate.opening_time && gate.closing_time">{{ gate.opening_time }} – {{ gate.closing_time }}</span>
               <span v-else>Nincs nyitvatartás megadva</span>
-              <span>| Kemping ID: {{ selectedCampingId }}</span>
             </div>
 
             <div class="gate-divider"></div>

@@ -78,7 +78,7 @@ const goToHome = () => {
       </div>
 
       <!-- hiba -->
-      <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 text-sm">
+      <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 text-sm whitespace-pre-line">
         {{ formError }}
       </div>
 

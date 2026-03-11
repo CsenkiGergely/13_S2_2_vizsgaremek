@@ -131,10 +131,6 @@ const handleLogin = async () => {
 // Regisztráció kezelése jelszóerősség és egyezés ellenőrzéssel
 const handleRegister = async () => {
   formError.value = null
-  if (passwordStrength.value.level < 2) {
-    formError.value = 'A jelszónak legalább közepes erősségűnek kell lennie!'
-    return
-  }
 
   if (registerForm.value.password !== registerForm.value.password_confirmation) {
     formError.value = 'A jelszavak nem egyeznek!'
@@ -221,8 +217,8 @@ const handlePhoneLogin = async () => {
               <div v-if="successMessage" class="mb-4 p-3 rounded-lg bg-green-500/20 border border-green-500/50 text-green-400 text-sm">
                 {{ successMessage }}
               </div>
-              <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 text-sm">
-                {{ typeof formError === 'object' ? Object.values(formError).flat().join(', ') : formError }}
+              <div v-if="formError" class="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 text-sm whitespace-pre-line">
+                {{ typeof formError === 'object' ? Object.values(formError).flat().join('\n') : formError }}
               </div>
 
               <!-- login form -->
