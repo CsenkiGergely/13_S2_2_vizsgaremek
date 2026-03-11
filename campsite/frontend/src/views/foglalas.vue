@@ -669,6 +669,10 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+  .container {
+    max-width: 1140px;
+  }
+
   .gallery-btn {
     background: rgba(255,255,255,0.8);
     border: none;

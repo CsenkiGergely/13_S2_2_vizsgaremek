@@ -31,46 +31,7 @@ const paymentForm = ref({
 const errors = ref({})
 
 // Validációs függvények
-const validateCardNumber = (cardNumber) => {
-  const cleaned = cardNumber.replace(/\s/g, '')
-  
-  // Kártyatípus szerint validálás
-  if (activeTab.value === 'visa') {
-    if (!/^4\d{15}$/.test(cleaned)) {
-      return 'Visa kártya 16 számjegyből áll és 4-gyel kezdődik'
-    }
-  } else if (activeTab.value === 'mastercard') {
-    if (!/^5[1-5]\d{14}$/.test(cleaned)) {
-      return 'Mastercard 16 számjegyből áll és 51-55 között kezdődik'
-    }
-  } else if (activeTab.value === 'amex') {
-    if (!/^3[47]\d{13}$/.test(cleaned)) {
-      return 'American Express 15 számjegyből áll és 34 vagy 37-tel kezdődik'
-    }
-  }
-  
-  // Luhn algoritmus
-  let sum = 0
-  let isEven = false
-  
-  for (let i = cleaned.length - 1; i >= 0; i--) {
-    let digit = parseInt(cleaned[i])
-    
-    if (isEven) {
-      digit *= 2
-      if (digit > 9) digit -= 9
-    }
-    
-    sum += digit
-    isEven = !isEven
-  }
-  
-  if (sum % 10 !== 0) {
-    return 'Érvénytelen kártyaszám'
-  }
-  
-  return null
-}
+
 
 const validateExpiryDate = (expiry) => {
   if (!/^\d{2}\/\d{2}$/.test(expiry)) {
