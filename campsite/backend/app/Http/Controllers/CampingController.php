@@ -366,7 +366,11 @@ class CampingController extends Controller
         }
 
         if (!$camping->geojson) {
-            return response()->json(['message' => 'Ehhez a kempinghez nincs térkép feltöltve'], 404);
+            return response()->json([
+                'camping_id' => $camping->id,
+                'camping_name' => $camping->name,
+                'geojson' => null
+            ], 200);
         }
 
         return response()->json([

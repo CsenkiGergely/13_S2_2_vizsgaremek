@@ -326,8 +326,10 @@ const getCampingGeojson = async (campingId) => {
   error.value = null
   try {
     const response = await api.get(`/campings/${campingId}/geojson`)
-    campingGeojson.value = response.data.data || response.data
-    return campingGeojson.value
+    // Ha a backend null geojson-t küld vissza (nincs feltöltve), azt kezeljük
+    const geojson = response.data?.geojson ?? response.data?.data ?? null
+    campingGeojson.value = geojson
+    return geojson
   } catch (err) {
     if (err.response?.status === 404) {
       // Nincs térkép feltöltve ehhez a kempinghez – normál állapot

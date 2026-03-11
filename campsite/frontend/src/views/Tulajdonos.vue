@@ -172,10 +172,10 @@ function recalculateRevenueData() {
   previousMonthlyRevenueValue.value = previousMonthlyRevenue
 
   // Bevételek típusonként
-  revenueByType.value = calculateRevenueByType(bookingList)
+  revenueByType.value = calculateRevenueByType(filtered)
 
   // Havi trend kiszámolása az utolsó 6 hónapra
-  calculateMonthlyTrend(bookingList)
+  calculateMonthlyTrend(filtered)
 }
 
 // Bevétel típusok szerint
@@ -185,12 +185,6 @@ const calculateRevenueByType = (bookingsData) => {
   const typeMap = {}
   
   bookingsData.forEach(booking => {
-    // Kemping szűrő
-    if (revenueFilterCampingId.value) {
-      const cId = booking.camping_id || booking.campingId || booking.camping?.id
-      if (Number(cId) !== Number(revenueFilterCampingId.value)) return
-    }
-
     const type = booking.spot
       || booking.camping_spot?.type
       || booking.campingSpot?.type
@@ -259,7 +253,7 @@ const getBookingPrice = (booking) => {
 }
 
 const formatBookingDate = (dateValue) => {
-  return dateValue ? dayjs(dateValue).format('YYYY. MM D.') : '-'
+  return dateValue ? dayjs(dateValue).format('YYYY. MM. DD.') : '-'
 }
 
 const openLoginModal = () => {
@@ -297,13 +291,6 @@ function calculateMonthlyTrend(bookingList) {
     const dateStr = b.arrival_date || b.checkIn || b.arrivalDate || b.created_at
     if (!dateStr) return
     const d = dayjs(dateStr)
-
-    // Kemping szűrő a bevételek tabhoz
-    if (revenueFilterCampingId.value) {
-      const cId = b.camping_id || b.campingId || b.camping?.id
-      if (Number(cId) !== Number(revenueFilterCampingId.value)) return
-    }
-
     const entry = months.find(m => m.month === d.month() && m.year === d.year())
     if (entry) {
       entry.revenue += calcBookingPrice(b)
@@ -483,7 +470,12 @@ async function handleToggleTagFromModal(campingId, tag, existingTags) {
   if (exists) {
     const found = existingTags.find(t => (t.tag ?? t) === tag)
     if (found && found.id) {
-      await handleDeleteTag(campingId, found.id)
+      try {
+        await deleteCampingTag(campingId, found.id)
+        await loadOverviewForCamping(overviewSelectedCampingId.value)
+      } catch (err) {
+        console.error('Tag törlés hiba:', err)
+      }
     }
   } else {
     try {
@@ -1046,7 +1038,7 @@ onMounted(async () => {
       selectedCampingId.value = myCampings.value[0].id
       overviewSelectedCampingId.value = myCampings.value[0].id
     }
-    loadData()
+    await loadData()
   } catch (err) {
     if (err.response?.status === 401) {
       isAuthenticated.value = false
@@ -1208,7 +1200,6 @@ onMounted(async () => {
                 <div class="overview-company-row" v-if="item.camping.billing_address"><span>Számlázási cím</span><strong>{{ item.camping.billing_address }}</strong></div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -3799,6 +3790,30 @@ onMounted(async () => {
   .geojson-empty p {
     margin: 0;
     font-size: 14px;
+  }
+
+  .btn-delete-spot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: white;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .btn-delete-spot:hover:not(:disabled) {
+    background: #fef2f2;
+  }
+
+  .btn-delete-spot:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
 </style>
