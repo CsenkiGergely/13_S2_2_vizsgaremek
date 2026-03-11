@@ -7,6 +7,8 @@ import { Carousel, Slide, Navigation, Pagination } from 'vue3-carousel'
 
 // --- Top kempingek ---
 const topCampings = ref([])
+const topCampingsLoading = ref(true)   // loading skeleton vezérlő
+const statsLoading = ref(true)          // statisztikák skeleton
 
 const carouselConfig = {
   height: 420,
@@ -23,6 +25,7 @@ const carouselConfig = {
 }
 
 const fetchTopCampings = async () => {
+  topCampingsLoading.value = true
   try {
     const res = await api.get('/campings/top')
     const data = Array.isArray(res.data) ? res.data : (res.data?.data || [])
@@ -32,11 +35,13 @@ const fetchTopCampings = async () => {
       rating: parseFloat(c.average_rating) || 0,
       reviews: c.reviews_count || 0,
       location: c.location?.city || (typeof c.location === 'string' ? c.location : ''),
-      image: c.photos?.[0]?.photo_url || c.photos?.[0]?.url || c.image || 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800',
+      image: c.photos?.[0]?.photo_url ? ('http://localhost:8000' + c.photos[0].photo_url) : (c.photos?.[0]?.url || c.image || 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'),
       price: c.min_price || 0,
     }))
   } catch (e) {
     console.error('Top kempingek betöltési hiba:', e)
+  } finally {
+    topCampingsLoading.value = false
   }
 }
 
@@ -151,6 +156,7 @@ const campingCount = ref(0)
 const averageRating = ref(0)
 
 const fetchStats = async () => {
+  statsLoading.value = true
   try {
     // Lekérjük az összes kemping számát (per_page=1, csak a total kell)
     const res = await api.get('/campings', { params: { per_page: 1 } })
@@ -166,6 +172,8 @@ const fetchStats = async () => {
     }
   } catch (e) {
     console.error('Statisztika betöltési hiba:', e)
+  } finally {
+    statsLoading.value = false
   }
 }
 
@@ -285,7 +293,8 @@ const features = [
       <p class="section-sub">A legjobb értékelésű kempingek vendégeink szerint</p>
     </div>
 
-    <div v-if="topCampings.length > 0" class="carousel-wrap">
+    <!-- Carousel: betöltés után mutatjuk, különben skeleton -->
+    <div v-if="!topCampingsLoading && topCampings.length > 0" class="carousel-wrap">
       <Carousel v-bind="carouselConfig">
         <Slide v-for="camping in topCampings" :key="camping.id">
           <router-link :to="'/foglalas/' + camping.id" class="card-link">
@@ -316,6 +325,7 @@ const features = [
         </template>
       </Carousel>
     </div>
+    <!-- Skeleton – betöltés közben -->
     <div v-else class="carousel-skeleton-wrap">
       <div class="carousel-skeleton-card" v-for="n in 3" :key="n">
         <div class="skel skel-img"></div>
@@ -337,8 +347,17 @@ const features = [
       <p class="section-sub">Modern, gyors és emberi. Pont annyi segítséget ad, amennyi kell a jó döntéshez.</p>
     </div>
 
-    <!-- Statisztikák -->
-    <div class="stats-row">
+    <!-- Statisztikák – skeleton vagy valós adat -->
+    <div v-if="statsLoading" class="stats-row">
+      <div v-for="n in 3" :key="n" class="stat-card">
+        <div class="skel stat-icon-skel"></div>
+        <div style="flex:1;">
+          <div class="skel" style="width:60px;height:22px;margin-bottom:6px;"></div>
+          <div class="skel" style="width:110px;height:14px;"></div>
+        </div>
+      </div>
+    </div>
+    <div v-else class="stats-row">
       <div v-for="(s, i) in stats" :key="i" class="stat-card">
         <span class="stat-icon">{{ s.icon }}</span>
         <div>
@@ -368,7 +387,8 @@ const features = [
       <p class="section-sub">Vendégeink abszolút kedvence</p>
     </div>
 
-    <div v-if="topCampings.length > 0" class="featured">
+    <!-- Kiemelt kemping: betöltés után mutatjuk -->
+    <div v-if="!topCampingsLoading && topCampings.length > 0" class="featured">
       <router-link :to="'/foglalas/' + topCampings[0].id" class="featured-link">
         <div class="featured-img">
           <img
@@ -392,6 +412,7 @@ const features = [
         </div>
       </router-link>
     </div>
+    <!-- Skeleton – betöltés közben -->
     <div v-else class="featured-skeleton">
       <div class="skel skel-featured-img">
         <div class="featured-skel-overlay-fake">
@@ -955,6 +976,12 @@ const features = [
 .stat-label {
   font-size: 0.82rem;
   color: #6b7280;
+}
+.stat-icon-skel {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 @media (min-width: 640px) {

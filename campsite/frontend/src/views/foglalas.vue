@@ -59,7 +59,7 @@ const fetchCamping = async () => {
 const images = computed(() => {
   if (!camping.value) return []
   if (camping.value.photos && camping.value.photos.length > 0) {
-    return camping.value.photos.map(p => p.photo_url)
+    return camping.value.photos.map(p => 'http://localhost:8000' + p.photo_url)
   }
   return ['https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800']
 })
@@ -237,32 +237,23 @@ const handleBooking = async () => {
     return
   }
 
-  try {
-    bookingLoading.value = true
-    const response = await api.post('/bookings', {
-      camping_id: camping.value.id,
-      camping_spot_id: selectedSpot.value.spot_id,
-      arrival_date: bookingForm.value.checkIn,
-      departure_date: bookingForm.value.checkOut,
-      guests: bookingForm.value.guests
-    })
-    const booking = response.data.booking || response.data
-    router.push({
-      path: '/fizetes',
-      query: {
-        bookingId: booking.id,
-        total: totalPrice.value,
-        nights: nightCount.value,
-        campingName: camping.value.camping_name,
-        spotName: selectedSpot.value.name
-      }
-    })
-  } catch (err) {
-    console.error('Foglalási hiba:', err)
-    bookingError.value = err.response?.data?.message || 'Nem sikerült a foglalás. Próbáld újra!'
-  } finally {
-    bookingLoading.value = false
-  }
+  // Foglalás adatai átadása a fizetési oldalnak (a foglalás csak fizetés után jön létre)
+  bookingLoading.value = true
+  router.push({
+    path: '/fizetes',
+    query: {
+      campingId: camping.value.id,
+      campingSpotId: selectedSpot.value.spot_id,
+      arrivalDate: bookingForm.value.checkIn,
+      departureDate: bookingForm.value.checkOut,
+      guests: bookingForm.value.guests,
+      total: totalPrice.value,
+      nights: nightCount.value,
+      campingName: camping.value.camping_name,
+      spotName: selectedSpot.value.name
+    }
+  })
+  bookingLoading.value = false
 }
 
 // Térkép inicializálás
@@ -281,71 +272,111 @@ const initMap = async () => {
     attribution: '© OpenStreetMap', maxZoom: 20
   }).addTo(map)
 
-  // GeoJSON renderelés — a kempinghez hozzárendelt teljes FeatureCollection
   const geojsonData = camping.value.geojson
-  if (geojsonData) {
-    try {
-      const parsed = typeof geojsonData === 'string' ? JSON.parse(geojsonData) : geojsonData
-      const geojsonLayer = L.geoJSON(parsed, {
-        style: (feature) => {
-      // Feature properties-ből stílus, ha van – különben alapértelmezett
-          const props = feature.properties || {}
+  if (!geojsonData) return
+
+  try {
+    const parsed = typeof geojsonData === 'string' ? JSON.parse(geojsonData) : geojsonData
+    const spotLayers = new Map() // spot_id -> { layer, isPoint }
+    const findSpot = (spotId) => spots.value.find(s => s.spot_id === spotId)
+
+    const geojsonLayer = L.geoJSON(parsed, {
+      style: (feature) => {
+        const props = feature.properties || {}
+        // Kempinghely (Polygon) — szín elérhetőség alapján
+        if (props.spot_id) {
+          const spot = findSpot(props.spot_id)
+          const available = spot?.is_available !== false
           return {
-            color: props.stroke || '#16a34a',
-            weight: props['stroke-width'] || 2,
-            opacity: props['stroke-opacity'] || 1,
-            fillColor: props.fill || '#bbf7d0',
-            fillOpacity: props['fill-opacity'] || 0.2
-          }
-        },
-        pointToLayer: (feature, latlng) => {
-          return L.circleMarker(latlng, {
-            radius: 8,
-            fillColor: feature.properties?.['marker-color'] || '#16a34a',
-            color: '#fff',
+            color: available ? '#22c55e' : '#ef4444',
             weight: 2,
-            fillOpacity: 0.8
-          })
-        },
-        onEachFeature: (feature, layer) => {
-          if (feature.properties) {
-            const props = feature.properties
-            const parts = []
-            if (props.name) parts.push(`<b>${props.name}</b>`)
-            if (props.description) parts.push(props.description)
-            if (parts.length > 0) {
-              layer.bindPopup(parts.join('<br>'))
-            }
+            fillColor: available ? '#bbf7d0' : '#fecaca',
+            fillOpacity: 0.4
           }
         }
-      }).addTo(map)
-
-      // Térkép igazítása a GeoJSON kiterjedéséhez
-      const bounds = geojsonLayer.getBounds()
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [30, 30] })
+        // Határ (LineString) és egyéb dekoráció
+        return {
+          color: props.stroke || '#16a34a',
+          weight: props['stroke-width'] || 2,
+          opacity: props['stroke-opacity'] || 1,
+          fillColor: props.fill || '#bbf7d0',
+          fillOpacity: props['fill-opacity'] || 0.2
+        }
+      },
+      pointToLayer: (feature, latlng) => {
+        const props = feature.properties || {}
+        // Kempinghely pont
+        if (props.spot_id) {
+          const spot = findSpot(props.spot_id)
+          const available = spot?.is_available !== false
+          return L.circleMarker(latlng, {
+            radius: 10,
+            fillColor: available ? '#22c55e' : '#ef4444',
+            color: '#fff', weight: 2, fillOpacity: 0.9
+          })
+        }
+        // Tájékoztató pont (recepció, WC stb.) — "i" ikon
+        const markerColor = props['marker-color'] || '#3b82f6'
+        return L.marker(latlng, {
+          icon: L.divIcon({
+            className: 'info-marker',
+            html: `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${markerColor};color:#fff;font-weight:800;font-size:14px;font-style:italic;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)">i</span>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          })
+        })
+      },
+      onEachFeature: (feature, layer) => {
+        const props = feature.properties || {}
+        if (props.spot_id) {
+          // Foglalható hely — kattintható
+          const spot = findSpot(props.spot_id)
+          const isPoint = feature.geometry.type === 'Point'
+          spotLayers.set(props.spot_id, { layer, isPoint })
+          if (spot) {
+            layer.bindTooltip(
+              `${spot.name || 'Hely'} · ${spot.type} · ${spot.capacity} fő · ${spot.price_per_night} Ft/éj`,
+              { direction: 'top', offset: [0, -10] }
+            )
+            layer.on('click', () => {
+              if (!spot.is_available) return
+              selectedSpot.value = spot
+            })
+          }
+        } else if (props.type === 'info' && props.label) {
+          // Tájékoztató jelölő — állandó felirat
+          layer.bindTooltip(props.label, {
+            permanent: true, direction: 'top', offset: [0, -10]
+          })
+        }
       }
-    } catch (e) { console.warn('GeoJSON parse error:', e) }
-  }
-
-  // Spot markerek (ha van row/column pozíciójuk)
-  spots.value.forEach(spot => {
-    if (spot.row == null || spot.column == null) return
-    const spotLat = lat + (spot.row || 0) * 0.0001
-    const spotLng = lng + (spot.column || 0) * 0.0001
-    const color = !spot.is_available ? '#ef4444' : '#22c55e'
-
-    const marker = L.circleMarker([spotLat, spotLng], {
-      radius: 10, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
     }).addTo(map)
 
-    marker.bindTooltip(`${spot.name || 'Hely'} · ${spot.type} · ${spot.price_per_night} Ft/éj`, { direction: 'top', offset: [0, -10] })
+    // Térkép igazítása a GeoJSON kiterjedéséhez
+    const bounds = geojsonLayer.getBounds()
+    if (bounds.isValid()) map.fitBounds(bounds, { padding: [30, 30] })
 
-    marker.on('click', () => {
-      if (!spot.is_available) return
-      selectedSpot.value = spot
+    // Kiválasztott hely kiemelése a térképen
+    watch(selectedSpot, (newSpot, oldSpot) => {
+      if (oldSpot && spotLayers.has(oldSpot.spot_id)) {
+        const { layer, isPoint } = spotLayers.get(oldSpot.spot_id)
+        const available = oldSpot.is_available !== false
+        if (isPoint) {
+          layer.setStyle({ fillColor: available ? '#22c55e' : '#ef4444', color: '#fff', weight: 2, fillOpacity: 0.9 })
+        } else {
+          layer.setStyle({ color: available ? '#22c55e' : '#ef4444', weight: 2, fillColor: available ? '#bbf7d0' : '#fecaca', fillOpacity: 0.4 })
+        }
+      }
+      if (newSpot && spotLayers.has(newSpot.spot_id)) {
+        const { layer, isPoint } = spotLayers.get(newSpot.spot_id)
+        if (isPoint) {
+          layer.setStyle({ fillColor: '#3b82f6', color: '#fff', weight: 2, fillOpacity: 0.9 })
+        } else {
+          layer.setStyle({ color: '#3b82f6', weight: 2, fillColor: '#93c5fd', fillOpacity: 0.6 })
+        }
+      }
     })
-  })
+  } catch (e) { console.warn('GeoJSON parse error:', e) }
 }
 
 // Inicializálás
@@ -685,4 +716,11 @@ onMounted(async () => {
     object-fit: cover;
   }
   
+</style>
+
+<style>
+  /* Leaflet kattintás utáni fekete keret eltávolítása */
+  .leaflet-interactive:focus {
+    outline: none;
+  }
 </style>

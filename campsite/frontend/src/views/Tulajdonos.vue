@@ -19,7 +19,7 @@ const {
   generateToken, revokeToken,
 } = useGate()
 const { dashboard, getDashboard } = useDashboard()
-const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, loading: campingLoading, error: campingError } = useCamping()
+const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, uploadCampingPhoto, deleteCampingPhoto, getCampingPhotoList, loading: campingLoading, error: campingError } = useCamping()
 
 const activeTab = ref('dashboard')
 const monthlyRevenue = ref(0)
@@ -70,6 +70,7 @@ const tagModalCampingId = ref(null)
 const tagModalExisting = ref([])
 
 // Térkép tab
+const showGeojsonGuide = ref(false)
 const mapSelectedCampingId = ref(null)
 const mapGeojsonData = ref(null)
 const mapFileInput = ref(null)
@@ -79,6 +80,11 @@ const mapLoading = ref(false)
 const dashboardLoading = ref(false)
 const pageLoading = ref(true)
 const mapContainerRef = ref(null)
+
+// Képfeltöltés
+const photoUploading = ref(false)
+const photoFileInput = ref(null)
+const newCampingPhotoFiles = ref([])  // Új kemping létrehozásnál kiválasztott fájlok
 const mapCodeOpen = ref(false)
 let leafletMap = null
 let geojsonLayer = null
@@ -525,17 +531,47 @@ async function loadOverviewForCamping(campingId) {
   try {
     const camping = myCampings.value.find(c => c.id === campingId)
     if (!camping) return
-    const [spots, tags] = await Promise.all([
+    const [spots, tags, photos] = await Promise.all([
       getCampingSpotList(campingId).catch(() => []),
       getCampingTagList(campingId).catch(() => []),
+      getCampingPhotoList(campingId).catch(() => []),
     ])
     overviewData.value = [{
       camping,
       spots: Array.isArray(spots) ? spots : [],
       tags: Array.isArray(tags) ? tags : [],
+      photos: Array.isArray(photos) ? photos : [],
     }]
   } finally {
     overviewLoading.value = false
+  }
+}
+
+// Kép feltöltése egy kempinghez (áttekintés fül)
+async function handlePhotoUpload(campingId, event) {
+  const files = event.target.files
+  if (!files || files.length === 0) return
+  photoUploading.value = true
+  try {
+    for (const file of files) {
+      await uploadCampingPhoto(campingId, file)
+    }
+    await loadOverviewForCamping(campingId)
+  } catch (err) {
+    console.error('Képfeltöltés hiba:', err)
+  } finally {
+    photoUploading.value = false
+    if (event.target) event.target.value = ''
+  }
+}
+
+// Kép törlése
+async function handlePhotoDelete(campingId, photoId) {
+  try {
+    await deleteCampingPhoto(campingId, photoId)
+    await loadOverviewForCamping(campingId)
+  } catch (err) {
+    console.error('Kép törlési hiba:', err)
   }
 }
 
@@ -760,6 +796,13 @@ async function handleAddCamping() {
       await Promise.all(pendingTags.value.map(tag => addCampingTag(newId, { tag })))
     }
 
+    // Képek feltöltése az újonnan létrehozott kempinghez
+    if (newId && newCampingPhotoFiles.value.length > 0) {
+      for (const file of newCampingPhotoFiles.value) {
+        await uploadCampingPhoto(newId, file)
+      }
+    }
+
     campingFormSuccess.value = 'Kemping sikeresen létrehozva!'
     newCampingForm.value = {
       camping_name: '', description: '', company_name: '', tax_id: '',
@@ -767,6 +810,7 @@ async function handleAddCamping() {
       latitude: '', longitude: '',
     }
     pendingTags.value = []
+    newCampingPhotoFiles.value = []
     await fetchMyCampings()
   } catch (err) {
     campingFormError.value = err.response?.data?.message || campingError.value || 'Hiba történt a kemping létrehozásakor.'
@@ -1155,13 +1199,33 @@ onMounted(async () => {
               <p v-else class="tag-empty">Nincsenek tagek hozzáadva.</p>
             </div>
 
+            <!-- Képek -->
+            <div class="overview-section">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                <h5 class="overview-section-title" style="margin:0;">Képek</h5>
+                <label class="btn-add-gate" style="font-size:12px; padding:5px 12px; cursor:pointer;">
+                  {{ photoUploading ? '⏳ Feltöltés...' : '+ Kép feltöltése' }}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+                    :disabled="photoUploading"
+                    @change="handlePhotoUpload(item.camping.id, $event)" />
+                </label>
+              </div>
+              <div v-if="item.photos && item.photos.length > 0" class="photo-grid">
+                <div v-for="photo in item.photos" :key="photo.photo_id" class="photo-grid-item">
+                  <img :src="'http://localhost:8000' + photo.photo_url" :alt="'Kemping kép'" @error="$event.target.src = '/img/night-1189929_1920.jpg'" />
+                  <button class="photo-delete-btn" @click="handlePhotoDelete(item.camping.id, photo.photo_id)" title="Kép törlése">✕</button>
+                </div>
+              </div>
+              <p v-else class="tag-empty">Nincsenek képek feltöltve.</p>
+            </div>
+
             <!-- Kemping helyek -->
             <div class="overview-section">
               <h5 class="overview-section-title">Kemping helyek</h5>
               <div v-if="item.spots.length > 0" class="overview-spots-grid">
                 <div v-for="spot in item.spots" :key="spot.id ?? spot.spot_id" class="overview-spot-card">
                   <div class="overview-spot-header">
-                    <span class="overview-spot-name">{{ spot.name }}</span>
+                    <span class="overview-spot-name">{{ spot.name }} <span class="overview-spot-id">#{{ spot.spot_id || spot.id }}</span></span>
                     <div class="overview-spot-actions">
                       <span class="overview-spot-type">{{ spot.type }}</span>
                       <button class="gate-action-btn edit" title="Szerkesztés" @click="openEditSpotModal(item.camping.id, spot)">
@@ -1673,7 +1737,77 @@ onMounted(async () => {
       <div class="new-camping-header">
         <div>
           <h2 class="gates-title">Térkép kezelés</h2>
-          <p class="gates-subtitle">GeoJSON térkép feltöltése a kempinghez</p>
+          <p class="gates-subtitle">GeoJSON térkép feltöltése a kempinghez · <a href="#" class="geojson-guide-link" @click.prevent="showGeojsonGuide = true">📖 Útmutató a GeoJSON készítéshez</a></p>
+        </div>
+      </div>
+
+      <!-- GeoJSON Útmutató Modal -->
+      <div v-if="showGeojsonGuide" class="geojson-guide-overlay" @click.self="showGeojsonGuide = false">
+        <div class="geojson-guide-modal">
+          <div class="geojson-guide-header">
+            <h2>📖 GeoJSON Térkép Útmutató</h2>
+            <button class="geojson-guide-close" @click="showGeojsonGuide = false">&times;</button>
+          </div>
+          <div class="geojson-guide-body">
+            <p>Használd a <a href="https://geojson.io" target="_blank" rel="noopener">geojson.io</a> online szerkesztőt. Ingyenes, nem kell regisztráció.</p>
+
+            <h3>1. lépés – Kemping határ (LineString)</h3>
+            <p>Rajzold körbe a kemping teljes területét egy <strong>vonallal (Draw a polyline)</strong>. Ez adja meg a kemping határvonalát.</p>
+
+            <h3>2. lépés – Kempinghelyek megjelölése</h3>
+            <p>Két módon jelölhetsz kempinghelyet:</p>
+
+            <h4>a) Terület (Polygon)</h4>
+            <p>A <strong>Draw a rectangle / polygon</strong> eszközzel rajzolj egy területet. Használd, ha a hely méretét is meg akarod mutatni (parcella).</p>
+
+            <h4>b) Pont (Point)</h4>
+            <p>A <strong>Draw a marker</strong> eszközzel helyezz el egy pontot. Használd, ha csak a pozíciót jelölöd.</p>
+
+            <p><strong>Mindkét esetben</strong> írd be a properties-be a hely azonosítóját:</p>
+            <pre class="geojson-guide-code">{ "spot_id": 5 }</pre>
+            <p class="geojson-guide-hint">A spot_id értékét a „Helyek" menüpont alatt találod.</p>
+
+            <h3>3. lépés – Tájékoztató pontok (opcionális)</h3>
+            <p>Nem foglalható jelölők (recepció, mosdó, játszótér). A <strong>Draw a marker</strong> eszközzel, properties:</p>
+            <pre class="geojson-guide-code">{ "type": "info", "label": "Recepció" }</pre>
+
+            <h3>Feature típusok összefoglaló</h3>
+            <table class="geojson-guide-table">
+              <thead>
+                <tr><th>Típus</th><th>Geometria</th><th>Properties</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Határ</td><td>LineString</td><td>–</td></tr>
+                <tr><td>Kempinghely</td><td>Polygon</td><td><code>spot_id: szám</code></td></tr>
+                <tr><td>Kempinghely</td><td>Point</td><td><code>spot_id: szám</code></td></tr>
+                <tr><td>Tájékoztató</td><td>Point</td><td><code>type: "info", label: "..."</code></td></tr>
+              </tbody>
+            </table>
+
+            <h3>Opcionális stílus</h3>
+            <table class="geojson-guide-table">
+              <thead>
+                <tr><th>Property</th><th>Leírás</th><th>Példa</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>stroke</code></td><td>Vonal szín</td><td>#16a34a</td></tr>
+                <tr><td><code>stroke-width</code></td><td>Vonal vastagság</td><td>2</td></tr>
+                <tr><td><code>fill</code></td><td>Kitöltés szín</td><td>#bbf7d0</td></tr>
+                <tr><td><code>fill-opacity</code></td><td>Kitöltés átlátszóság</td><td>0.2</td></tr>
+                <tr><td><code>marker-color</code></td><td>Info pont szín</td><td>#3b82f6</td></tr>
+              </tbody>
+            </table>
+
+            <h3>Feltöltés</h3>
+            <ol>
+              <li>A geojson.io-ban: <strong>Save → GeoJSON</strong></li>
+              <li>A letöltött <code>.geojson</code> fájlt töltsd fel itt a Térkép fülön</li>
+            </ol>
+
+            <div class="geojson-guide-warning">
+              <strong>⚠️ Fontos:</strong> Minden spot_id érték egy létező kempinghely azonosítónak kell megfeleljen. Egy spot_id csak egyszer szerepeljen.
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1947,6 +2081,19 @@ onMounted(async () => {
               <label class="form-label">Számlázási cím <span class="required">*</span></label>
               <input type="text" class="form-input" v-model="newCampingForm.billing_address" placeholder="pl. Budapest, Fő u. 12." />
             </div>
+          </div>
+        </div>
+
+        <!-- Képek előválasztása az új kempinghez -->
+        <div class="form-section-block">
+          <h4 style="margin:0 0 12px;">Képek</h4>
+          <label class="btn-add-gate" style="font-size:13px; padding:8px 14px; cursor:pointer; display:inline-block;">
+            + Képek kiválasztása
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+              @change="newCampingPhotoFiles = [...$event.target.files]" />
+          </label>
+          <div v-if="newCampingPhotoFiles.length > 0" style="margin-top:10px; font-size:13px; color:#4b5563;">
+            {{ newCampingPhotoFiles.length }} kép kiválasztva
           </div>
         </div>
 
@@ -3296,6 +3443,13 @@ onMounted(async () => {
     color: #1f2937;
   }
 
+  .overview-spot-id {
+    font-weight: 500;
+    font-size: 11px;
+    color: #6b7280;
+    margin-left: 4px;
+  }
+
   .overview-spot-type {
     font-size: 11px;
     font-weight: 600;
@@ -3792,28 +3946,193 @@ onMounted(async () => {
     font-size: 14px;
   }
 
-  .btn-delete-spot {
-    display: inline-flex;
+  /* GeoJSON útmutató link */
+  .geojson-guide-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s;
+  }
+  .geojson-guide-link:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  /* GeoJSON útmutató modal */
+  .geojson-guide-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: white;
-    color: #dc2626;
-    border: 1px solid #fecaca;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
+    justify-content: center;
+    padding: 24px;
+  }
+  .geojson-guide-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  }
+  .geojson-guide-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+  }
+  .geojson-guide-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+  .geojson-guide-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
     cursor: pointer;
-    transition: background .15s;
+    color: #9ca3af;
+    line-height: 1;
+    padding: 0 4px;
+    transition: color 0.15s;
+  }
+  .geojson-guide-close:hover {
+    color: #374151;
+  }
+  .geojson-guide-body {
+    padding: 24px;
+    overflow-y: auto;
+    line-height: 1.6;
+    font-size: 14px;
+    color: #374151;
+  }
+  .geojson-guide-body h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 20px 0 8px;
+  }
+  .geojson-guide-body h3:first-of-type {
+    margin-top: 12px;
+  }
+  .geojson-guide-body h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 12px 0 4px;
+  }
+  .geojson-guide-body p {
+    margin: 4px 0 8px;
+  }
+  .geojson-guide-body a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .geojson-guide-body a:hover {
+    text-decoration: underline;
+  }
+  .geojson-guide-body ol {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  .geojson-guide-body ol li {
+    margin-bottom: 4px;
+  }
+  .geojson-guide-code {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    color: #1f2937;
+    margin: 8px 0;
+    overflow-x: auto;
+  }
+  .geojson-guide-hint {
+    font-size: 13px;
+    color: #6b7280;
+    font-style: italic;
+  }
+  .geojson-guide-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 16px;
+    font-size: 13px;
+  }
+  .geojson-guide-table th,
+  .geojson-guide-table td {
+    border: 1px solid #e5e7eb;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .geojson-guide-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+  }
+  .geojson-guide-table code {
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .geojson-guide-warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #92400e;
   }
 
-  .btn-delete-spot:hover:not(:disabled) {
-    background: #fef2f2;
+  /* Képgaléria */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
   }
-
-  .btn-delete-spot:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .photo-grid-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+  }
+  .photo-grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .photo-grid-item:hover .photo-delete-btn {
+    opacity: 1;
   }
 
 </style>

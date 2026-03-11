@@ -226,7 +226,9 @@ const uploadCampingPhoto = async (campingId, file) => {
   try {
     const formData = new FormData()
     formData.append('photo', file)
-    const response = await api.post(`/campings/${campingId}/photos`, formData)
+    const response = await api.post(`/campings/${campingId}/photos`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
     campingPhotoDetails.value = response.data.data || response.data
     return campingPhotoDetails.value
   } catch (err) {
