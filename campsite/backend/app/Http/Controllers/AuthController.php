@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class AuthController extends Controller
 {
@@ -21,7 +22,20 @@ class AuthController extends Controller
             'owner_first_name' => 'required|max:255',
             'owner_last_name' => 'required|max:255',
             'email' => 'required|email|unique:users',
-            'password' => 'required|confirmed'
+            'password' => [
+                'required',
+                'confirmed',
+                PasswordRule::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->uncompromised(),
+            ]
+        ], [
+            'password.min' => 'A jelszónak legalább 8 karakter hosszúnak kell lennie.',
+            'password.mixed' => 'A jelszónak tartalmaznia kell kis- és nagybetűt is.',
+            'password.numbers' => 'A jelszónak tartalmaznia kell legalább egy számot.',
+            'password.uncompromised' => 'Ez a jelszó szerepel ismert adatszivárgásokban. Kérjük válassz egy másik jelszót.',
+            'password.confirmed' => 'A két jelszó nem egyezik meg.',
         ]);
 
         $user = User::create($fields);
@@ -153,7 +167,20 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'token' => 'required',
-            'password' => 'required|min:8|confirmed'
+            'password' => [
+                'required',
+                'confirmed',
+                PasswordRule::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->uncompromised(),
+            ]
+        ], [
+            'password.min' => 'A jelszónak legalább 8 karakter hosszúnak kell lennie.',
+            'password.mixed' => 'A jelszónak tartalmaznia kell kis- és nagybetűt is.',
+            'password.numbers' => 'A jelszónak tartalmaznia kell legalább egy számot.',
+            'password.uncompromised' => 'Ez a jelszó szerepel ismert adatszivárgásokban. Kérjük válassz egy másik jelszót.',
+            'password.confirmed' => 'A két jelszó nem egyezik meg.',
         ]);
 
         $passwordReset = DB::table('password_reset_tokens')
@@ -224,48 +251,6 @@ class AuthController extends Controller
     public function profile(Request $request)
     {
         return response()->json($request->user());
-    }
-
-    /**
-     * Profil szerkesztése és jelszóváltoztatás
-     */
-    public function updateProfile(Request $request)
-    {
-        $user = $request->user();
-
-        $fields = $request->validate([
-            'owner_first_name' => 'required|max:255',
-            'owner_last_name' => 'required|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $user->id,
-            'phone_number' => 'nullable|string|max:20',
-            'password' => 'nullable|min:8|confirmed',
-        ]);
-
-        if (isset($fields['owner_first_name'])) {
-            $user->owner_first_name = $fields['owner_first_name'];
-        }
-        if (isset($fields['owner_last_name'])) {
-            $user->owner_last_name = $fields['owner_last_name'];
-        }
-
-        if (isset($fields['email'])) {
-            $user->email = $fields['email'];
-        }
-
-        if (isset($fields['phone_number'])) {
-            $user->phone_number = $fields['phone_number'];
-        }
-
-        if (!empty($fields['password'])) {
-            $user->password = Hash::make($fields['password']);
-        }
-
-        $user->save();
-
-        return response()->json([
-            'message' => 'Profil sikeresen frissítve.',
-            'user' => $user
-        ]);
     }
 
     /**
