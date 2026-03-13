@@ -35,7 +35,7 @@ const fetchTopCampings = async () => {
       rating: parseFloat(c.average_rating) || 0,
       reviews: c.reviews_count || 0,
       location: c.location?.city || (typeof c.location === 'string' ? c.location : ''),
-      image: c.photos?.[0]?.photo_url ? ('http://localhost:8000' + c.photos[0].photo_url) : (c.photos?.[0]?.url || c.image || 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'),
+      image: c.photos?.[0]?.photo_url ? ('http://localhost:8000' + c.photos[0].photo_url) : (c.photos?.[0]?.url || c.image || 'http://localhost:8000/storage/campings/placeholder-campsite.png'),
       price: c.min_price || 0,
     }))
   } catch (e) {
@@ -302,7 +302,7 @@ const features = [
               <img
                 :src="camping.image"
                 :alt="camping.name"
-                @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'"
+                @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder-campsite.png'"
               />
               <div class="card-overlay">
                 <div class="card-badge">
@@ -394,7 +394,7 @@ const features = [
           <img
             :src="topCampings[0].image"
             :alt="topCampings[0].name"
-            @error="$event.target.src = '/img/night-1189929_1920.jpg'"
+            @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder-campsite.png'"
           />
           <div class="featured-overlay">
             <div class="featured-stars">
