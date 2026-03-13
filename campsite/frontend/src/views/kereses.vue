@@ -205,7 +205,7 @@ const getFirstPhoto = (camping) => {
     return url.startsWith('http') ? url : 'http://localhost:8000' + url
   }
   if (camping.image) return camping.image
-  return 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'
+  return 'http://localhost:8000/storage/campings/placeholder-campsite.png'
 }
 
 // Tag-ek normalizálása
@@ -516,7 +516,7 @@ watch(() => route.query, (newQuery) => {
                 <img 
                     :src="camping.image" 
                     :alt="camping.name"
-                    @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'"
+                    @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder-campsite.png'"
                 />
                 <div class="card-body">
                     <h4>{{ camping.name }}</h4>
