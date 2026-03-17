@@ -7,7 +7,7 @@ import api from '../api/axios'
 const { user, logout, isAuthenticated } = useAuth()
 const router = useRouter()
 
-// --- Foglalások statisztikákhoz ---
+// Foglalások statisztikákhoz
 const bookings = ref([])
 
 const fetchBookings = async () => {
@@ -69,7 +69,7 @@ onMounted(() => {
 
             <div class="form-group">
                 <label>Telefon</label>
-                <input type="text" :value="user?.phone || 'Nincs megadva'" readonly>
+                <input type="text" :value="user?.phone_number || 'Nincs megadva'" readonly>
             </div>
         </div>
 
