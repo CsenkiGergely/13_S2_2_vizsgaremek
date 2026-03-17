@@ -15,13 +15,13 @@ Ez a repository a vizsgaremeket és dokumentációját tartalmazza.
 
 - neondb connection pooler bevezetése (ha lehetséges)
 - képek megjelenítésének fixálása
+- képfeltöltés fix - dashboard main kép kijelölés
 - public api timeout, info leak fix
-- képfeltöltés fix - dashboard main kép kijelölés 
-- foglalás anomália 
+- foglalás anomália ✓
 - Csillag rendszer (értékelő) rögzítése, hibák javítása
-- Saját profilon lévő funkciók integrálása 
 - Home oldalon a "Népszerű régiók" és "Kiemelt kempingünk" szekciók megfelelő kitöltése ✓ nem teljes
 - Footer telefonos nézet UI fixálása ✓
 - QR kód generálása belépéshez ✓
 - Térkép integrálása ✓
 - Jelszó erősség tesztelő backendbe való átvitele ✓
+- Saját profilon lévő funkciók integrálása 
