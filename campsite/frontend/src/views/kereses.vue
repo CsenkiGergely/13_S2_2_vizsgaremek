@@ -205,7 +205,7 @@ const getFirstPhoto = (camping) => {
     return url.startsWith('http') ? url : 'http://localhost:8000' + url
   }
   if (camping.image) return camping.image
-  return 'http://localhost:8000/storage/campings/placeholder-campsite.png'
+  return 'http://localhost:8000/storage/campings/placeholder.webp'
 }
 
 // Tag-ek normalizálása
@@ -516,7 +516,7 @@ watch(() => route.query, (newQuery) => {
                 <img 
                     :src="camping.image" 
                     :alt="camping.name"
-                    @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder-campsite.png'"
+                    @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder.webp'"
                 />
                 <div class="card-body">
                     <h4>{{ camping.name }}</h4>
