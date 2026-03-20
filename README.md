@@ -14,8 +14,8 @@ Ez a repository a vizsgaremeket és dokumentációját tartalmazza.
 ## Összegyűjtött TODO-k a projekt hiányosságainak javítására:
 
 - neondb connection pooler bevezetése (ha lehetséges)
-- képek megjelenítésének fixálása
-- képfeltöltés fix - dashboard main kép kijelölés
+- képek megjelenítésének fixálása ✓
+- képfeltöltés fix - dashboard main kép kijelölés ✓
 - public api timeout, info leak fix
 - foglalás anomália ✓
 - Csillag rendszer (értékelő) rögzítése, hibák javítása
