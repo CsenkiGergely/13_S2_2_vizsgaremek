@@ -198,13 +198,13 @@ onMounted(() => {
           <div class="booking-image">
             <img
               v-if="booking.camping?.photos?.length > 0"
-              :src="'http://localhost:8000' + booking.camping.photos[0].photo_url"
+              :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
-              @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400'"
+              @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
             />
             <img
               v-else
-              src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400"
+              src="https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp"
               alt="Kemping"
             />
             <span :class="['booking-status', statusColors[booking.status]]">
@@ -300,13 +300,13 @@ onMounted(() => {
           <div class="booking-image">
             <img
               v-if="booking.camping?.photos?.length > 0"
-              :src="'http://localhost:8000' + booking.camping.photos[0].photo_url"
+              :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
-              @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400'"
+              @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
             />
             <img
               v-else
-              src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=400"
+              src="https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp"
               alt="Kemping"
             />
             <span :class="['booking-status', statusColors[booking.status]]">

@@ -35,7 +35,10 @@ const fetchTopCampings = async () => {
       rating: parseFloat(c.average_rating) || 0,
       reviews: c.reviews_count || 0,
       location: c.location?.city || (typeof c.location === 'string' ? c.location : ''),
-      image: c.photos?.[0]?.photo_url ? ('http://localhost:8000' + c.photos[0].photo_url) : (c.photos?.[0]?.url || c.image || 'http://localhost:8000/storage/campings/placeholder-campsite.png'),
+      // S3 URL visszaadása
+      image: c.photos?.[0]?.photo_url
+        ? (c.photos[0].photo_url.startsWith('http') ? c.photos[0].photo_url : 'http://localhost:8000' + c.photos[0].photo_url)
+        : (c.photos?.[0]?.url || c.image || 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'),
       price: c.min_price || 0,
     }))
   } catch (e) {
@@ -302,7 +305,7 @@ const features = [
               <img
                 :src="camping.image"
                 :alt="camping.name"
-                @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder-campsite.png'"
+                @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
               />
               <div class="card-overlay">
                 <div class="card-badge">
@@ -394,7 +397,7 @@ const features = [
           <img
             :src="topCampings[0].image"
             :alt="topCampings[0].name"
-            @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder-campsite.png'"
+            @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
           />
           <div class="featured-overlay">
             <div class="featured-stars">

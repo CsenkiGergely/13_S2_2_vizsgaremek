@@ -49,7 +49,8 @@ class Camping extends Model
 
     public function photos()
     {
-        return $this->hasMany(CampingPhoto::class);
+        // Mindig photo_id szerint rendezünk — a legkisebb ID-jú a fő kép
+        return $this->hasMany(CampingPhoto::class)->orderBy('photo_id', 'asc');
     }
 
     public function entranceGates()

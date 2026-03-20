@@ -59,9 +59,13 @@ const fetchCamping = async () => {
 const images = computed(() => {
   if (!camping.value) return []
   if (camping.value.photos && camping.value.photos.length > 0) {
-    return camping.value.photos.map(p => 'http://localhost:8000' + p.photo_url)
+    // Ha a photo_url teljes URL (S3), közvetlenül használjuk
+    // Ha régi lokális kép (/storage/...), hozzáadjuk a backend URL-t
+    return camping.value.photos.map(p =>
+      p.photo_url.startsWith('http') ? p.photo_url : 'http://localhost:8000' + p.photo_url
+    )
   }
-  return ['https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800']
+  return ['https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp']
 })
 
 const spots = computed(() => {
@@ -413,7 +417,7 @@ onMounted(async () => {
       <!-- Képgaléria -->
       <div class="relative rounded-xl overflow-hidden shadow-lg" v-if="images.length > 0">
         <img :src="images[currentImage]" :alt="camping.camping_name" class="w-full h-96 md:h-[500px] object-cover"
-             @error="$event.target.src = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'" />
+             @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'" />
         <template v-if="images.length > 1">
           <button @click="prevImage"
                   class="gallery-btn absolute left-3 top-1/2 -translate-y-1/2">&#8249;</button>

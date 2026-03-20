@@ -113,6 +113,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Kemping képek kezelése (csak tulajdonosoknak)
     Route::post('/campings/{campingId}/photos', [CampingPhotoController::class, 'upload']);
     Route::post('/campings/{campingId}/photos/url', [CampingPhotoController::class, 'addByUrl']);
+    Route::put('/campings/{campingId}/photos/{photoId}/set-main', [CampingPhotoController::class, 'setMain']);
     Route::delete('/campings/{campingId}/photos/{photoId}', [CampingPhotoController::class, 'destroy']);
     
     // Értékelések kezelése (authentikált felhasználóknak)

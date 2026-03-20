@@ -19,7 +19,7 @@ const {
   generateToken, revokeToken,
 } = useGate()
 const { dashboard, getDashboard } = useDashboard()
-const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, uploadCampingPhoto, deleteCampingPhoto, getCampingPhotoList, loading: campingLoading, error: campingError } = useCamping()
+const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, uploadCampingPhoto, deleteCampingPhoto, setMainPhoto, getCampingPhotoList, loading: campingLoading, error: campingError } = useCamping()
 
 const activeTab = ref('dashboard')
 const monthlyRevenue = ref(0)
@@ -85,6 +85,7 @@ const mapContainerRef = ref(null)
 const photoUploading = ref(false)
 const photoFileInput = ref(null)
 const newCampingPhotoFiles = ref([])  // Új kemping létrehozásnál kiválasztott fájlok
+const newCampingMainIndex = ref(0)    // Melyik kép legyen a fő kép (index)
 const mapCodeOpen = ref(false)
 let leafletMap = null
 let geojsonLayer = null
@@ -575,6 +576,36 @@ async function handlePhotoDelete(campingId, photoId) {
   }
 }
 
+// Fő kép beállítása — a kiválasztott kép az első helyre kerül
+async function handleSetMainPhoto(campingId, photoId) {
+  try {
+    await setMainPhoto(campingId, photoId)
+    await loadOverviewForCamping(campingId)
+  } catch (err) {
+    console.error('Fő kép beállítási hiba:', err)
+  }
+}
+
+// Fájl előnézet URL generálása (böngésző lokális blob URL)
+function getFilePreview(file) {
+  return URL.createObjectURL(file)
+}
+
+// Kép eltávolítása az új kemping képlistából
+function removeNewCampingPhoto(index) {
+  const files = [...newCampingPhotoFiles.value]
+  files.splice(index, 1)
+  newCampingPhotoFiles.value = files
+  // Ha a fő kép indexét töröltük, reseteljük 0-ra
+  if (newCampingMainIndex.value >= files.length) {
+    newCampingMainIndex.value = Math.max(0, files.length - 1)
+  } else if (newCampingMainIndex.value === index) {
+    newCampingMainIndex.value = 0
+  } else if (newCampingMainIndex.value > index) {
+    newCampingMainIndex.value--
+  }
+}
+
 // Új kemping – validációs helper
 function isValidTaxId(taxId) {
   // Magyar adószám formátum: XXXXXXXX-X-XX
@@ -797,8 +828,16 @@ async function handleAddCamping() {
     }
 
     // Képek feltöltése az újonnan létrehozott kempinghez
+    // A fő képet (mainIndex) elsőként töltjük fel, így az kapja a legkisebb photo_id-t
     if (newId && newCampingPhotoFiles.value.length > 0) {
-      for (const file of newCampingPhotoFiles.value) {
+      const files = [...newCampingPhotoFiles.value]
+      const mainIdx = newCampingMainIndex.value
+      // Fő kép elsőként
+      if (mainIdx >= 0 && mainIdx < files.length) {
+        const mainFile = files.splice(mainIdx, 1)[0]
+        files.unshift(mainFile)
+      }
+      for (const file of files) {
         await uploadCampingPhoto(newId, file)
       }
     }
@@ -811,6 +850,7 @@ async function handleAddCamping() {
     }
     pendingTags.value = []
     newCampingPhotoFiles.value = []
+    newCampingMainIndex.value = 0
     await fetchMyCampings()
   } catch (err) {
     campingFormError.value = err.response?.data?.message || campingError.value || 'Hiba történt a kemping létrehozásakor.'
@@ -1186,7 +1226,7 @@ onMounted(async () => {
 
             <!-- Tagek -->
             <div class="overview-section">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="overview-section-header">
                 <h5 class="overview-section-title" style="margin:0;">Tagek</h5>
                 <button class="btn-add-gate" style="font-size:12px; padding:5px 12px;" @click="openTagModal(item.camping.id, item.tags)">+ Tag kezelés</button>
               </div>
@@ -1201,7 +1241,7 @@ onMounted(async () => {
 
             <!-- Képek -->
             <div class="overview-section">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="overview-section-header">
                 <h5 class="overview-section-title" style="margin:0;">Képek</h5>
                 <label class="btn-add-gate" style="font-size:12px; padding:5px 12px; cursor:pointer;">
                   {{ photoUploading ? '⏳ Feltöltés...' : '+ Kép feltöltése' }}
@@ -1211,9 +1251,15 @@ onMounted(async () => {
                 </label>
               </div>
               <div v-if="item.photos && item.photos.length > 0" class="photo-grid">
-                <div v-for="photo in item.photos" :key="photo.photo_id" class="photo-grid-item">
-                  <img :src="'http://localhost:8000' + photo.photo_url" :alt="'Kemping kép'" @error="$event.target.src = '/img/night-1189929_1920.jpg'" />
-                  <button class="photo-delete-btn" @click="handlePhotoDelete(item.camping.id, photo.photo_id)" title="Kép törlése">✕</button>
+                <div v-for="(photo, photoIndex) in item.photos" :key="photo.photo_id" class="photo-grid-item" :class="{ 'photo-main': photoIndex === 0 }">
+                  <!-- Fő kép jelölő badge -->
+                  <span v-if="photoIndex === 0" class="photo-main-badge">★ Fő kép</span>
+                  <!-- Kép megjelenítés: S3 URL-t közvetlenül, lokálisat prefix-elve -->
+                  <img :src="photo.photo_url.startsWith('http') ? photo.photo_url : 'http://localhost:8000' + photo.photo_url" :alt="'Kemping kép'" @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'" />
+                  <div class="photo-actions">
+                    <button v-if="photoIndex !== 0" class="photo-main-btn" @click="handleSetMainPhoto(item.camping.id, photo.photo_id)" title="Beállítás fő képnek">★</button>
+                    <button class="photo-delete-btn" @click="handlePhotoDelete(item.camping.id, photo.photo_id)" title="Kép törlése"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+                  </div>
                 </div>
               </div>
               <p v-else class="tag-empty">Nincsenek képek feltöltve.</p>
@@ -2090,10 +2136,20 @@ onMounted(async () => {
           <label class="btn-add-gate" style="font-size:13px; padding:8px 14px; cursor:pointer; display:inline-block;">
             + Képek kiválasztása
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
-              @change="newCampingPhotoFiles = [...$event.target.files]" />
+              @change="newCampingPhotoFiles = [...$event.target.files]; newCampingMainIndex = 0" />
           </label>
-          <div v-if="newCampingPhotoFiles.length > 0" style="margin-top:10px; font-size:13px; color:#4b5563;">
-            {{ newCampingPhotoFiles.length }} kép kiválasztva
+          <!-- Kép előnézetek + fő kép kiválasztás -->
+          <div v-if="newCampingPhotoFiles.length > 0" class="photo-grid" style="margin-top:12px;">
+            <div v-for="(file, idx) in newCampingPhotoFiles" :key="idx"
+                 class="photo-grid-item"
+                 :class="{ 'photo-main': idx === newCampingMainIndex }">
+              <span v-if="idx === newCampingMainIndex" class="photo-main-badge">★ Fő kép</span>
+              <img :src="getFilePreview(file)" alt="Előnézet" />
+              <div class="photo-actions">
+                <button v-if="idx !== newCampingMainIndex" type="button" class="photo-main-btn" @click="newCampingMainIndex = idx" title="Beállítás fő képnek">★</button>
+                <button type="button" class="photo-delete-btn" @click="removeNewCampingPhoto(idx)" title="Kép eltávolítása"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2277,6 +2333,11 @@ onMounted(async () => {
     .tabs::-webkit-scrollbar {
       display: none; /* Chrome, Safari */
     }
+
+    .tab {
+      padding: 7px 10px;
+      font-size: 13px;
+    }
   }
 
   .tab {
@@ -2285,6 +2346,8 @@ onMounted(async () => {
     cursor: pointer;
     border-radius: 8px;
     color: #374151;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .tab.active {
@@ -3407,6 +3470,15 @@ onMounted(async () => {
     margin-top: 20px;
   }
 
+  .overview-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
   .overview-section-title {
     font-size: 13px;
     font-weight: 700;
@@ -3571,6 +3643,29 @@ onMounted(async () => {
 
   .overview-company-row strong {
     color: #1f2937;
+  }
+
+  /* Áttekintés mobil nézet */
+  @media (max-width: 640px) {
+    .overview-card-header {
+      padding: 14px 14px;
+      flex-wrap: wrap;
+    }
+    .overview-card-body {
+      padding: 0 14px 14px;
+    }
+    .overview-card-stats {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .overview-spots-grid {
+      grid-template-columns: 1fr;
+    }
+    .overview-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
   }
 
   /* Kemping hely felvitel */
@@ -4098,7 +4193,7 @@ onMounted(async () => {
   /* Képgaléria */
   .photo-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 10px;
   }
   .photo-grid-item {
@@ -4114,25 +4209,99 @@ onMounted(async () => {
     display: block;
   }
   .photo-delete-btn {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
-    background: rgba(0,0,0,0.6);
+    background: rgba(220,38,38,0.85);
     color: #fff;
-    font-size: 13px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.15s, transform 0.15s;
   }
-  .photo-grid-item:hover .photo-delete-btn {
+  .photo-grid-item:hover .photo-delete-btn,
+  .photo-grid-item:hover .photo-main-btn {
     opacity: 1;
+  }
+
+  /* Fő kép jelölés */
+  .photo-main {
+    outline: 3px solid #4A7434;
+    outline-offset: -3px;
+    box-shadow: 0 0 0 3px #4A7434;
+  }
+  .photo-main-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: #4A7434;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .photo-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+  .photo-main-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(74,116,52,0.85);
+    color: #ffe066;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .photo-main-btn:hover {
+    background: #4A7434;
+    transform: scale(1.1);
+  }
+  .photo-delete-btn:hover {
+    background: rgba(220,38,38,1);
+    transform: scale(1.1);
+  }
+
+  /* Mobil nézet - képgaléria */
+  @media (max-width: 768px) {
+    .photo-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .photo-actions {
+      gap: 8px;
+    }
+    .photo-main-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+    }
+  }
+  @media (max-width: 480px) {
+    .photo-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
   }
 
 </style>

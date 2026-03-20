@@ -42,16 +42,37 @@ class CampingPhotoController extends Controller
             'caption' => 'nullable|string|max:255'
         ]);
 
-        // Kép mentése
+        // Kép mentése az AWS S3 bucket-be
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
-            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('campings', $filename, 'public');
 
-            // CampingPhoto rekord létrehozása
+            // Egyedi fájlnév generálása (időbélyeg + random ID + kiterjesztés)
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+
+            // Feltöltés az S3 'campings/' mappába
+            $path = $file->storeAs('campings', $filename, 's3');
+
+            // Debug: ellenőrizzük, hogy a feltöltés sikeres volt-e
+            \Log::info('S3 upload result - path: ' . var_export($path, true));
+            \Log::info('S3 upload - filename: ' . $filename);
+
+            // Ha a storeAs false-t ad vissza, a feltöltés sikertelen volt
+            if ($path === false) {
+                return response()->json(['message' => 'Hiba történt a kép feltöltése során az S3-ra.'], 500);
+            }
+
+            // A teljes publikus S3 URL manuális összeállítása
+            // config() mindig működik, env() cache után nem - ezért config()-ot használunk
+            // Pl.: https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/campings/1234_abc.jpg
+            $bucketUrl = rtrim(config('filesystems.disks.s3.url'), '/');
+            $fullUrl = $bucketUrl . '/campings/' . $filename;
+
+            \Log::info('S3 full URL: ' . $fullUrl);
+
+            // CampingPhoto rekord létrehozása az adatbázisban
             $photo = CampingPhoto::create([
                 'camping_id' => $camping->id,
-                'photo_url' => '/storage/' . $path,
+                'photo_url' => $fullUrl, // Teljes S3 URL kerül mentésre
                 'caption' => $request->caption,
                 'uploaded_at' => now()
             ]);
@@ -97,10 +118,23 @@ class CampingPhotoController extends Controller
             ->where('photo_id', $photoId)
             ->firstOrFail();
 
-        // Fájl törlése a storage-ból
-        $filePath = str_replace('/storage/', '', $photo->photo_url);
-        if (Storage::disk('public')->exists($filePath)) {
-            Storage::disk('public')->delete($filePath);
+        // Fájl törlése az S3 bucket-ből
+        // A photo_url teljes URL (pl. https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/campings/abc.jpg)
+        // Ebből kinyerjük az S3 key-t (pl. campings/abc.jpg) a bucket URL eltávolításával
+        $bucketUrl = rtrim(config('filesystems.disks.s3.url'), '/') . '/';
+        $s3Key = str_replace($bucketUrl, '', $photo->photo_url);
+
+        // Ha az S3 key érvényes, töröljük a fájlt a bucket-ből
+        if ($s3Key && Storage::disk('s3')->exists($s3Key)) {
+            Storage::disk('s3')->delete($s3Key);
+        }
+
+        // Ha régi local storage kép volt (/storage/campings/...), azt is megpróbáljuk törölni
+        if (str_starts_with($photo->photo_url, '/storage/')) {
+            $localPath = str_replace('/storage/', '', $photo->photo_url);
+            if (Storage::disk('public')->exists($localPath)) {
+                Storage::disk('public')->delete($localPath);
+            }
         }
 
         $photo->delete();
@@ -117,6 +151,57 @@ class CampingPhotoController extends Controller
     
     //Kép URL frissítése (ha már létezik a képfájl)
      
+    /**
+     * Fő kép beállítása
+     * A kiválasztott kép adatait megcseréli az első (legkisebb photo_id-jú) kép adataival
+     * Így a legkisebb ID-jú rekord mindig a fő kép marad
+     */
+    public function setMain($campingId, $photoId)
+    {
+        $user = Auth::user();
+        $camping = Camping::findOrFail($campingId);
+
+        if ($camping->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Csak a kemping tulajdonosa állíthat be fő képet.'
+            ], 403);
+        }
+
+        // Az első kép (legkisebb photo_id) = jelenlegi fő kép
+        $firstPhoto = CampingPhoto::where('camping_id', $campingId)
+            ->orderBy('photo_id', 'asc')
+            ->first();
+
+        // A kiválasztott kép, amit fő képnek akarunk
+        $selectedPhoto = CampingPhoto::where('camping_id', $campingId)
+            ->where('photo_id', $photoId)
+            ->firstOrFail();
+
+        // Ha már ez az első, nincs teendő
+        if ($firstPhoto->photo_id === $selectedPhoto->photo_id) {
+            return response()->json(['message' => 'Ez már a fő kép.']);
+        }
+
+        // Adatok cseréje (URL + caption) a két rekord között
+        $tempUrl = $firstPhoto->photo_url;
+        $tempCaption = $firstPhoto->caption;
+
+        $firstPhoto->update([
+            'photo_url' => $selectedPhoto->photo_url,
+            'caption' => $selectedPhoto->caption,
+        ]);
+
+        $selectedPhoto->update([
+            'photo_url' => $tempUrl,
+            'caption' => $tempCaption,
+        ]);
+
+        return response()->json([
+            'message' => 'Fő kép sikeresen beállítva.',
+            'main_photo' => $firstPhoto->fresh(),
+        ]);
+    }
+
     /**
      * Kép hozzáadása URL alapján (csak tulajdonos)
      */

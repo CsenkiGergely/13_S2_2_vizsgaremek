@@ -273,6 +273,22 @@ const deleteCampingPhoto = async (campingId, photoId) => {
   }
 }
 
+// Fő kép beállítása (a kiválasztott kép lesz az első)
+const setMainPhoto = async (campingId, photoId) => {
+  loading.value = true
+  error.value = null
+  try {
+    const response = await api.put(`/campings/${campingId}/photos/${photoId}/set-main`)
+    return response.data
+  } catch (err) {
+    console.error('Hiba a fő kép beállításakor:', err)
+    error.value = getErrorMessage(err)
+    throw err
+  } finally {
+    loading.value = false
+  }
+}
+
 // Kemping tagjeinek lekérése
 const getCampingTagList = async (campingId) => {
   loading.value = true
@@ -410,6 +426,7 @@ export function useCamping() {
     uploadCampingPhoto,
     addCampingPhotoByUrl,
     deleteCampingPhoto,
+    setMainPhoto,
     getCampingTagList,
     addCampingTag,
     deleteCampingTag,

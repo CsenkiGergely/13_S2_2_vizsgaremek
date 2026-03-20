@@ -198,14 +198,15 @@ const fetchCampsites = async (isNewSearch = true) => {
   }
 }
 
-// Kép URL kinyerése
+// Kép URL kinyerése – S3 és lokális képekkel is kompatibilis
 const getFirstPhoto = (camping) => {
   if (camping.photos && camping.photos.length > 0) {
     const url = camping.photos[0].photo_url || camping.photos[0].url || camping.photos[0]
+    // S3 URL visszaadása
     return url.startsWith('http') ? url : 'http://localhost:8000' + url
   }
   if (camping.image) return camping.image
-  return 'http://localhost:8000/storage/campings/placeholder.webp'
+  return 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'
 }
 
 // Tag-ek normalizálása
@@ -516,7 +517,7 @@ watch(() => route.query, (newQuery) => {
                 <img 
                     :src="camping.image" 
                     :alt="camping.name"
-                    @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder.webp'"
+                    @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
                 />
                 <div class="card-body">
                     <h4>{{ camping.name }}</h4>
