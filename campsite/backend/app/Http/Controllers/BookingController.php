@@ -515,7 +515,7 @@ class BookingController extends Controller
 
         $today = date('Y-m-d');
 
-        if ($today <= $booking->arrival_date->format('Y-m-d')) {
+        if ($today < $booking->arrival_date->format('Y-m-d')) {
             return response()->json([
                 'valid'   => false,
                 'message' => 'Ez a foglalás csak ' . $booking->arrival_date->format('Y-m-d') . '-től érvényes.',
@@ -523,7 +523,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        if ($today >= $booking->departure_date->format('Y-m-d')) {
+        if ($today > $booking->departure_date->format('Y-m-d')) {
             return response()->json([
                 'valid'   => false,
                 'message' => 'Ez a foglalás ' . $booking->departure_date->format('Y-m-d') . '-ig volt érvényes.',
@@ -625,7 +625,7 @@ class BookingController extends Controller
 
         $today = date('Y-m-d');
 
-        if ($today <= $booking->arrival_date->format('Y-m-d')) {
+        if ($today < $booking->arrival_date->format('Y-m-d')) {
             return response()->json([
                 'valid'   => false,
                 'message' => 'Ez a foglalás csak ' . $booking->arrival_date->format('Y-m-d') . '-től érvényes.',
@@ -633,7 +633,7 @@ class BookingController extends Controller
             ], 422);
         }
 
-        if ($today >= $booking->departure_date->format('Y-m-d')) {
+        if ($today > $booking->departure_date->format('Y-m-d')) {
             return response()->json([
                 'valid'   => false,
                 'message' => 'Ez a foglalás ' . $booking->departure_date->format('Y-m-d') . '-ig volt érvényes.',

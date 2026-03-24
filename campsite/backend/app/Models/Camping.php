@@ -83,11 +83,17 @@ class Camping extends Model
 
     public function getMinPriceAttribute()
     {
+        if ($this->relationLoaded('spots')) {
+            return $this->spots->min('price_per_night');
+        }
         return $this->spots()->min('price_per_night');
     }
 
-        public function getMaxPriceAttribute()
+    public function getMaxPriceAttribute()
     {
+        if ($this->relationLoaded('spots')) {
+            return $this->spots->max('price_per_night');
+        }
         return $this->spots()->max('price_per_night');
     }
 }

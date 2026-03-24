@@ -208,7 +208,7 @@ class CampingPhotoController extends Controller
     public function addByUrl(Request $request, $campingId)
     {
         $request->validate([
-            'photo_url' => 'required|string',
+            'photo_url' => 'required|string|url',
             'caption' => 'nullable|string|max:255'
         ]);
 
@@ -219,6 +219,14 @@ class CampingPhotoController extends Controller
             return response()->json([
                 'message' => 'Csak a kemping tulajdonosa adhat hozzá képeket.'
             ], 403);
+        }
+
+        // Fotó limit ellenőrzés
+        $photoCount = CampingPhoto::where('camping_id', $camping->id)->count();
+        if ($photoCount >= 10) {
+            return response()->json([
+                'message' => 'Maximum 10 kép tölthető fel egy kempinghez.'
+            ], 422);
         }
 
         $photo = CampingPhoto::create([

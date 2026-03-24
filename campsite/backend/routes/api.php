@@ -42,8 +42,6 @@ Route::get('/campings/top', [CampingController::class, 'getTopCampings']);
 Route::get('/campings/{id}', [CampingController::class, 'show']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
-Route::get('/bookings/getAll', [BookingController::class, 'getAllBookings']);
-Route::get('/bookings/prices', [BookingController::class, 'getPrices']);
 
 // Értékelések (publikus lekérés)
 Route::get('/campings/{campingId}/comments', [CommentController::class, 'index']);
@@ -68,6 +66,8 @@ Route::get('/campings/{campingId}/tags', [CampingTagController::class, 'index'])
 Route::middleware('auth:sanctum')->group(function () {
     // felhasználói foglalások
     Route::get('/bookings', [BookingController::class, 'index']);
+    Route::get('/bookings/getAll', [BookingController::class, 'getAllBookings']);
+    Route::get('/bookings/prices', [BookingController::class, 'getPrices']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::put('/bookings/{id}', [BookingController::class, 'update']);
