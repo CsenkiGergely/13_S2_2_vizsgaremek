@@ -32,7 +32,6 @@ const errors = ref({})
 
 // Validációs függvények
 
-
 const validateExpiryDate = (expiry) => {
   if (!/^\d{2}\/\d{2}$/.test(expiry)) {
     return 'Formátum: HH/ÉÉ'
@@ -147,9 +146,6 @@ const handleCardTypeChange = () => {
 
 const handlePayment = async () => {
   errors.value = {}
-  
-  const cardNumberError = validateCardNumber(paymentForm.value.cardNumber)
-  if (cardNumberError) errors.value.cardNumber = cardNumberError
   
   const expiryError = validateExpiryDate(paymentForm.value.expiryDate)
   if (expiryError) errors.value.expiryDate = expiryError
