@@ -5,7 +5,7 @@ import api from '../api/axios'
 import 'vue3-carousel/carousel.css'
 import { Carousel, Slide, Navigation, Pagination } from 'vue3-carousel'
 
-// --- Top kempingek ---
+// Legjobb kempingek
 const topCampings = ref([])
 const topCampingsLoading = ref(true)   // loading skeleton vezérlő
 const statsLoading = ref(true)          // statisztikák skeleton
@@ -65,7 +65,7 @@ const searchForm = ref({
   guests: 2,
 })
 
-// --- Autocomplete ---
+// Autocomplete mező találatjavaslatokkal
 const suggestions = ref([])
 const showSuggestions = ref(false)
 const activeSuggestionIndex = ref(-1)
@@ -154,7 +154,7 @@ const handleSearch = () => {
   router.push({ path: '/kereses', query })
 }
 
-// --- "Miért a CampSite?" szekció: valós adatok ---
+// "Miért a CampSite?" szekció: valós adatok
 const campingCount = ref(0)
 const averageRating = ref(0)
 
@@ -229,7 +229,7 @@ const features = [
 <template>
 <div class="home-page">
 
-  <!-- ===== HERO + KERESÉS ===== -->
+  <!-- Hero + Keresés -->
   <section class="hero">
     <div class="hero-bg"></div>
     <div class="hero-content">
@@ -288,7 +288,7 @@ const features = [
     </div>
   </section>
 
-  <!-- ===== 1. LEGFELKAPOTTABB KEMPINGEK ===== -->
+  <!-- 1. Legfelkapottabb kempingek szekció -->
   <section class="section section--gray">
     <div class="section-header">
       <span class="section-badge">Népszerű kempingek</span>
@@ -342,7 +342,7 @@ const features = [
     </div>
   </section>
 
-  <!-- ===== 2. MIÉRT A CAMPSITE? ===== -->
+  <!-- 2. Miért a CampSite? szekció -->
   <section class="section why-section">
     <div class="section-header">
       <span class="section-badge">Miért működik jól?</span>
@@ -382,7 +382,7 @@ const features = [
     </div>
   </section>
 
-  <!-- ===== 3. KIEMELT KEMPING ===== -->
+  <!-- 3. Kiemelt kemping szekció -->
   <section class="section">
     <div class="section-header">
       <span class="section-badge">Kiemelt kempingünk</span>
@@ -433,7 +433,7 @@ const features = [
 </template>
 
 <style scoped>
-/* ===== VÁLTOZÓK ===== */
+/* Változók */
 .home-page {
   --accent: #4A7434;
   --cta: #F17E21;
@@ -441,7 +441,7 @@ const features = [
   --max-w: 1140px;
 }
 
-/* ===== HERO ===== */
+/* Hero */
 .hero {
   position: relative;
   padding: 3rem 1.25rem 3.5rem;
@@ -485,7 +485,7 @@ const features = [
   margin-bottom: 2rem;
 }
 
-/* ===== KERESŐSOR ===== */
+/* Keresősor */
 .search-bar {
   display: flex;
   flex-direction: column;
@@ -565,7 +565,7 @@ const features = [
   }
 }
 
-/* ===== AUTOCOMPLETE ===== */
+/* Autocomplete */
 .suggestions-list {
   position: absolute;
   top: 100%;
@@ -609,7 +609,7 @@ const features = [
   flex-shrink: 0;
 }
 
-/* ===== SZEKCIÓK ===== */
+/* Szekció */
 .section {
   padding: 3rem 1.25rem;
 }
@@ -643,7 +643,7 @@ const features = [
   font-size: 0.95rem;
 }
 
-/* ===== KIEMELT KEMPING ===== */
+/* Kiemelt kemping */
 .featured {
   max-width: var(--max-w);
   margin: 0 auto;
@@ -712,7 +712,7 @@ const features = [
   width: fit-content;
 }
 .featured-link:hover .featured-cta { background: var(--cta); }
-/* ===== SKELETON SHIMMER ===== */
+/* Skeleton shimmer */
 @keyframes shimmer {
   0%   { background-position: -600px 0; }
   100% { background-position:  600px 0; }
@@ -724,7 +724,7 @@ const features = [
   border-radius: 6px;
 }
 
-/* ===== FEATURED SKELETON ===== */
+/* Kiemelt skeleton */
 .featured-skeleton {
   max-width: var(--max-w);
   margin: 0 auto;
@@ -757,7 +757,7 @@ const features = [
   .featured-skeleton .skel-feat-title { width: 40%; height: 32px; }
 }
 
-/* ===== CAROUSEL ===== */
+/* Carousel */
 .carousel-wrap {
   max-width: var(--max-w);
   margin: 0 auto;
@@ -875,7 +875,7 @@ const features = [
 .skel-sub    { width: 45%;   height: 12px; border-radius: 6px; }
 .skel-btn    { width: 90px;  height: 28px; border-radius: 6px; margin-top: 4px; }
 
-/* Hide 2nd and 3rd card on mobile */
+/* A 2. és 3. kártya elrejtése mobilon */
 .carousel-skeleton-card:nth-child(2),
 .carousel-skeleton-card:nth-child(3) {
   display: none;
@@ -939,7 +939,7 @@ const features = [
   border-radius: 4px;
 }
 
-/* ===== MIÉRT A CAMPSITE? ===== */
+/* Miért a CampSite? */
 .why-section {
   background: #f8faf8;
 }
@@ -1033,7 +1033,7 @@ const features = [
   .features-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* ===== MOBIL FINOMHANGOLÁSOK ===== */
+/* Mobil finomhangolások */
 @media (max-width: 639px) {
   .hero { padding: 2rem 1rem 2.5rem; }
   .hero h1 { font-size: 1.5rem; }
