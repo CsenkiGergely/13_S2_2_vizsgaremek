@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Szükséges PHP extensions
+# Szükséges PHP extensions + Node.js
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql pgsql mbstring zip exif pcntl bcmath gd
 
+# Node.js telepítése (QR dekódoláshoz kell)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
 # Composer telepítése
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -24,6 +28,9 @@ COPY campsite/backend/ .
 
 # Composer csomagok telepítése
 RUN composer install --no-dev --optimize-autoloader
+
+# Node.js QR dekódoló csomagok telepítése
+RUN cd scripts && npm install && cd ..
 
 # .env beállítás
 RUN cp .env.example .env && php artisan key:generate
