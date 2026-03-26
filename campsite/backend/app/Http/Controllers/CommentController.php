@@ -38,34 +38,33 @@ class CommentController extends Controller
         $user = Auth::user();
         $camping = Camping::findOrFail($campingId);
 
-        // Ellenőrizzük, hogy a user-nek van-e befejezett foglalása ennél a kempingnél
-        $hasBooking = Booking::where('camping_id', $campingId)
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        // Számláló-alapú ellenőrzés: annyi véleményt írhat, ahány befejezett foglalása van
+        $bookingCount = Booking::where('camping_id', $campingId)
             ->where('user_id', $user->id)
             ->whereIn('status', ['checked_in', 'completed'])
-            ->exists();
+            ->count();
 
-        if (!$hasBooking) {
+        if ($bookingCount === 0) {
             return response()->json([
                 'message' => 'Csak azok értékelhetnek, akik már foglaltak ennél a kempingnél.'
             ], 403);
         }
 
-        // Ellenőrizzük, hogy már értékelt-e
-        $existingComment = Comment::where('camping_id', $campingId)
+        $reviewCount = Comment::where('camping_id', $campingId)
             ->where('user_id', $user->id)
             ->whereNull('parent_id')
-            ->exists();
+            ->count();
 
-        if ($existingComment) {
+        if ($reviewCount >= $bookingCount) {
             return response()->json([
-                'message' => 'Már értékelted ezt a kempinget.'
+                'message' => 'Már minden foglalásodhoz írtál véleményt ennél a kempingnél.'
             ], 422);
         }
-
-        $validated = $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string|max:1000',
-        ]);
 
         $comment = Comment::create([
             'camping_id' => $campingId,

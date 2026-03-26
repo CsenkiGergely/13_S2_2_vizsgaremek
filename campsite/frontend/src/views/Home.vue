@@ -135,8 +135,9 @@ onBeforeUnmount(() => {
 const highlightMatch = (text) => {
   const q = searchForm.value.location
   if (!q) return text
-  const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-  return text.replace(regex, '<strong>$1</strong>')
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
+  return text.replace(regex, (match) => `<strong>${match.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</strong>`)
 }
 
 const minCheckOut = computed(() => searchForm.value.checkIn || today)
@@ -305,6 +306,10 @@ const features = [
               <img
                 :src="camping.image"
                 :alt="camping.name"
+                loading="lazy"
+                decoding="async"
+                width="400"
+                height="360"
                 @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
               />
               <div class="card-overlay">
@@ -397,6 +402,10 @@ const features = [
           <img
             :src="topCampings[0].image"
             :alt="topCampings[0].name"
+            loading="lazy"
+            decoding="async"
+            width="1140"
+            height="400"
             @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
           />
           <div class="featured-overlay">
@@ -665,6 +674,7 @@ const features = [
   height: 100%;
   object-fit: cover;
   transition: transform 0.4s;
+  background: #e8ede5;
 }
 .featured-link:hover .featured-img img {
   transform: scale(1.03);
@@ -779,6 +789,7 @@ const features = [
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: #e8ede5;
 }
 .card-overlay {
   position: absolute;

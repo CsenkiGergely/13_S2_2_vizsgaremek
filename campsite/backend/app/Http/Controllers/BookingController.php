@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Camping;
 use App\Models\CampingSpot;
+use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,11 +23,42 @@ class BookingController extends Controller
             ->orderBy('arrival_date', 'desc')
             ->paginate(10);
 
+        // Számláló-alapú review tracking: kempingenként hány véleményt írt a user
+        $completedCampingIds = $bookings->getCollection()
+            ->where('status', 'completed')
+            ->pluck('camping_id')
+            ->unique()
+            ->values();
+
+        $reviewCounts = [];
+        if ($completedCampingIds->isNotEmpty()) {
+            $reviewCounts = Comment::where('user_id', $user_id)
+                ->whereNull('parent_id')
+                ->whereIn('camping_id', $completedCampingIds)
+                ->groupBy('camping_id')
+                ->selectRaw('camping_id, count(*) as cnt')
+                ->pluck('cnt', 'camping_id')
+                ->toArray();
+        }
+
+        // Kempingenként a legrégebbi N befejezett foglalást jelöljük "reviewed"-ként
+        $campingIndex = [];
+        foreach ($bookings->getCollection()->sortBy('arrival_date') as $booking) {
+            if ($booking->status !== 'completed') continue;
+            $cid = $booking->camping_id;
+            $campingIndex[$cid] = ($campingIndex[$cid] ?? 0) + 1;
+            $booking->has_review = $campingIndex[$cid] <= ($reviewCounts[$cid] ?? 0);
+        }
+
         return response()->json($bookings);
     }
 
     public function getAllBookings(Request $request)
     {
+        if (!$request->user()->is_superuser) {
+            return response()->json(['message' => 'Nincs jogosultságod.'], 403);
+        }
+
         $bookings = Booking::with(['user', 'camping.location', 'campingSpot'])
             ->orderBy('id', 'asc')
             ->paginate(20);
@@ -36,6 +68,10 @@ class BookingController extends Controller
 
     public function getPrices(Request $request)
     {
+        if (!$request->user()->is_superuser) {
+            return response()->json(['message' => 'Nincs jogosultságod.'], 403);
+        }
+
         // postgresql: date kulonbseg EXTRACT-tal szamolva (napokban)
         $totalPrices = DB::table('bookings')
         ->join('camping_spots', 'camping_spots.spot_id', '=', 'bookings.camping_spot_id')

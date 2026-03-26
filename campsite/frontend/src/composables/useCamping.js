@@ -306,31 +306,15 @@ const getCampingTagList = async (campingId) => {
   }
 }
 
-// Új tag hozzáadása
-const addCampingTag = async (campingId, data) => {
+// Tagek szinkronizálása (egyben mentés)
+const syncCampingTags = async (campingId, tags) => {
   loading.value = true
   error.value = null
   try {
-    const response = await api.post(`/campings/${campingId}/tags`, data)
-    return response.data.data || response.data
-  } catch (err) {
-    console.error('Hiba a tag hozzáadásakor:', err)
-    error.value = getErrorMessage(err)
-    throw err
-  } finally {
-    loading.value = false
-  }
-}
-
-// Tag törlése
-const deleteCampingTag = async (campingId, tagId) => {
-  loading.value = true
-  error.value = null
-  try {
-    const response = await api.delete(`/campings/${campingId}/tags/${tagId}`)
+    const response = await api.put(`/campings/${campingId}/tags/sync`, { tags })
     return response.data
   } catch (err) {
-    console.error('Hiba a tag törlésekor:', err)
+    console.error('Hiba a tagek szinkronizálásakor:', err)
     error.value = getErrorMessage(err)
     throw err
   } finally {
@@ -428,8 +412,7 @@ export function useCamping() {
     deleteCampingPhoto,
     setMainPhoto,
     getCampingTagList,
-    addCampingTag,
-    deleteCampingTag,
+    syncCampingTags,
     getCampingGeojson,
     uploadCampingGeojson,
     deleteCampingGeojson
