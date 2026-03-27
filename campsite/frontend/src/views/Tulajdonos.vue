@@ -1202,7 +1202,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
 
   <!-- Betöltés -->
   <div v-if="pageLoading" class="text-center py-20">
-    <p class="text-lg text-gray-500">Dashboard betöltése...</p>
+    <p class="text-lg text-gray-500">Vezérlőpult betöltése...</p>
   </div>
 
   <div v-else class="container">
