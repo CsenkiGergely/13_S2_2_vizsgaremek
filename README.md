@@ -15,7 +15,8 @@
 - Fő oldalon lévő szövegek végleges megszerkesztése 
 - Kommentek perent rész fix - maximum komment logika ellenőrzése - UI megjelenítés tesztelése telefonon több kommentnél
 - AWS kép resize
-- neondb connection pooler bevezetése (ha lehetséges)
+- Neondb connection pooler bevezetése (ha lehetséges)
+- Kód átnézése egységes logika és megoldások felesleges metodusok rout ok controllerek törlése 
 
 ## Másodlagos feladatok
 
