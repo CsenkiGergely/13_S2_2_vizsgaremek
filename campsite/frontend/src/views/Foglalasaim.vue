@@ -16,6 +16,17 @@ const cancellingId = ref(null)
 const qrVisible = ref({})       // { [bookingId]: true/false }
 const qrGenerating = ref({})    // { [bookingId]: true/false }
 
+// --- Vélemény modal ---
+const showReviewModal = ref(false)
+const reviewBooking = ref(null)
+const reviewRating = ref(0)
+const reviewHover = ref(0)
+const reviewComment = ref('')
+const reviewSaving = ref(false)
+const reviewError = ref(null)
+const reviewSuccess = ref(false)
+
+
 // --- Foglalások betöltése ---
 const fetchBookings = async () => {
   try {
@@ -28,6 +39,48 @@ const fetchBookings = async () => {
     bookingsError.value = 'Nem sikerült betölteni a foglalásokat.'
   } finally {
     bookingsLoading.value = false
+  }
+}
+
+// Vélemény modal megnyitása
+const openReviewModal = (booking) => {
+  reviewBooking.value = booking
+  reviewRating.value = 0
+  reviewHover.value = 0
+  reviewComment.value = ''
+  reviewError.value = null
+  reviewSuccess.value = false
+  showReviewModal.value = true
+}
+
+// Vélemény elküldése
+const submitReview = async () => {
+  if (reviewRating.value === 0) {
+    reviewError.value = 'Kérlek válassz csillagos értékelést!'
+    return
+  }
+  if (!reviewComment.value.trim()) {
+    reviewError.value = 'Kérlek írj véleményt!'
+    return
+  }
+  reviewSaving.value = true
+  reviewError.value = null
+  try {
+    await api.post(`/campings/${reviewBooking.value.camping_id}/comments`, {
+      rating: reviewRating.value,
+      comment: reviewComment.value.trim()
+    })
+    reviewSuccess.value = true
+    // Frissítés: megkeressük a foglalást és beállítjuk has_review-t
+    const b = bookings.value.find(x => x.id === reviewBooking.value.id)
+    if (b) b.has_review = true
+    setTimeout(() => {
+      showReviewModal.value = false
+    }, 2000)
+  } catch (err) {
+    reviewError.value = err.response?.data?.message || 'Hiba történt a vélemény elküldésekor.'
+  } finally {
+    reviewSaving.value = false
   }
 }
 
@@ -200,6 +253,8 @@ onMounted(() => {
               v-if="booking.camping?.photos?.length > 0"
               :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
+              loading="lazy"
+              decoding="async"
               @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
             />
             <img
@@ -302,6 +357,8 @@ onMounted(() => {
               v-if="booking.camping?.photos?.length > 0"
               :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
+              loading="lazy"
+              decoding="async"
               @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
             />
             <img
@@ -341,12 +398,81 @@ onMounted(() => {
                 {{ (getNights(booking.arrival_date, booking.departure_date) * booking.camping_spot.price_per_night).toLocaleString('hu-HU') }} Ft
               </span>
             </div>
+
+            <!-- Vélemény gomb - csak completed foglalásokhoz -->
+            <div class="booking-actions" v-if="booking.status === 'completed'">
+              <button
+                v-if="!booking.has_review"
+                class="review-btn"
+                @click="openReviewModal(booking)"
+              >
+                ⭐ Vélemény írása
+              </button>
+              <span v-else class="review-done">✅ Értékelve</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
   </template>
+
+  <!-- Vélemény modal -->
+  <div v-if="showReviewModal" class="modal-overlay" @click.self="showReviewModal = false">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Vélemény írása</h3>
+        <button class="modal-close" @click="showReviewModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="review-camping-name">{{ reviewBooking?.camping?.camping_name }}</p>
+
+        <!-- Csillagos értékelés -->
+        <div class="star-rating">
+          <span class="star-label">Értékelés</span>
+          <div class="stars">
+            <span
+              v-for="i in 5"
+              :key="i"
+              class="star"
+              :class="{ active: i <= (reviewHover || reviewRating) }"
+              @click="reviewRating = i"
+              @mouseenter="reviewHover = i"
+              @mouseleave="reviewHover = 0"
+            >&#9733;</span>
+          </div>
+          <span class="star-count" v-if="reviewRating > 0">{{ reviewRating }}/5</span>
+        </div>
+
+        <!-- Szöveges vélemény -->
+        <div class="review-field">
+          <label>Vélemény</label>
+          <textarea
+            v-model="reviewComment"
+            placeholder="Írd le a tapasztalataidat..."
+            rows="4"
+            maxlength="1000"
+          ></textarea>
+          <span class="char-count">{{ reviewComment.length }}/1000</span>
+        </div>
+
+        <!-- Hibaüzenet -->
+        <div v-if="reviewError" class="review-error">{{ reviewError }}</div>
+
+        <!-- Sikerüzenet -->
+        <div v-if="reviewSuccess" class="review-success">✅ Vélemény sikeresen elküldve!</div>
+      </div>
+      <div class="modal-footer">
+        <button
+          class="submit-review-btn"
+          @click="submitReview"
+          :disabled="reviewSaving || reviewSuccess"
+        >
+          {{ reviewSaving ? '⏳ Küldés...' : '📤 Vélemény elküldése' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
 </div>
 </template>
@@ -723,5 +849,219 @@ onMounted(() => {
   .page-header h1 {
     font-size: 22px;
   }
+}
+
+/* Vélemény gomb */
+.review-btn {
+  padding: 7px 16px;
+  border: 1px solid #f59e0b;
+  background: #fffbeb;
+  color: #b45309;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.review-btn:hover {
+  background: #fef3c7;
+  border-color: #d97706;
+}
+
+.review-done {
+  font-size: 13px;
+  color: #059669;
+  font-weight: 600;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 14px;
+  width: 95%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #9ca3af;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #374151;
+}
+
+.modal-body {
+  padding: 22px;
+}
+
+.modal-footer {
+  padding: 16px 22px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.review-camping-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 18px;
+}
+
+/* Csillagok */
+.star-rating {
+  margin-bottom: 18px;
+}
+
+.star-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.stars {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.star {
+  font-size: 32px;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: color 0.15s, transform 0.15s;
+  user-select: none;
+}
+
+.star:hover {
+  transform: scale(1.15);
+}
+
+.star.active {
+  color: #f59e0b;
+}
+
+.star-count {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  vertical-align: super;
+}
+
+/* Szöveges vélemény */
+.review-field {
+  margin-bottom: 14px;
+}
+
+.review-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.review-field textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.review-field textarea:focus {
+  outline: none;
+  border-color: #4A7434;
+  box-shadow: 0 0 0 3px rgba(74,116,52,0.1);
+}
+
+.char-count {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.review-error {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.review-success {
+  background: #dcfce7;
+  color: #166534;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 8px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.submit-review-btn {
+  padding: 10px 22px;
+  background: #4A7434;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-review-btn:hover {
+  background: #3d6129;
+}
+
+.submit-review-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

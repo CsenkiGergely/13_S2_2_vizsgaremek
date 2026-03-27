@@ -12,6 +12,7 @@ import VerifyEmail from '../views/VerifyEmail.vue'
 import Profil from '../views/Profil.vue'
 import Foglalasaim from '../views/Foglalasaim.vue'
 import ResetPassword from '../views/ResetPassword.vue'
+import VendegAdatok from '../views/VendegAdatok.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -25,6 +26,7 @@ const routes = [
   { path: '/kemping/:id/helyek', name: 'SpotKezeles', component: SpotKezeles, meta: { requiresAuth: true } },
   { path: '/verify-email', name: 'VerifyEmail', component: VerifyEmail },
   { path: '/fizetes', name: 'Fizetes', component: Fizetes },
+  { path: '/vendeg-adatok', name: 'VendegAdatok', component: VendegAdatok, meta: { requiresAuth: true } },
   { path: '/profil', name: 'Profil', component: Profil },
   { path: '/foglalasaim', name: 'Foglalasaim', component: Foglalasaim, meta: { requiresAuth: true } },
   { path: '/reset-password', name: 'ResetPassword', component: ResetPassword },
@@ -36,6 +38,14 @@ const router = createRouter({
   routes,
   scrollBehavior() {
     return { top: 0 }
+  }
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth && !localStorage.getItem('auth_token')) {
+    next({ name: 'Felhasznalo' })
+  } else {
+    next()
   }
 })
 

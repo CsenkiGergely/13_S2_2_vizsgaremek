@@ -17,12 +17,14 @@ class Camping extends Model
         'tax_id',
         'billing_address',
         'geojson',
+        'required_guest_fields',
     ];
 
     protected function casts(): array
     {
         return [
             'geojson' => 'array',
+            'required_guest_fields' => 'array',
         ];
     }
 

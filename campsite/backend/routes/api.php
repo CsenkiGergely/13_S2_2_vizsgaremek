@@ -25,11 +25,11 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // Auth
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,15');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
 Route::post('/resend-verification', [AuthController::class, 'resendVerification']);
 
@@ -130,7 +130,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/user-guests/{id}', [UserGuestController::class, 'destroy']);
 
     // Kemping tag-ek kezelése (csak tulajdonosoknak)
-    Route::post('/campings/{campingId}/tags', [CampingTagController::class, 'store']);
-    Route::delete('/campings/{campingId}/tags/{tagId}', [CampingTagController::class, 'destroy']);
+    Route::put('/campings/{campingId}/tags/sync', [CampingTagController::class, 'sync']);
 
 });

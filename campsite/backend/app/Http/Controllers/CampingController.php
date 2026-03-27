@@ -203,6 +203,8 @@ class CampingController extends Controller
             'street_address' => 'sometimes|string|max:200',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'required_guest_fields' => 'nullable|array',
+            'required_guest_fields.*' => 'string',
         ]);
 
         // isset megnézése 
@@ -223,6 +225,7 @@ class CampingController extends Controller
             'company_name' => $fields['company_name'] ?? $camping->company_name,
             'tax_id' => $fields['tax_id'] ?? $camping->tax_id,
             'billing_address' => $fields['billing_address'] ?? $camping->billing_address,
+            'required_guest_fields' => array_key_exists('required_guest_fields', $fields) ? $fields['required_guest_fields'] : $camping->required_guest_fields,
         ]);
 
         

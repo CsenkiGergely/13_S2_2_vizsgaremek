@@ -115,6 +115,25 @@ const reviewsCount = computed(() => {
   return camping.value?.reviews_count || 0
 })
 
+// Vélemények megjelenítése
+const showAllComments = ref(false)
+const visibleComments = computed(() => {
+  if (showAllComments.value) return comments.value
+  return comments.value.slice(0, 3)
+})
+
+const timeAgo = (dateStr) => {
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diff = Math.floor((now - date) / 1000)
+  if (diff < 60) return 'most'
+  if (diff < 3600) return `${Math.floor(diff / 60)} perce`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} órája`
+  if (diff < 2592000) return `${Math.floor(diff / 86400)} napja`
+  if (diff < 31536000) return `${Math.floor(diff / 2592000)} hónapja`
+  return `${Math.floor(diff / 31536000)} éve`
+}
+
 const hasGeoJson = computed(() => {
   return !!(camping.value?.geojson)
 })
@@ -241,10 +260,10 @@ const handleBooking = async () => {
     return
   }
 
-  // Foglalás adatai átadása a fizetési oldalnak (a foglalás csak fizetés után jön létre)
+  // Foglalás adatai átadása a vendég adatok oldalnak
   bookingLoading.value = true
   router.push({
-    path: '/fizetes',
+    path: '/vendeg-adatok',
     query: {
       campingId: camping.value.id,
       campingSpotId: selectedSpot.value.spot_id,
@@ -416,7 +435,11 @@ onMounted(async () => {
 
       <!-- Képgaléria -->
       <div class="relative rounded-xl overflow-hidden shadow-lg" v-if="images.length > 0">
-        <img :src="images[currentImage]" :alt="camping.camping_name" class="w-full h-96 md:h-[500px] object-cover"
+        <img :src="images[currentImage]" :alt="camping.camping_name" class="w-full h-96 md:h-[500px] object-cover bg-[#e8ede5]"
+             loading="lazy"
+             decoding="async"
+             width="1140"
+             height="500"
              @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'" />
         <template v-if="images.length > 1">
           <button @click="prevImage"
@@ -518,45 +541,58 @@ onMounted(async () => {
 
           <!-- Vendég vélemények -->
           <div class="border-t border-gray-200 pt-6" v-if="comments.length > 0">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Vendég vélemények</h2>
-            <div class="flex items-center gap-2 mb-6" v-if="avgRating > 0">
-              <span class="text-yellow-500 text-3xl">&#9733;</span>
-              <span class="text-2xl font-bold text-gray-800">{{ avgRating.toFixed(1) }}</span>
-              <span class="text-gray-500">· {{ reviewsCount }} értékelés</span>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-2xl font-semibold text-gray-800">Vendég vélemények</h2>
+              <div class="flex items-center gap-2" v-if="avgRating > 0">
+                <span class="text-yellow-500 text-2xl">&#9733;</span>
+                <span class="text-xl font-bold text-gray-800">{{ avgRating.toFixed(1) }}</span>
+                <span class="text-gray-400 text-sm">({{ reviewsCount }})</span>
+              </div>
             </div>
 
             <div class="space-y-4">
-              <div v-for="comment in comments" :key="comment.id" class="pb-4 border-b border-gray-200">
-                <div class="flex items-center gap-2 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-semibold text-gray-600">
+              <div v-for="comment in visibleComments" :key="comment.id" class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+                <div class="flex items-start gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-full bg-[#4A7434] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {{ comment.user?.owner_first_name?.charAt(0)?.toUpperCase() || '?' }}
                   </div>
-                  <div>
-                    <p class="font-medium text-gray-800">
-                      {{ comment.user ? `${comment.user.owner_last_name || ''} ${comment.user.owner_first_name || ''}`.trim() : 'Ismeretlen' }}
-                    </p>
-                    <p class="text-xs text-gray-500">{{ new Date(comment.created_at).toLocaleDateString('hu-HU') }}</p>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                      <p class="font-semibold text-gray-800">
+                        {{ comment.user ? `${comment.user.owner_last_name || ''} ${comment.user.owner_first_name || ''}`.trim() : 'Ismeretlen' }}
+                      </p>
+                      <span class="text-xs text-gray-400 flex-shrink-0">{{ timeAgo(comment.created_at) }}</span>
+                    </div>
+                    <div class="flex items-center gap-0.5 mt-1" v-if="comment.rating">
+                      <span v-for="i in 5" :key="i" class="text-base" :class="i <= comment.rating ? 'text-yellow-400' : 'text-gray-200'">&#9733;</span>
+                    </div>
                   </div>
                 </div>
-                <div class="flex items-center gap-1 mb-2" v-if="comment.rating">
-                  <span v-for="i in 5" :key="i" class="text-xl" :class="i <= comment.rating ? 'text-yellow-400' : 'text-gray-300'">&#9733;</span>
-                  <span class="text-sm font-semibold text-gray-700 ml-1">{{ comment.rating }}/5</span>
-                </div>
-                <p class="text-gray-600" v-if="comment.comment">{{ comment.comment }}</p>
+                <p class="text-gray-600 text-sm leading-relaxed" v-if="comment.comment">{{ comment.comment }}</p>
 
                 <!-- Válaszok -->
-                <div v-if="comment.children_recursive && comment.children_recursive.length > 0" class="ml-12 mt-3 space-y-3">
-                  <div v-for="reply in comment.children_recursive" :key="reply.id" class="bg-gray-50 rounded-lg p-3">
-                    <div class="flex items-center gap-2 mb-1">
-                      <p class="font-medium text-gray-700 text-sm">
+                <div v-if="comment.children_recursive && comment.children_recursive.length > 0" class="mt-4 ml-6 space-y-3">
+                  <div v-for="reply in comment.children_recursive" :key="reply.id" class="bg-gray-50 rounded-lg p-3 border-l-3 border-[#4A7434]/30">
+                    <div class="flex items-center justify-between mb-1">
+                      <p class="font-semibold text-gray-700 text-sm">
                         {{ reply.user ? `${reply.user.owner_last_name || ''} ${reply.user.owner_first_name || ''}`.trim() : 'Tulajdonos' }}
                       </p>
-                      <p class="text-xs text-gray-400">{{ new Date(reply.created_at).toLocaleDateString('hu-HU') }}</p>
+                      <span class="text-xs text-gray-400">{{ timeAgo(reply.created_at) }}</span>
                     </div>
                     <p class="text-gray-600 text-sm">{{ reply.comment }}</p>
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- Több vélemény gomb -->
+            <div v-if="comments.length > 3" class="mt-5 text-center">
+              <button
+                @click="showAllComments = !showAllComments"
+                class="inline-flex items-center gap-1 px-5 py-2.5 text-sm font-semibold text-[#4A7434] bg-green-50 border border-[#4A7434]/20 rounded-lg hover:bg-green-100 transition"
+              >
+                {{ showAllComments ? 'Kevesebb vélemény' : `Összes vélemény (${comments.length})` }}
+              </button>
             </div>
           </div>
         </div>

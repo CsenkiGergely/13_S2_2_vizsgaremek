@@ -20,49 +20,30 @@ class CampingTagController extends Controller
     }
 
     /**
-     * Új tag hozzáadása egy kempinghez (csak tulajdonos)
+     * Tagek szinkronizálása — a megadott lista lesz az aktuális (csak tulajdonos)
      */
-    public function store(Request $request, string $campingId)
+    public function sync(Request $request, string $campingId)
     {
         $camping = Camping::where('user_id', $request->user()->id)
             ->findOrFail($campingId);
 
         $fields = $request->validate([
-            'tag' => 'required|string|max:100',
+            'tags' => 'required|array',
+            'tags.*' => 'string|max:100',
         ]);
 
-        // Ellenőrizzük, hogy a tag még nem létezik ennél a kempingnél
-        $exists = CampingTag::where('camping_id', $camping->id)
-            ->where('tag', $fields['tag'])
-            ->exists();
+        // Töröljük a régieket
+        CampingTag::where('camping_id', $camping->id)->delete();
 
-        if ($exists) {
-            return response()->json([
-                'message' => 'Ez a tag már létezik ennél a kempingnél.'
-            ], 422);
+        // Újakat hozzáadjuk
+        $tags = [];
+        foreach (array_unique($fields['tags']) as $tagName) {
+            $tags[] = CampingTag::create([
+                'camping_id' => $camping->id,
+                'tag' => $tagName,
+            ]);
         }
 
-        $tag = CampingTag::create([
-            'camping_id' => $camping->id,
-            'tag' => $fields['tag'],
-        ]);
-
-        return response()->json($tag, 201);
-    }
-
-    /**
-     * Tag törlése (csak tulajdonos)
-     */
-    public function destroy(Request $request, string $campingId, string $tagId)
-    {
-        $camping = Camping::where('user_id', $request->user()->id)
-            ->findOrFail($campingId);
-
-        $tag = CampingTag::where('camping_id', $camping->id)
-            ->findOrFail($tagId);
-
-        $tag->delete();
-
-        return response()->json(['message' => 'Tag törölve.']);
+        return response()->json($tags, 200);
     }
 }
