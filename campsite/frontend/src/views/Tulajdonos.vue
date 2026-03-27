@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useBooking } from '../composables/useBooking'
 import { useGate } from '../composables/useGate'
 import { useDashboard } from '../composables/useDashboard'
 import { useCamping } from '../composables/useCamping'
+import { AVAILABLE_TAGS as availableTags } from '../constants/campingTags.js'
 import AuthModal from '../components/AuthModal.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -19,7 +20,7 @@ const {
   generateToken, revokeToken,
 } = useGate()
 const { dashboard, getDashboard } = useDashboard()
-const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, uploadCampingPhoto, deleteCampingPhoto, getCampingPhotoList, loading: campingLoading, error: campingError } = useCamping()
+const { createCamping, updateCamping, campingTagList, syncCampingTags, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, uploadCampingPhoto, deleteCampingPhoto, setMainPhoto, getCampingPhotoList, loading: campingLoading, error: campingError } = useCamping()
 
 const activeTab = ref('dashboard')
 const monthlyRevenue = ref(0)
@@ -68,6 +69,8 @@ const editSpotError = ref(null)
 const showTagModal = ref(false)
 const tagModalCampingId = ref(null)
 const tagModalExisting = ref([])
+const tagModalSaving = ref(false)
+const tagModalSuccess = ref(false)
 
 // Térkép tab
 const showGeojsonGuide = ref(false)
@@ -85,8 +88,69 @@ const mapContainerRef = ref(null)
 const photoUploading = ref(false)
 const photoFileInput = ref(null)
 const newCampingPhotoFiles = ref([])  // Új kemping létrehozásnál kiválasztott fájlok
+const newCampingMainIndex = ref(0)    // Melyik kép legyen a fő kép (index)
 const mapCodeOpen = ref(false)
 let leafletMap = null
+
+// Vendég mezők beállítása
+const showGuestFieldsModal = ref(false)
+const guestFieldsModalCampingId = ref(null)
+const guestFieldsModalSelected = ref([])
+const guestFieldsSaving = ref(false)
+const guestFieldsSuccess = ref(false)
+
+const allGuestFields = [
+  { key: 'first_name', label: 'Keresztnév' },
+  { key: 'last_name', label: 'Vezetéknév' },
+  { key: 'birth_date', label: 'Születési dátum' },
+  { key: 'place_of_birth', label: 'Születési hely' },
+  { key: 'gender', label: 'Nem' },
+  { key: 'citizenship', label: 'Állampolgárság' },
+  { key: 'mothers_birth_name', label: 'Anyja születési neve' },
+  { key: 'id_card_number', label: 'Személyi igazolvány szám' },
+  { key: 'passport_number', label: 'Útlevél szám' },
+  { key: 'visa', label: 'Vízum' },
+  { key: 'resident_permit_number', label: 'Tartózkodási engedély szám' },
+  { key: 'date_of_entry', label: 'Belépés dátuma' },
+  { key: 'place_of_entry', label: 'Belépés helye' },
+]
+
+function openGuestFieldsModal(campingId) {
+  const camping = overviewData.value.find(i => i.camping.id === campingId)?.camping
+  guestFieldsModalCampingId.value = campingId
+  guestFieldsModalSelected.value = [...(camping?.required_guest_fields || [])]
+  guestFieldsSuccess.value = false
+  showGuestFieldsModal.value = true
+}
+
+const toggleGuestFieldModal = (fieldKey) => {
+  const idx = guestFieldsModalSelected.value.indexOf(fieldKey)
+  if (idx === -1) {
+    guestFieldsModalSelected.value.push(fieldKey)
+  } else {
+    guestFieldsModalSelected.value.splice(idx, 1)
+  }
+}
+
+const saveGuestFields = async () => {
+  guestFieldsSaving.value = true
+  guestFieldsSuccess.value = false
+  try {
+    const campingId = guestFieldsModalCampingId.value
+    await updateCamping(campingId, {
+      required_guest_fields: guestFieldsModalSelected.value
+    })
+    // Frissítjük a lokális adatot is
+    const camping = overviewData.value.find(i => i.camping.id === campingId)?.camping
+    if (camping) camping.required_guest_fields = [...guestFieldsModalSelected.value]
+    guestFieldsSuccess.value = true
+    setTimeout(() => { guestFieldsSuccess.value = false }, 3000)
+  } catch (e) {
+    console.error('Vendég mezők mentési hiba:', e)
+  } finally {
+    guestFieldsSaving.value = false
+  }
+}
 let geojsonLayer = null
 
 const checkAuthentication = () => {
@@ -468,32 +532,36 @@ async function handleEditSpotSave() {
 function openTagModal(campingId, existingTags) {
   tagModalCampingId.value = campingId
   tagModalExisting.value = existingTags.map(t => t.tag ?? t)
+  tagModalSuccess.value = false
   showTagModal.value = true
 }
 
-async function handleToggleTagFromModal(campingId, tag, existingTags) {
-  const exists = existingTags.some(t => (t.tag ?? t) === tag)
-  if (exists) {
-    const found = existingTags.find(t => (t.tag ?? t) === tag)
-    if (found && found.id) {
-      try {
-        await deleteCampingTag(campingId, found.id)
-        await loadOverviewForCamping(overviewSelectedCampingId.value)
-      } catch (err) {
-        console.error('Tag törlés hiba:', err)
-      }
-    }
+function toggleTagInModal(tag) {
+  const idx = tagModalExisting.value.indexOf(tag)
+  if (idx === -1) {
+    tagModalExisting.value.push(tag)
   } else {
-    try {
-      await addCampingTag(campingId, { tag })
-      await loadOverviewForCamping(overviewSelectedCampingId.value)
-    } catch (err) {
-      console.error('Tag hozzáadás hiba:', err)
-    }
+    tagModalExisting.value.splice(idx, 1)
   }
-  // Frissítjük a modal meglévő listáját
-  const updated = overviewData.value.find(i => i.camping.id === campingId)
-  if (updated) tagModalExisting.value = updated.tags.map(t => t.tag ?? t)
+}
+
+async function saveTagsFromModal() {
+  tagModalSaving.value = true
+  tagModalSuccess.value = false
+  try {
+    const savedTags = await syncCampingTags(tagModalCampingId.value, tagModalExisting.value)
+    // Frissítjük az overview adatokat közvetlenül, API hívás nélkül
+    const item = overviewData.value.find(i => i.camping.id === tagModalCampingId.value)
+    if (item) {
+      item.tags = Array.isArray(savedTags) ? savedTags : tagModalExisting.value.map(t => ({ tag: t }))
+    }
+    tagModalSuccess.value = true
+    setTimeout(() => { tagModalSuccess.value = false }, 3000)
+  } catch (err) {
+    console.error('Tag mentési hiba:', err)
+  } finally {
+    tagModalSaving.value = false
+  }
 }
 
 // Áttekintésből hely törlés
@@ -509,12 +577,15 @@ async function handleDeleteSpot(campingId, spotId) {
   }
 }
 
-// Áttekintésből tag törlés
+// Áttekintésből tag törlés (sync-kel)
 async function handleDeleteTag(campingId, tagId) {
   if (!confirm('Biztosan törölni akarod ezt a taget?')) return
   try {
-    await deleteCampingTag(campingId, tagId)
-    await loadOverviewForCamping(campingId)
+    const item = overviewData.value.find(i => i.camping.id === campingId)
+    if (!item) return
+    const remainingTags = item.tags.filter(t => (t.id ?? t) !== tagId).map(t => t.tag ?? t)
+    const savedTags = await syncCampingTags(campingId, remainingTags)
+    item.tags = Array.isArray(savedTags) ? savedTags : remainingTags.map(t => ({ tag: t }))
   } catch (err) {
     console.error('Tag törlés sikertelen:', err)
     alert('Nem sikerült törölni: ' + (err.response?.data?.message || err.message))
@@ -572,6 +643,36 @@ async function handlePhotoDelete(campingId, photoId) {
     await loadOverviewForCamping(campingId)
   } catch (err) {
     console.error('Kép törlési hiba:', err)
+  }
+}
+
+// Fő kép beállítása — a kiválasztott kép az első helyre kerül
+async function handleSetMainPhoto(campingId, photoId) {
+  try {
+    await setMainPhoto(campingId, photoId)
+    await loadOverviewForCamping(campingId)
+  } catch (err) {
+    console.error('Fő kép beállítási hiba:', err)
+  }
+}
+
+// Fájl előnézet URL generálása (böngésző lokális blob URL)
+function getFilePreview(file) {
+  return URL.createObjectURL(file)
+}
+
+// Kép eltávolítása az új kemping képlistából
+function removeNewCampingPhoto(index) {
+  const files = [...newCampingPhotoFiles.value]
+  files.splice(index, 1)
+  newCampingPhotoFiles.value = files
+  // Ha a fő kép indexét töröltük, reseteljük 0-ra
+  if (newCampingMainIndex.value >= files.length) {
+    newCampingMainIndex.value = Math.max(0, files.length - 1)
+  } else if (newCampingMainIndex.value === index) {
+    newCampingMainIndex.value = 0
+  } else if (newCampingMainIndex.value > index) {
+    newCampingMainIndex.value--
   }
 }
 
@@ -724,23 +825,6 @@ const campingFormSuccess = ref(null)
 
 // Tag kezelés – előre megadható, elküldés a kemping létrehozásával együtt
 const showInfoNotice = ref(true)
-const availableTags = [
-  'Sátorhelyek',
-  'Lakókocsi beálló',
-  'Áramcsatlakozás',
-  'Ivóvíz vételi hely',
-  'Közös zuhanyzó',
-  'Közös mosdó',
-  'Mosókonyha',
-  'Tűzrakóhely',
-  'Játszótér',
-  'Kutyabarát',
-  'Kerékpárkölcsönzés',
-  'Horgászási lehetőség',
-  'Vízparti hozzáférés',
-  'Árnyékos parcellák',
-  'Hulladékgyűjtő pont',
-]
 const pendingTags = ref([]) // helyi lista, még nem mentve az API-ra
 
 function toggleTag(tag) {
@@ -793,12 +877,20 @@ async function handleAddCamping() {
 
     // Tagek mentése az újonnan létrehozott kempinghez
     if (newId && pendingTags.value.length > 0) {
-      await Promise.all(pendingTags.value.map(tag => addCampingTag(newId, { tag })))
+      await syncCampingTags(newId, pendingTags.value)
     }
 
     // Képek feltöltése az újonnan létrehozott kempinghez
+    // A fő képet (mainIndex) elsőként töltjük fel, így az kapja a legkisebb photo_id-t
     if (newId && newCampingPhotoFiles.value.length > 0) {
-      for (const file of newCampingPhotoFiles.value) {
+      const files = [...newCampingPhotoFiles.value]
+      const mainIdx = newCampingMainIndex.value
+      // Fő kép elsőként
+      if (mainIdx >= 0 && mainIdx < files.length) {
+        const mainFile = files.splice(mainIdx, 1)[0]
+        files.unshift(mainFile)
+      }
+      for (const file of files) {
         await uploadCampingPhoto(newId, file)
       }
     }
@@ -811,6 +903,7 @@ async function handleAddCamping() {
     }
     pendingTags.value = []
     newCampingPhotoFiles.value = []
+    newCampingMainIndex.value = 0
     await fetchMyCampings()
   } catch (err) {
     campingFormError.value = err.response?.data?.message || campingError.value || 'Hiba történt a kemping létrehozásakor.'
@@ -1092,6 +1185,17 @@ onMounted(async () => {
   }
 })
 
+// Scroll lock – ha bármelyik modal nyitva van, a háttér ne legyen görgethető
+const anyModalOpen = computed(() =>
+  showEditCampingModal.value || showEditSpotModal.value || showTagModal.value ||
+  showBookingDetailModal.value || showGateModal.value || showRenameModal.value ||
+  showTokenModal.value || showGeojsonGuide.value || showGuestFieldsModal.value
+)
+watch(anyModalOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+})
+onUnmounted(() => { document.body.style.overflow = '' })
+
 </script>
 
 <template>
@@ -1186,14 +1290,13 @@ onMounted(async () => {
 
             <!-- Tagek -->
             <div class="overview-section">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="overview-section-header">
                 <h5 class="overview-section-title" style="margin:0;">Tagek</h5>
                 <button class="btn-add-gate" style="font-size:12px; padding:5px 12px;" @click="openTagModal(item.camping.id, item.tags)">+ Tag kezelés</button>
               </div>
               <div v-if="item.tags.length > 0" class="tag-list">
                 <span v-for="t in item.tags" :key="t.id ?? t.tag ?? t" class="tag-badge">
                   {{ t.tag ?? t }}
-                  <button class="tag-remove" @click="handleDeleteTag(item.camping.id, t.id)" title="Tag törlése">✕</button>
                 </span>
               </div>
               <p v-else class="tag-empty">Nincsenek tagek hozzáadva.</p>
@@ -1201,7 +1304,7 @@ onMounted(async () => {
 
             <!-- Képek -->
             <div class="overview-section">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="overview-section-header">
                 <h5 class="overview-section-title" style="margin:0;">Képek</h5>
                 <label class="btn-add-gate" style="font-size:12px; padding:5px 12px; cursor:pointer;">
                   {{ photoUploading ? '⏳ Feltöltés...' : '+ Kép feltöltése' }}
@@ -1211,9 +1314,15 @@ onMounted(async () => {
                 </label>
               </div>
               <div v-if="item.photos && item.photos.length > 0" class="photo-grid">
-                <div v-for="photo in item.photos" :key="photo.photo_id" class="photo-grid-item">
-                  <img :src="'http://localhost:8000' + photo.photo_url" :alt="'Kemping kép'" @error="$event.target.src = '/img/night-1189929_1920.jpg'" />
-                  <button class="photo-delete-btn" @click="handlePhotoDelete(item.camping.id, photo.photo_id)" title="Kép törlése">✕</button>
+                <div v-for="(photo, photoIndex) in item.photos" :key="photo.photo_id" class="photo-grid-item" :class="{ 'photo-main': photoIndex === 0 }">
+                  <!-- Fő kép jelölő badge -->
+                  <span v-if="photoIndex === 0" class="photo-main-badge">★ Fő kép</span>
+                  <!-- Kép megjelenítés: S3 URL-t közvetlenül, lokálisat prefix-elve -->
+                  <img :src="photo.photo_url.startsWith('http') ? photo.photo_url : 'http://localhost:8000' + photo.photo_url" :alt="'Kemping kép'" loading="lazy" decoding="async" @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'" />
+                  <div class="photo-actions">
+                    <button v-if="photoIndex !== 0" class="photo-main-btn" @click="handleSetMainPhoto(item.camping.id, photo.photo_id)" title="Beállítás fő képnek">★</button>
+                    <button class="photo-delete-btn" @click="handlePhotoDelete(item.camping.id, photo.photo_id)" title="Kép törlése"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+                  </div>
                 </div>
               </div>
               <p v-else class="tag-empty">Nincsenek képek feltöltve.</p>
@@ -1263,6 +1372,20 @@ onMounted(async () => {
                 <div class="overview-company-row" v-if="item.camping.tax_id"><span>Adószám</span><strong>{{ item.camping.tax_id }}</strong></div>
                 <div class="overview-company-row" v-if="item.camping.billing_address"><span>Számlázási cím</span><strong>{{ item.camping.billing_address }}</strong></div>
               </div>
+            </div>
+
+            <!-- Vendég adatok beállítása -->
+            <div class="overview-section">
+              <div class="overview-section-header">
+                <h5 class="overview-section-title" style="margin:0;">Kért vendég adatok</h5>
+                <button class="btn-add-gate" style="font-size:12px; padding:5px 12px;" @click="openGuestFieldsModal(item.camping.id)">⚙ Beállítás</button>
+              </div>
+              <div v-if="(item.camping.required_guest_fields || []).length > 0" class="tag-list">
+                <span v-for="key in item.camping.required_guest_fields" :key="key" class="tag-badge">
+                  {{ allGuestFields.find(f => f.key === key)?.label || key }}
+                </span>
+              </div>
+              <p v-else class="tag-empty">Nincsenek vendég adatok beállítva.</p>
             </div>
           </div>
         </div>
@@ -1395,13 +1518,48 @@ onMounted(async () => {
               class="tag-checkbox-item"
               :class="{ selected: tagModalExisting.includes(tag) }"
             >
-              <input type="checkbox" :checked="tagModalExisting.includes(tag)" @change="handleToggleTagFromModal(tagModalCampingId, tag, overviewData.find(i => i.camping.id === tagModalCampingId)?.tags || [])" />
+              <input type="checkbox" :checked="tagModalExisting.includes(tag)" @change="toggleTagInModal(tag)" />
               <span>{{ tag }}</span>
             </label>
           </div>
+          <div v-if="tagModalSuccess" class="modal-success-msg">✅ Sikeresen mentve!</div>
         </div>
         <div class="modal-footer">
-          <button class="btn-submit-camping" style="max-width:140px;" @click="showTagModal = false">Kész</button>
+          <button class="btn-submit-camping" style="max-width:160px;" @click="saveTagsFromModal" :disabled="tagModalSaving">
+            {{ tagModalSaving ? '⏳ Mentés...' : '💾 Mentés' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VENDÉG ADATOK MODAL -->
+    <div v-if="showGuestFieldsModal" class="modal-overlay" @click.self="showGuestFieldsModal = false">
+      <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header">
+          <h3>Kért vendég adatok</h3>
+          <button class="modal-close" @click="showGuestFieldsModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px; color:#6b7280; margin:0 0 14px;">Válaszd ki, mely adatokat kéred a vendégektől foglaláskor.</p>
+          <div class="tag-checkbox-grid">
+            <label
+              v-for="field in allGuestFields"
+              :key="field.key"
+              class="tag-checkbox-item"
+              :class="{ selected: guestFieldsModalSelected.includes(field.key) }"
+            >
+              <input type="checkbox"
+                :checked="guestFieldsModalSelected.includes(field.key)"
+                @change="toggleGuestFieldModal(field.key)" />
+              <span>{{ field.label }}</span>
+            </label>
+          </div>
+          <div v-if="guestFieldsSuccess" class="modal-success-msg">✅ Sikeresen mentve!</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-submit-camping" style="max-width:160px;" @click="saveGuestFields" :disabled="guestFieldsSaving">
+            {{ guestFieldsSaving ? '⏳ Mentés...' : '💾 Mentés' }}
+          </button>
         </div>
       </div>
     </div>
@@ -2090,10 +2248,20 @@ onMounted(async () => {
           <label class="btn-add-gate" style="font-size:13px; padding:8px 14px; cursor:pointer; display:inline-block;">
             + Képek kiválasztása
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
-              @change="newCampingPhotoFiles = [...$event.target.files]" />
+              @change="newCampingPhotoFiles = [...$event.target.files]; newCampingMainIndex = 0" />
           </label>
-          <div v-if="newCampingPhotoFiles.length > 0" style="margin-top:10px; font-size:13px; color:#4b5563;">
-            {{ newCampingPhotoFiles.length }} kép kiválasztva
+          <!-- Kép előnézetek + fő kép kiválasztás -->
+          <div v-if="newCampingPhotoFiles.length > 0" class="photo-grid" style="margin-top:12px;">
+            <div v-for="(file, idx) in newCampingPhotoFiles" :key="idx"
+                 class="photo-grid-item"
+                 :class="{ 'photo-main': idx === newCampingMainIndex }">
+              <span v-if="idx === newCampingMainIndex" class="photo-main-badge">★ Fő kép</span>
+              <img :src="getFilePreview(file)" alt="Előnézet" />
+              <div class="photo-actions">
+                <button v-if="idx !== newCampingMainIndex" type="button" class="photo-main-btn" @click="newCampingMainIndex = idx" title="Beállítás fő képnek">★</button>
+                <button type="button" class="photo-delete-btn" @click="removeNewCampingPhoto(idx)" title="Kép eltávolítása"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2277,6 +2445,11 @@ onMounted(async () => {
     .tabs::-webkit-scrollbar {
       display: none; /* Chrome, Safari */
     }
+
+    .tab {
+      padding: 7px 10px;
+      font-size: 13px;
+    }
   }
 
   .tab {
@@ -2285,6 +2458,8 @@ onMounted(async () => {
     cursor: pointer;
     border-radius: 8px;
     color: #374151;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .tab.active {
@@ -2787,6 +2962,18 @@ onMounted(async () => {
     margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid #f3f4f6;
+  }
+
+  .modal-success-msg {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
   }
 
   .form-group {
@@ -3407,6 +3594,15 @@ onMounted(async () => {
     margin-top: 20px;
   }
 
+  .overview-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
   .overview-section-title {
     font-size: 13px;
     font-weight: 700;
@@ -3571,6 +3767,30 @@ onMounted(async () => {
 
   .overview-company-row strong {
     color: #1f2937;
+  }
+
+
+  /* Áttekintés mobil nézet */
+  @media (max-width: 640px) {
+    .overview-card-header {
+      padding: 14px 14px;
+      flex-wrap: wrap;
+    }
+    .overview-card-body {
+      padding: 0 14px 14px;
+    }
+    .overview-card-stats {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .overview-spots-grid {
+      grid-template-columns: 1fr;
+    }
+    .overview-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
   }
 
   /* Kemping hely felvitel */
@@ -4098,7 +4318,7 @@ onMounted(async () => {
   /* Képgaléria */
   .photo-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 10px;
   }
   .photo-grid-item {
@@ -4114,25 +4334,99 @@ onMounted(async () => {
     display: block;
   }
   .photo-delete-btn {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: none;
-    background: rgba(0,0,0,0.6);
+    background: rgba(220,38,38,0.85);
     color: #fff;
-    font-size: 13px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.15s, transform 0.15s;
   }
-  .photo-grid-item:hover .photo-delete-btn {
+  .photo-grid-item:hover .photo-delete-btn,
+  .photo-grid-item:hover .photo-main-btn {
     opacity: 1;
+  }
+
+  /* Fő kép jelölés */
+  .photo-main {
+    outline: 3px solid #4A7434;
+    outline-offset: -3px;
+    box-shadow: 0 0 0 3px #4A7434;
+  }
+  .photo-main-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: #4A7434;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .photo-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+  .photo-main-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(74,116,52,0.85);
+    color: #ffe066;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .photo-main-btn:hover {
+    background: #4A7434;
+    transform: scale(1.1);
+  }
+  .photo-delete-btn:hover {
+    background: rgba(220,38,38,1);
+    transform: scale(1.1);
+  }
+
+  /* Mobil nézet - képgaléria */
+  @media (max-width: 768px) {
+    .photo-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .photo-actions {
+      gap: 8px;
+    }
+    .photo-main-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+    }
+  }
+  @media (max-width: 480px) {
+    .photo-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
   }
 
 </style>

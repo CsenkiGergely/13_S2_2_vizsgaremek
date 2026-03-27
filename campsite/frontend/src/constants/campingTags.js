@@ -1,0 +1,17 @@
+export const AVAILABLE_TAGS = [
+  'Sátorhelyek',
+  'Lakókocsi beálló',
+  'Áramcsatlakozás',
+  'Ivóvíz vételi hely',
+  'Közös zuhanyzó',
+  'Közös mosdó',
+  'Mosókonyha',
+  'Tűzrakóhely',
+  'Játszótér',
+  'Kutyabarát',
+  'Kerékpárkölcsönzés',
+  'Horgászási lehetőség',
+  'Vízparti hozzáférés',
+  'Árnyékos parcellák',
+  'Hulladékgyűjtő pont',
+]

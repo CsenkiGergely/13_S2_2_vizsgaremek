@@ -29,8 +29,8 @@ class CampingSpotController extends Controller
                 // Van-e aktív foglalás erre az időszakra
                 $spot->is_booked = $spot->bookings()
                     ->where('status', '!=', 'cancelled')
-                    ->where('start_date', '<', $endDate)
-                    ->where('end_date', '>', $startDate)
+                    ->where('arrival_date', '<', $endDate)
+                    ->where('departure_date', '>', $startDate)
                     ->exists();
             } else {
                 $spot->is_booked = false;

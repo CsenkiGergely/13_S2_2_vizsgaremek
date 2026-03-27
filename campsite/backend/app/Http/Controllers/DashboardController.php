@@ -57,7 +57,7 @@ class DashboardController extends Controller
         // havi bevetel - csak a sajat kempingek foglalasai
         $monthlyRevenue = Booking::with('campingSpot')
             ->whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $currentMonth)
             ->whereYear('departure_date', $currentYear)
             ->get()
@@ -66,7 +66,7 @@ class DashboardController extends Controller
         // elozo honap bevetel
         $previousMonthlyRevenue = Booking::with('campingSpot')
             ->whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $prevMonth)
             ->whereYear('departure_date', $prevYear)
             ->get()
@@ -75,7 +75,7 @@ class DashboardController extends Controller
         // atlagos foglalasi ertekek - sajat kempingekre
         $currentMonthBookings = Booking::with('campingSpot')
             ->whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $currentMonth)
             ->whereYear('departure_date', $currentYear)
             ->get();
@@ -88,7 +88,7 @@ class DashboardController extends Controller
 
         $previousMonthBookings = Booking::with('campingSpot')
             ->whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $prevMonth)
             ->whereYear('departure_date', $prevYear)
             ->get();
@@ -128,7 +128,7 @@ class DashboardController extends Controller
             ->count();
 
         $previousBookedSpots = Booking::whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $prevMonth)
             ->whereYear('departure_date', $prevYear)
             ->distinct('camping_spot_id')

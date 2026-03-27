@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api/axios'
 import { searchCampings } from '../api/searchService'
+import { AVAILABLE_TAGS } from '../constants/campingTags.js'
 import Slider from 'primevue/slider'
 
 const route = useRoute()
@@ -102,8 +103,16 @@ const fetchCampsites = async (isNewSearch = true) => {
   // Első (új) kereséskor frissítjük a tag-listát és az ár határokat a backendről
   if (isNewSearch) {
     api.get('/search/tags').then(res => {
-      availableTags.value = res.data
-    }).catch(() => {})
+      const apiTags = res.data || []
+      const countMap = {}
+      apiTags.forEach(t => { countMap[t.name] = t.count })
+      availableTags.value = AVAILABLE_TAGS.map(name => ({
+        name,
+        count: countMap[name] || 0
+      }))
+    }).catch(() => {
+      availableTags.value = AVAILABLE_TAGS.map(name => ({ name, count: 0 }))
+    })
 
     api.get('/search/prices').then(res => {
       const { min_price, max_price } = res.data
@@ -198,14 +207,15 @@ const fetchCampsites = async (isNewSearch = true) => {
   }
 }
 
-// Kép URL kinyerése
+// Kép URL kinyerése – S3 és lokális képekkel is kompatibilis
 const getFirstPhoto = (camping) => {
   if (camping.photos && camping.photos.length > 0) {
     const url = camping.photos[0].photo_url || camping.photos[0].url || camping.photos[0]
+    // S3 URL visszaadása
     return url.startsWith('http') ? url : 'http://localhost:8000' + url
   }
   if (camping.image) return camping.image
-  return 'http://localhost:8000/storage/campings/placeholder.webp'
+  return 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'
 }
 
 // Tag-ek normalizálása
@@ -516,7 +526,11 @@ watch(() => route.query, (newQuery) => {
                 <img 
                     :src="camping.image" 
                     :alt="camping.name"
-                    @error="$event.target.src = 'http://localhost:8000/storage/campings/placeholder.webp'"
+                    loading="lazy"
+                    decoding="async"
+                    width="400"
+                    height="180"
+                    @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
                 />
                 <div class="card-body">
                     <h4>{{ camping.name }}</h4>
@@ -847,6 +861,7 @@ watch(() => route.query, (newQuery) => {
         width: 100%;
         height: 180px;
         object-fit: cover;
+        background: #e8ede5;
     }
 
     .card-body {
