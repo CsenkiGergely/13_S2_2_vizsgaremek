@@ -468,19 +468,24 @@ const formatDisplayDate = (dateStr) => {
   color: #374151;
   margin-bottom: 0.3rem;
 }
-.form-group input {
+.form-group input,
+.form-group select {
   padding: 0.6rem 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.15s;
+  background: #fff;
+  color: #1f2937;
 }
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
   border-color: #4A7434;
   box-shadow: 0 0 0 2px rgba(74, 116, 52, 0.15);
 }
-.form-group input.input-error {
+.form-group input.input-error,
+.form-group select.input-error {
   border-color: #ef4444;
 }
 .error-msg {
