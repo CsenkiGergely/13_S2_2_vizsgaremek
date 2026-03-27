@@ -20,7 +20,7 @@
 ## Másodlagos feladatok
 
 - Google auth login
-- Telejdonos 2FA lehetőség 
+- Tulajdonos 2FA lehetőség 
 
 - Saját profilon lévő funkciók integrálása 
 
