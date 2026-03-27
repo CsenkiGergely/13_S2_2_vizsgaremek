@@ -8,7 +8,6 @@
 - Keresási találatok rendezése ár stb. szerint
 - Tegek egyezésének ellenörzése 
 - Regisztrációs email validáció - adatok szerkesztése validáció - fogalalás megerősítése 
-- Dashboard betöltési szöveg átírása Vezérlőpultra 
 - Foglalásnál bekért adatok modosíthatóak legyen a dashboardon
 - Egesz UI tesztelése telefonos nezetben 
 - Fő oldalon levő kereső csak ha van kivalasztva hely akkor keressen - találatok balra rendezése 
@@ -17,7 +16,8 @@
 - AWS kép resize
 - Neondb connection pooler bevezetése (ha lehetséges)
 - Kód átnézése egységes logika és megoldások felesleges metodusok rout ok controllerek törlése 
-
+- ✅Dashboard betöltési szöveg átírása Vezérlőpultra
+  
 ## Másodlagos feladatok
 
 - Google auth login
