@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use App\Models\Camping;
 use App\Models\Booking;
+use App\Models\CampingSpot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,6 +30,54 @@ class CommentController extends Controller
             'reviews_count' => $camping->getReviewsCount(),
             'comments' => $comments
         ]);
+    }
+
+    // Tulajdonos összes kempingjéhez tartozó értékelések
+    public function ownerComments()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Nincs bejelentkezve.'], 401);
+        }
+
+        $campingIds = Camping::where('user_id', $user->id)->pluck('id');
+
+        $comments = Comment::whereIn('camping_id', $campingIds)
+            ->whereNull('parent_id')
+            ->with(['user', 'childrenRecursive', 'campingComments'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Booking + spot infó hozzárendelése
+        $result = $comments->map(function ($comment) {
+            $booking = Booking::where('camping_id', $comment->camping_id)
+                ->where('user_id', $comment->user_id)
+                ->whereIn('status', ['checked_in', 'completed'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            $spotName = null;
+            if ($booking && $booking->camping_spot_id) {
+                $spot = CampingSpot::where('spot_id', $booking->camping_spot_id)->first();
+                $spotName = $spot?->name;
+            }
+
+            return [
+                'id' => $comment->id,
+                'camping_id' => $comment->camping_id,
+                'camping_name' => $comment->campingComments?->camping_name,
+                'user' => $comment->user,
+                'rating' => $comment->rating,
+                'comment' => $comment->comment,
+                'created_at' => $comment->created_at,
+                'updated_at' => $comment->updated_at,
+                'booking_id' => $booking?->id,
+                'spot_name' => $spotName,
+                'replies' => $comment->childrenRecursive,
+            ];
+        });
+
+        return response()->json($result);
     }
 
     

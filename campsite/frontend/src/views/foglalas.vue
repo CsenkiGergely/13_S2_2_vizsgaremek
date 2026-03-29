@@ -129,6 +129,7 @@ const reviewsCount = computed(() => {
 
 // Vélemények megjelenítése
 const showAllComments = ref(false)
+const expandedReplies = ref({})
 const visibleComments = computed(() => {
   if (showAllComments.value) return comments.value
   return comments.value.slice(0, 3)
@@ -584,7 +585,7 @@ onMounted(async () => {
 
                 <!-- Válaszok -->
                 <div v-if="comment.children_recursive && comment.children_recursive.length > 0" class="mt-4 ml-6 space-y-3">
-                  <div v-for="reply in comment.children_recursive" :key="reply.id" class="bg-gray-50 rounded-lg p-3 border-l-3 border-[#4A7434]/30">
+                  <div v-for="(reply, ri) in comment.children_recursive" :key="reply.id" v-show="ri === 0 || expandedReplies[comment.id]" class="bg-gray-50 rounded-lg p-3 border-l-3 border-[#4A7434]/30">
                     <div class="flex items-center justify-between mb-1">
                       <p class="font-semibold text-gray-700 text-sm">
                         {{ reply.user ? `${reply.user.owner_last_name || ''} ${reply.user.owner_first_name || ''}`.trim() : 'Tulajdonos' }}
@@ -593,6 +594,13 @@ onMounted(async () => {
                     </div>
                     <p class="text-gray-600 text-sm">{{ reply.comment }}</p>
                   </div>
+                  <button
+                    v-if="comment.children_recursive.length > 1"
+                    @click="expandedReplies[comment.id] = !expandedReplies[comment.id]"
+                    class="text-xs font-semibold text-[#4A7434] hover:underline cursor-pointer bg-transparent border-none p-0"
+                  >
+                    {{ expandedReplies[comment.id] ? 'Válaszok elrejtése' : `Még ${comment.children_recursive.length - 1} válasz megjelenítése` }}
+                  </button>
                 </div>
               </div>
             </div>

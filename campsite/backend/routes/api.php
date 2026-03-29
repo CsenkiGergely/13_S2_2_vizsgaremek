@@ -120,6 +120,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/campings/{campingId}/photos/{photoId}', [CampingPhotoController::class, 'destroy']);
     
     // Értékelések kezelése (authentikált felhasználóknak)
+    Route::get('/owner/comments', [CommentController::class, 'ownerComments']); // Tulajdonos összes értékelése
     Route::post('/campings/{campingId}/comments', [CommentController::class, 'store']); // Új értékelés
     Route::post('/comments/{commentId}/reply', [CommentController::class, 'reply']); // Válasz (csak tulajdonos)
     Route::put('/comments/{commentId}', [CommentController::class, 'update']); // Saját szerkesztése

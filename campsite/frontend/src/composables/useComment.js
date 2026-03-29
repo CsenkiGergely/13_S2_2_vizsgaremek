@@ -74,6 +74,23 @@ const getComments = async (campingId) => {
   }
 }
 
+// Tulajdonos összes kempingjéhez tartozó értékelések
+const ownerComments = ref([])
+const getOwnerComments = async () => {
+  loading.value = true
+  error.value = null
+  try {
+    const response = await api.get('/owner/comments')
+    ownerComments.value = response.data || []
+    return ownerComments.value
+  } catch (err) {
+    error.value = getErrorMessage(err)
+    throw err
+  } finally {
+    loading.value = false
+  }
+}
+
 // Új komment hozzáadása
 const addComment = async (campingId, data) => {
   loading.value = true
@@ -150,9 +167,11 @@ const deleteComment = async (commentId) => {
 export function useComment() {
   return {
     comments,
+    ownerComments,
     loading,
     error,
     getComments,
+    getOwnerComments,
     addComment,
     updateComment,
     replyComment,

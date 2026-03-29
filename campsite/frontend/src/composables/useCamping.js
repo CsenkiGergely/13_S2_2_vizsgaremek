@@ -234,6 +234,10 @@ const uploadCampingPhotos = async (campingId, files) => {
     // { success: [...], errors: [...], remaining_slots, message }
     return response.data
   } catch (err) {
+    // A szerver 422-t / 4xx-et ad vissza strukturált hibával
+    if (err.response?.data) {
+      return err.response.data
+    }
     console.error('Hiba a fotó feltöltésekor:', err)
     error.value = getErrorMessage(err)
     throw err
