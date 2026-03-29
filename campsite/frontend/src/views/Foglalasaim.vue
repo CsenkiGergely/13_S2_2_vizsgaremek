@@ -251,7 +251,7 @@ onMounted(() => {
           <div class="booking-image">
             <img
               v-if="booking.camping?.photos?.length > 0"
-              :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
+              :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url.replace(/(\.[\w]+)$/, '_thumb$1') : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
               loading="lazy"
               decoding="async"
@@ -355,7 +355,7 @@ onMounted(() => {
           <div class="booking-image">
             <img
               v-if="booking.camping?.photos?.length > 0"
-              :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
+              :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url.replace(/(\.[\\w]+)$/, '_thumb$1') : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
               loading="lazy"
               decoding="async"

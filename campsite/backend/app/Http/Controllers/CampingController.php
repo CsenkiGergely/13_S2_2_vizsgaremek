@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Camping;
 use App\Models\Location;
 use App\Models\Booking;
+use App\Models\Comment;
 
 class CampingController extends Controller
 {
@@ -45,12 +46,29 @@ class CampingController extends Controller
     }
 
     /**
+     * GET /api/campings/stats
+     * Publikus statisztikák: összes kemping száma + összes értékelés valódi átlaga.
+     */
+    public function getStats()
+    {
+        $campingCount = Camping::count();
+        $avgRating = Comment::whereNotNull('rating')->where('rating', '>', 0)->avg('rating');
+
+        return response()->json([
+            'camping_count' => $campingCount,
+            'average_rating' => $avgRating !== null ? round((float) $avgRating, 1) : 0,
+        ]);
+    }
+
+    /**
      * Kempingek listázása szűrőkkel
      */
     public function getCampings(Request $request)
     {
-        // lekérés lapozzással 2/ oldalanként (teszt)
-        // http://127.0.0.1:8000/api/campings?search=asd&page=2
+        if (!$request->user() || !$request->user()->is_superuser) {
+            return response()->json(['message' => 'Nincs jogosultságod.'], 403);
+        }
+
         $camping = Camping::with(['photos', 'location', 'tags']);
 
         $camping->when($request->search, function ($query, $search) {

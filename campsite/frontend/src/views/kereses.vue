@@ -207,12 +207,13 @@ const fetchCampsites = async (isNewSearch = true) => {
   }
 }
 
-// Kép URL kinyerése – S3 és lokális képekkel is kompatibilis
+// Kép URL kinyerése – thumbnail verzió a listához
 const getFirstPhoto = (camping) => {
   if (camping.photos && camping.photos.length > 0) {
     const url = camping.photos[0].photo_url || camping.photos[0].url || camping.photos[0]
-    // S3 URL visszaadása
-    return url.startsWith('http') ? url : 'http://localhost:8000' + url
+    // Thumbnail: fájlnév_thumb.ext a gyorsabb betöltéshez
+    if (url.startsWith('http')) return url.replace(/(\.[\w]+)$/, '_thumb$1')
+    return 'http://localhost:8000' + url
   }
   if (camping.image) return camping.image
   return 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'

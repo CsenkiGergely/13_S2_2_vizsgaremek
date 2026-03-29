@@ -219,18 +219,20 @@ const getCampingPhotoList = async (campingId) => {
   }
 }
 
-// Kemping fotójának feltöltése
-const uploadCampingPhoto = async (campingId, file) => {
+// Kemping fotóinak feltöltése (több fájl egyszerre, fájlonkénti hibajelentéssel)
+const uploadCampingPhotos = async (campingId, files) => {
   loading.value = true
   error.value = null
   try {
     const formData = new FormData()
-    formData.append('photo', file)
+    for (const file of files) {
+      formData.append('photos[]', file)
+    }
     const response = await api.post(`/campings/${campingId}/photos`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
-    campingPhotoDetails.value = response.data.data || response.data
-    return campingPhotoDetails.value
+    // { success: [...], errors: [...], remaining_slots, message }
+    return response.data
   } catch (err) {
     console.error('Hiba a fotó feltöltésekor:', err)
     error.value = getErrorMessage(err)
@@ -407,7 +409,7 @@ export function useCamping() {
     updateCampingSpot,
     deleteCampingSpot,
     getCampingPhotoList,
-    uploadCampingPhoto,
+    uploadCampingPhotos,
     addCampingPhotoByUrl,
     deleteCampingPhoto,
     setMainPhoto,

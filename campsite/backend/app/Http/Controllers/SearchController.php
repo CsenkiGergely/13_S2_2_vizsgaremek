@@ -51,6 +51,17 @@ class SearchController extends Controller
         $query = $request->input('q');
         $location = $request->input('location');
 
+        // Helyszín megadása kötelező (q vagy location)
+        if (!$query && !$location) {
+            return response()->json([
+                'data' => [],
+                'total' => 0,
+                'last_page' => 1,
+                'current_page' => 1,
+                'per_page' => 9,
+            ]);
+        }
+
         $builder = Camping::with(['photos', 'location', 'tags', 'spots'])
             ->whereHas('spots');
 

@@ -36,9 +36,9 @@ Route::post('/resend-verification', [AuthController::class, 'resendVerification'
 // Partner státuszra váltás only login  -> nincs külön nincs jogosultságod üzenet
 Route::post('/upgrade-to-partner', [AuthController::class, 'upgradeToPartner'])->middleware('auth:sanctum');
 
-// Kempingek
-Route::get('/campings', [CampingController::class, 'getCampings']);
+// Kempingek (publikus)
 Route::get('/campings/top', [CampingController::class, 'getTopCampings']);
+Route::get('/campings/stats', [CampingController::class, 'getStats']);
 Route::get('/campings/{id}', [CampingController::class, 'show']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
@@ -64,6 +64,9 @@ Route::get('/campings/{campingId}/tags', [CampingTagController::class, 'index'])
 
 // Foglalások
 Route::middleware('auth:sanctum')->group(function () {
+    // Összes kemping lekérése (csak superuser)
+    Route::get('/campings', [CampingController::class, 'getCampings']);
+
     // felhasználói foglalások
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/getAll', [BookingController::class, 'getAllBookings']);
@@ -86,7 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'getOwnerDashboard']);
     
     // Kemping kezelés (csak tulajdonosoknak)
-    Route::post('/campings', [CampingController::class, 'store']);
+    Route::post('/campings', [CampingController::class, 'store'])->middleware('throttle:5,1');
     Route::put('/campings/{id}', [CampingController::class, 'update']);
     Route::delete('/campings/{id}', [CampingController::class, 'destroy']);
     
@@ -106,7 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/campings/{campingId}/gates/{gateId}/auth-token', [EntranceGateController::class, 'revokeToken']);
     
     // Kemping helyek kezelése (csak tulajdonosoknak)
-    Route::post('/campings/{campingId}/spots', [CampingSpotController::class, 'store']);
+    Route::post('/campings/{campingId}/spots', [CampingSpotController::class, 'store'])->middleware('throttle:20,1');
     Route::put('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'update']);
     Route::delete('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'destroy']);
     

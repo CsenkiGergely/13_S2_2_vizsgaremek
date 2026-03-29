@@ -35,9 +35,11 @@ const fetchTopCampings = async () => {
       rating: parseFloat(c.average_rating) || 0,
       reviews: c.reviews_count || 0,
       location: c.location?.city || (typeof c.location === 'string' ? c.location : ''),
-      // S3 URL visszaadása
+      // Thumbnail URL használata (fájlnév_thumb.ext) a gyorsabb betöltéshez
       image: c.photos?.[0]?.photo_url
-        ? (c.photos[0].photo_url.startsWith('http') ? c.photos[0].photo_url : 'http://localhost:8000' + c.photos[0].photo_url)
+        ? (c.photos[0].photo_url.startsWith('http')
+          ? c.photos[0].photo_url.replace(/(\.[\w]+)$/, '_thumb$1')
+          : 'http://localhost:8000' + c.photos[0].photo_url)
         : (c.photos?.[0]?.url || c.image || 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'),
       price: c.min_price || 0,
     }))
@@ -70,6 +72,7 @@ const suggestions = ref([])
 const showSuggestions = ref(false)
 const activeSuggestionIndex = ref(-1)
 const locationInputRef = ref(null)
+const locationSelectedFromAutocomplete = ref(false)
 let debounceTimer = null
 
 const fetchSuggestions = async (query) => {
@@ -90,12 +93,14 @@ const fetchSuggestions = async (query) => {
 }
 
 const onLocationInput = () => {
+  locationSelectedFromAutocomplete.value = false
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => fetchSuggestions(searchForm.value.location), 250)
 }
 
 const selectSuggestion = (s) => {
   searchForm.value.location = s.label
+  locationSelectedFromAutocomplete.value = true
   showSuggestions.value = false
   activeSuggestionIndex.value = -1
 }
@@ -142,10 +147,15 @@ const highlightMatch = (text) => {
 
 const minCheckOut = computed(() => searchForm.value.checkIn || today)
 
+const canSearch = computed(() => {
+  return locationSelectedFromAutocomplete.value
+})
+
 const handleSearch = () => {
+  if (!locationSelectedFromAutocomplete.value) return
   showSuggestions.value = false
   const query = {
-    location: searchForm.value.location || undefined,
+    location: searchForm.value.location,
     guests: searchForm.value.guests || undefined,
   }
   if (searchForm.value.checkIn && searchForm.value.checkOut) {
@@ -162,18 +172,9 @@ const averageRating = ref(0)
 const fetchStats = async () => {
   statsLoading.value = true
   try {
-    // Lekérjük az összes kemping számát (per_page=1, csak a total kell)
-    const res = await api.get('/campings', { params: { per_page: 1 } })
-    campingCount.value = res.data?.total || 0
-
-    // Átlagos értékelés a top kempingekből
-    if (topCampings.value.length > 0) {
-      const rated = topCampings.value.filter(c => c.rating > 0)
-      if (rated.length > 0) {
-        const sum = rated.reduce((acc, c) => acc + c.rating, 0)
-        averageRating.value = Math.round((sum / rated.length) * 10) / 10
-      }
-    }
+    const res = await api.get('/campings/stats')
+    campingCount.value = res.data?.camping_count || 0
+    averageRating.value = res.data?.average_rating || 0
   } catch (e) {
     console.error('Statisztika betöltési hiba:', e)
   } finally {
@@ -182,47 +183,47 @@ const fetchStats = async () => {
 }
 
 const stats = computed(() => [
-  { icon: '🏕️', value: campingCount.value > 0 ? `${campingCount.value}+` : '...', label: 'helyszín országszerte' },
-  { icon: '⭐', value: averageRating.value > 0 ? `${averageRating.value}/5` : '...', label: 'átlagos élményértékelés' },
-  { icon: '🕐', value: '24/7', label: 'támogatás, ha kell' },
+  { icon: '🏕️', value: campingCount.value > 0 ? `${campingCount.value}+` : '...', label: 'kemping az oldalon' },
+  { icon: '⭐', value: averageRating.value > 0 ? `${averageRating.value}/5` : '...', label: 'átlagos vendégértékelés' },
+  { icon: '🕐', value: '24/7', label: 'ügyfélszolgálat' },
 ])
 
 const features = [
   {
-    icon: '📍',
+    icon: '🧭',
     color: '#4A7434',
-    title: 'Valódi helyek, jó érzékkel válogatva',
-    desc: 'Nem elveszni akarsz a listákban, hanem gyorsan rátalálni arra a helyre, ami passzol a hangulatodhoz.',
+    title: 'Térkép alapú keresés',
+    desc: 'A kemping térképén kiválaszthatod a számodra legjobb helyet, látod, mi hol van, és azonnal foglalhatsz.',
   },
   {
-    icon: '🛡️',
+    icon: '🚪',
     color: '#F17E21',
-    title: 'Nyugodt foglalás',
-    desc: 'Átlátható adatok, gyors visszaigazolás és egy olyan folyamat, ami nem fáraszt le a végére.',
+    title: 'Automatikus beengedés',
+    desc: 'Érkezéskor a QR-kódos azonosítás alapján a sorompó egy mozdulattal nyílik, nem kell sorban állni a recepcióra.',
   },
   {
     icon: '⚡',
     color: '#F17E21',
-    title: 'Pár kattintásból megvan',
-    desc: 'Keresés, döntés, foglalás — röviden ennyi. Nem kell hozzá külön expedíciót szervezni.',
+    title: 'Gyors foglalás',
+    desc: 'Válassz helyet, add meg a dátumot, és foglalj. Pár kattintás az egész.',
   },
   {
     icon: '⭐',
     color: '#4A7434',
-    title: 'Őszinte vendégvélemények',
-    desc: 'A jó helyeknél ezt mások is kimondják. Könnyebb dönteni, ha látod, mire számíthatsz.',
+    title: 'Valódi vendégvélemények',
+    desc: 'Olvasd el mások tapasztalatait, és hasonlítsd össze a kempingeket értékelések alapján.',
   },
   {
-    icon: '💳',
-    color: '#F17E21',
-    title: 'Rugalmas fizetés',
-    desc: 'Bankkártya, átutalás vagy helyszíni opciók — ott fizetsz úgy, ahogy neked kényelmes.',
+    icon: '📍',
+    color: '#4A7434',
+    title: 'Helyszín részletekkel',
+    desc: 'Minden kempingnél látod a pontos címet, térképet, elérhető helyeket és az árakat.',
   },
   {
-    icon: '💬',
+    icon: '✉',
     color: '#F17E21',
-    title: 'Van kit kérdezni',
-    desc: 'Ha elakadsz, nem maradsz egyedül. Segítünk, hogy a szervezés ne vegye el a kedved.',
+    title: 'Azonnali visszajelzés',
+    desc: 'A foglalásról e-mailben kapsz visszaigazolást, így mindig tudod, mi a helyzet.',
   },
 ]
 </script>
@@ -284,7 +285,7 @@ const features = [
           <input type="number" min="1" max="20" v-model.number="searchForm.guests" />
         </div>
 
-        <button type="submit" class="search-btn">Keresés</button>
+        <button type="submit" class="search-btn" :disabled="!canSearch" :class="{ 'search-btn--disabled': !canSearch }">Keresés</button>
       </form>
     </div>
   </section>
@@ -292,9 +293,9 @@ const features = [
   <!-- 1. Legfelkapottabb kempingek szekció -->
   <section class="section section--gray">
     <div class="section-header">
-      <span class="section-badge">Népszerű kempingek</span>
-      <h2>Legfelkapottabb kempingek</h2>
-      <p class="section-sub">A legjobb értékelésű kempingek vendégeink szerint</p>
+      <span class="section-badge">Kedvencek</span>
+      <h2>A legjobban értékelt kempingek</h2>
+      <p class="section-sub">Vendégeink által legtöbbre értékelt helyszínek</p>
     </div>
 
     <!-- Carousel: betöltés után mutatjuk, különben skeleton -->
@@ -350,9 +351,9 @@ const features = [
   <!-- 2. Miért a CampSite? szekció -->
   <section class="section why-section">
     <div class="section-header">
-      <span class="section-badge">Miért működik jól?</span>
-      <h2>Olyan foglalós élmény, ami végre<br>nem túl merev és nem túl zajos.</h2>
-      <p class="section-sub">Modern, gyors és emberi. Pont annyi segítséget ad, amennyi kell a jó döntéshez.</p>
+      <span class="section-badge">Miért a CampSite?</span>
+      <h2>Egyszerű foglalás, térkép alapú keresés<br>és automatikus beengedés.</h2>
+      <p class="section-sub">Keresd meg a helyed a térképen, foglalj pár kattintással, és érkezéskor a kapu egy mozdulattal nyílik.</p>
     </div>
 
     <!-- Statisztikák – skeleton vagy valós adat -->
@@ -390,9 +391,9 @@ const features = [
   <!-- 3. Kiemelt kemping szekció -->
   <section class="section">
     <div class="section-header">
-      <span class="section-badge">Kiemelt kempingünk</span>
-      <h2>A legjobban értékelt kemping</h2>
-      <p class="section-sub">Vendégeink abszolút kedvence</p>
+      <span class="section-badge">Kiemelt</span>
+      <h2>A vendégek kedvence</h2>
+      <p class="section-sub">A legtöbb pozitív értékelést kapott kemping</p>
     </div>
 
     <!-- Kiemelt kemping: betöltés után mutatjuk -->
@@ -557,6 +558,13 @@ const features = [
 .search-btn:hover {
   background: var(--cta);
 }
+.search-btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.search-btn--disabled:hover {
+  background: var(--accent);
+}
 
 /* Desktop: 1 sor */
 @media (min-width: 860px) {
@@ -579,7 +587,9 @@ const features = [
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
+  right: auto;
+  min-width: 100%;
+  width: max-content;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-top: none;
@@ -601,13 +611,14 @@ const features = [
   font-size: 0.9rem;
   color: #374151;
   transition: background 0.1s;
+  text-align: left;
 }
 .suggestions-list li:hover,
 .suggestions-list li.active {
   background: #f0f7ed;
 }
 .sug-icon { flex-shrink: 0; }
-.sug-label { flex: 1; }
+.sug-label { flex: 1; text-align: left; }
 .sug-label :deep(strong) { color: var(--accent); font-weight: 700; }
 .sug-type {
   font-size: 0.72rem;
