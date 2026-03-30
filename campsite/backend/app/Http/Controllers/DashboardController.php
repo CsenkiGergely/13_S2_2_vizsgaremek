@@ -14,6 +14,13 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        // Csak partner (tulajdonos) felhasználók férhetnek hozzá a dashboardhoz
+        if (!$user->role) {
+            return response()->json([
+                'message' => 'Csak partnerek férhetnek hozzá a dashboardhoz.'
+            ], 403);
+        }
+
         // owner kempingjeinek id-jai
         $myCampingIds = Camping::where('user_id', $user->id)->pluck('id');
 

@@ -30,8 +30,10 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,15');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
-Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
-Route::post('/resend-verification', [AuthController::class, 'resendVerification']);
+// Email megerősítés — throttle: max 5 kérés/perc (brute force védelem)
+Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:5,1');
+// Megerősítő email újraküldés — throttle: max 3 kérés/15 perc (spam védelem)
+Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->middleware('throttle:3,15');
 
 // Partner státuszra váltás only login  -> nincs külön nincs jogosultságod üzenet
 Route::post('/upgrade-to-partner', [AuthController::class, 'upgradeToPartner'])->middleware('auth:sanctum');
@@ -55,7 +57,8 @@ Route::get('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class
 
 // ESP32 QR szkenner végpont (saját Bearer auth_token, nem Sanctum)
 // Regisztrálva a Sanctum csoport ELŐTT, hogy a POST /bookings/{id} wildcard ne kapja el
-Route::post('/bookings/scan-image', [BookingController::class, 'scanImage']);
+// Throttle: max 30 kérés/perc per IP (DoS védelem az ESP32 végpontra)
+Route::post('/bookings/scan-image', [BookingController::class, 'scanImage'])->middleware('throttle:30,1');
 // GeoJSON térkép lekérése (publikus - nem kell auth)
 Route::get('/campings/{id}/geojson', [CampingController::class, 'getGeojson']);
 
@@ -80,7 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // tulajdonosi funkciók
     Route::get('/owner/bookings', [BookingController::class, 'ownerBookings']);
     Route::patch('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
-    Route::post('/bookings/scan', [BookingController::class, 'scanQrCode']);
+    // TÖRÖLVE: scanQrCode — elavult, globális ENV tokent használt
+    // Helyette: POST /bookings/scan-image (per-gate token, Sanctum csoporton KÍVÜL)
     
     // Saját kempingek lekérése (tulajdonos)
     Route::get('/my-campings', [CampingController::class, 'myCampings']);

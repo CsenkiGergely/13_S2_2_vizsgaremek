@@ -348,6 +348,7 @@ class CampingPhotoController extends Controller
 
     /**
      * Kép hozzáadása URL alapján (csak tulajdonos)
+     * SSRF védelem: privát IP tartományok és AWS metadata blokkolva
      */
     public function addByUrl(Request $request, $campingId)
     {
@@ -355,6 +356,30 @@ class CampingPhotoController extends Controller
             'photo_url' => 'required|string|url',
             'caption' => 'nullable|string|max:255'
         ]);
+
+        // SSRF védelem — privát/belső IP-k és AWS metadata blokkolása
+        $parsedUrl = parse_url($request->photo_url);
+        $host = $parsedUrl['host'] ?? '';
+
+        // Tiltott host-ok ellenőrzése (AWS metadata, localhost, stb.)
+        $blockedHosts = ['169.254.169.254', 'metadata.google.internal', 'localhost', '127.0.0.1', '0.0.0.0', '::1'];
+        if (in_array($host, $blockedHosts)) {
+            return response()->json(['message' => 'Ez az URL nem engedélyezett.'], 422);
+        }
+
+        // DNS feloldás — ellenőrizzük, hogy az IP nem privát tartományba esik
+        $ip = gethostbyname($host);
+        if ($ip && (
+            filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false
+        )) {
+            return response()->json(['message' => 'Ez az URL nem engedélyezett.'], 422);
+        }
+
+        // Csak HTTPS engedélyezése
+        $scheme = $parsedUrl['scheme'] ?? '';
+        if ($scheme !== 'https') {
+            return response()->json(['message' => 'Csak HTTPS URL engedélyezett.'], 422);
+        }
 
         $camping = Camping::findOrFail($campingId);
 

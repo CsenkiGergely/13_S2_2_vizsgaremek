@@ -406,8 +406,11 @@ class BookingController extends Controller
         $bookings = Booking::whereIn('camping_id', $my_camping_ids)
             ->with(['user', 'camping.location', 'campingSpot']);
         
-        // Ha kértek státusz szűrést
+        // Ha kértek státusz szűrést — csak érvényes státuszok engedélyezettek
         if ($request->has('status')) {
+            $request->validate([
+                'status' => 'in:pending,confirmed,checked_in,completed,cancelled'
+            ]);
             $bookings = $bookings->where('status', $request->status);
         }
         

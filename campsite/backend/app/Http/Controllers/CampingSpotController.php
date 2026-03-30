@@ -140,31 +140,20 @@ class CampingSpotController extends Controller
             return response()->json(['message' => 'Kemping hely nem található'], 404);
         }
 
-        // Mezők frissítése (csak amit elküldtek)
-        if ($request->has('name')) {
-            $spot->name = $request->name;
-        }
-        if ($request->has('type')) {
-            $spot->type = $request->type;
-        }
-        if ($request->has('capacity')) {
-            $spot->capacity = $request->capacity;
-        }
-        if ($request->has('price_per_night')) {
-            $spot->price_per_night = $request->price_per_night;
-        }
-        if ($request->has('description')) {
-            $spot->description = $request->description;
-        }
-        if ($request->has('is_available')) {
-            $spot->is_available = $request->is_available;
-        }
-        if ($request->has('row')) {
-            $spot->row = $request->row;
-        }
-        if ($request->has('column')) {
-            $spot->column = $request->column;
-        }
+        // Validálás — minden mező opcionális ('sometimes'), de ha jön, típusa ellenőrzött
+        $validated = $request->validate([
+            'name'            => 'sometimes|string|max:100',
+            'type'            => 'sometimes|string|max:50',
+            'capacity'        => 'sometimes|integer|min:1',
+            'price_per_night' => 'sometimes|numeric|min:0',
+            'description'     => 'sometimes|nullable|string|max:500',
+            'is_available'    => 'sometimes|boolean',
+            'row'             => 'sometimes|nullable|integer|min:0',
+            'column'          => 'sometimes|nullable|integer|min:0',
+        ]);
+
+        // Csak a validált mezőket frissítjük (mass assignment védelem)
+        $spot->fill($validated);
         
         $spot->save();
 
