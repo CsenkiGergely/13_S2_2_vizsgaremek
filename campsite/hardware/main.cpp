@@ -12,7 +12,7 @@
 #include "esp_camera.h"
 
 // ---- Laravel konfig ----
-#define LARAVEL_URL "https://campsite-460d.onrender.com/api/bookings/scan-image"
+#define LARAVEL_URL "https://campsite.hu/api/bookings/scan-image"
 // ------------------------
 
 Preferences prefs;
