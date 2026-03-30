@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Camping;
 use App\Models\Location;
 use App\Models\Booking;
+use App\Models\Comment;
 
 class CampingController extends Controller
 {
@@ -23,12 +24,51 @@ class CampingController extends Controller
     }
 
     /**
+     * GET /api/campings/top
+     * Legjobb értékelésű kempingek (top 10), egyetlen optimalizált lekérdezéssel.
+     */
+    public function getTopCampings()
+    {
+        $result = Camping::with(['photos', 'location'])
+            ->withAvg('comments', 'rating')
+            ->withCount('comments as reviews_count')
+            ->withMin('spots', 'price_per_night')
+            ->whereHas('comments') // csak értékelt kempingek
+            ->orderByDesc('comments_avg_rating')
+            ->limit(10)
+            ->get()
+            ->each(function ($camp) {
+                $camp->average_rating = round((float) $camp->comments_avg_rating, 1);
+                $camp->min_price = $camp->spots_min_price_per_night;
+            });
+
+        return response()->json($result);
+    }
+
+    /**
+     * GET /api/campings/stats
+     * Publikus statisztikák: összes kemping száma + összes értékelés valódi átlaga.
+     */
+    public function getStats()
+    {
+        $campingCount = Camping::count();
+        $avgRating = Comment::whereNotNull('rating')->where('rating', '>', 0)->avg('rating');
+
+        return response()->json([
+            'camping_count' => $campingCount,
+            'average_rating' => $avgRating !== null ? round((float) $avgRating, 1) : 0,
+        ]);
+    }
+
+    /**
      * Kempingek listázása szűrőkkel
      */
     public function getCampings(Request $request)
     {
-        // lekérés lapozzással 2/ oldalanként (teszt)
-        // http://127.0.0.1:8000/api/campings?search=asd&page=2
+        if (!$request->user() || !$request->user()->is_superuser) {
+            return response()->json(['message' => 'Nincs jogosultságod.'], 403);
+        }
+
         $camping = Camping::with(['photos', 'location', 'tags']);
 
         $camping->when($request->search, function ($query, $search) {
@@ -49,7 +89,8 @@ class CampingController extends Controller
             });
         });
 
-        $campings = $camping->paginate(12); // 12 kemping oldalanként
+        $perPage = min((int) $request->get('per_page', 12), 200);
+        $campings = $camping->paginate($perPage); // oldalanként
         
         // árak és értékelések hozzáadása minden kempinghez
         $campings->getCollection()->transform(function ($camp) {
@@ -180,6 +221,8 @@ class CampingController extends Controller
             'street_address' => 'sometimes|string|max:200',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'required_guest_fields' => 'nullable|array',
+            'required_guest_fields.*' => 'string',
         ]);
 
         // isset megnézése 
@@ -200,6 +243,7 @@ class CampingController extends Controller
             'company_name' => $fields['company_name'] ?? $camping->company_name,
             'tax_id' => $fields['tax_id'] ?? $camping->tax_id,
             'billing_address' => $fields['billing_address'] ?? $camping->billing_address,
+            'required_guest_fields' => array_key_exists('required_guest_fields', $fields) ? $fields['required_guest_fields'] : $camping->required_guest_fields,
         ]);
 
         
@@ -343,7 +387,11 @@ class CampingController extends Controller
         }
 
         if (!$camping->geojson) {
-            return response()->json(['message' => 'Ehhez a kempinghez nincs térkép feltöltve'], 404);
+            return response()->json([
+                'camping_id' => $camping->id,
+                'camping_name' => $camping->name,
+                'geojson' => null
+            ], 200);
         }
 
         return response()->json([

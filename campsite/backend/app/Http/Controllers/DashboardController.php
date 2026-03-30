@@ -14,6 +14,13 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        // Csak partner (tulajdonos) felhasználók férhetnek hozzá a dashboardhoz
+        if (!$user->role) {
+            return response()->json([
+                'message' => 'Csak partnerek férhetnek hozzá a dashboardhoz.'
+            ], 403);
+        }
+
         // owner kempingjeinek id-jai
         $myCampingIds = Camping::where('user_id', $user->id)->pluck('id');
 
@@ -40,16 +47,21 @@ class DashboardController extends Controller
             ->whereYear('created_at', $prevYear)
             ->count();
 
-        // aktiv vendegek - csak a sajat kempingek
+        // aktiv vendegek - csak a sajat kempingek (guests összeadása, nem foglalások száma)
         $activeGuests = Booking::whereIn('camping_spot_id', $mySpotIds)
-            ->where('status', 'checked_in')->count();
+            ->where('status', 'checked_in')->sum('guests');
 
-        // foglalt helyek - aktiv foglalasok alapjan (confirmed vagy checked_in, ma az idoszakban)
+        // foglalt helyek - checked_in mindig számít (fizikailag ott van), confirmed csak ha a mai nap az időszakban van
         $today = Carbon::today();
-        $bookedSpots = Booking::whereIn('camping_id', $myCampingIds)
-            ->whereIn('status', ['confirmed', 'checked_in'])
-            ->where('arrival_date', '<=', $today)
-            ->where('departure_date', '>', $today)
+        $bookedSpots = Booking::whereIn('camping_spot_id', $mySpotIds)
+            ->where(function ($query) use ($today) {
+                $query->where('status', 'checked_in')
+                      ->orWhere(function ($q) use ($today) {
+                          $q->where('status', 'confirmed')
+                            ->where('arrival_date', '<=', $today)
+                            ->where('departure_date', '>', $today);
+                      });
+            })
             ->selectRaw('COUNT(DISTINCT camping_spot_id) as cnt')
             ->value('cnt');
         $totalSpots = CampingSpot::whereIn('camping_id', $myCampingIds)->count();
@@ -57,7 +69,7 @@ class DashboardController extends Controller
         // havi bevetel - csak a sajat kempingek foglalasai
         $monthlyRevenue = Booking::with('campingSpot')
             ->whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $currentMonth)
             ->whereYear('departure_date', $currentYear)
             ->get()
@@ -66,7 +78,7 @@ class DashboardController extends Controller
         // elozo honap bevetel
         $previousMonthlyRevenue = Booking::with('campingSpot')
             ->whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $prevMonth)
             ->whereYear('departure_date', $prevYear)
             ->get()
@@ -75,7 +87,7 @@ class DashboardController extends Controller
         // atlagos foglalasi ertekek - sajat kempingekre
         $currentMonthBookings = Booking::with('campingSpot')
             ->whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $currentMonth)
             ->whereYear('departure_date', $currentYear)
             ->get();
@@ -88,7 +100,7 @@ class DashboardController extends Controller
 
         $previousMonthBookings = Booking::with('campingSpot')
             ->whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
             ->whereMonth('departure_date', $prevMonth)
             ->whereYear('departure_date', $prevYear)
             ->get();
@@ -121,18 +133,23 @@ class DashboardController extends Controller
             });
 
         // elozo honap - sajat kempingekre szurve
-        $previousActiveGuests = Booking::whereIn('camping_spot_id', $mySpotIds)
-            ->where('status', 'checked_in')
-            ->whereMonth('created_at', $prevMonth)
-            ->whereYear('created_at', $prevYear)
-            ->count();
+        // Azonos nap az elozo honapban, hogy osszehasonlithato legyen
+        $prevMonthSameDay = $now->copy()->subMonth();
 
+        // elozo honapi aktiv vendegek - foglalasok amik fedtek az elozo honap azonos napjat
+        $previousActiveGuests = Booking::whereIn('camping_spot_id', $mySpotIds)
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
+            ->where('arrival_date', '<=', $prevMonthSameDay)
+            ->where('departure_date', '>', $prevMonthSameDay)
+            ->sum('guests');
+
+        // elozo honapi foglalt helyek - foglalasok amik fedtek az elozo honap azonos napjat
         $previousBookedSpots = Booking::whereIn('camping_spot_id', $mySpotIds)
-            ->whereIn('status', ['confirmed', 'checked_in', 'finished'])
-            ->whereMonth('departure_date', $prevMonth)
-            ->whereYear('departure_date', $prevYear)
-            ->distinct('camping_spot_id')
-            ->count('camping_spot_id');
+            ->whereIn('status', ['confirmed', 'checked_in', 'completed'])
+            ->where('arrival_date', '<=', $prevMonthSameDay)
+            ->where('departure_date', '>', $prevMonthSameDay)
+            ->selectRaw('COUNT(DISTINCT camping_spot_id) as cnt')
+            ->value('cnt');
 
         $previousOccupancyPercentage = $totalSpots > 0 ? round(($previousBookedSpots / $totalSpots) * 100) : 0;
 

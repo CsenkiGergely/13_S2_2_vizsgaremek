@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('tax_id', 15)->nullable();
             $table->string('billing_address', 255)->nullable();
             $table->jsonb('geojson')->nullable();
+            $table->json('required_guest_fields')->nullable();
             $table->timestamps();
         });
     }

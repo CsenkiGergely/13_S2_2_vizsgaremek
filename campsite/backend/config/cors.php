@@ -19,7 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'http://localhost:3000'],
+    // CORS engedélyezett origin-ök — .env-ből olvasva, vesszővel elválasztva
+    // Példa .env: CORS_ALLOWED_ORIGINS=https://example.com,http://localhost:5173
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:3000')),
 
     'allowed_origins_patterns' => [],
 
@@ -27,7 +29,8 @@ return [
 
     'exposed_headers' => [],
 
-    'max_age' => 0,
+    // Preflight cache 24 óra — csökkenti az OPTIONS kérések számát
+    'max_age' => 86400,
 
     'supports_credentials' => true,
 

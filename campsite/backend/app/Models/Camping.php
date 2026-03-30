@@ -17,12 +17,14 @@ class Camping extends Model
         'tax_id',
         'billing_address',
         'geojson',
+        'required_guest_fields',
     ];
 
     protected function casts(): array
     {
         return [
             'geojson' => 'array',
+            'required_guest_fields' => 'array',
         ];
     }
 
@@ -49,7 +51,8 @@ class Camping extends Model
 
     public function photos()
     {
-        return $this->hasMany(CampingPhoto::class);
+        // Mindig photo_id szerint rendezünk — a legkisebb ID-jú a fő kép
+        return $this->hasMany(CampingPhoto::class)->orderBy('photo_id', 'asc');
     }
 
     public function entranceGates()
@@ -82,11 +85,17 @@ class Camping extends Model
 
     public function getMinPriceAttribute()
     {
+        if ($this->relationLoaded('spots')) {
+            return $this->spots->min('price_per_night');
+        }
         return $this->spots()->min('price_per_night');
     }
 
-        public function getMaxPriceAttribute()
+    public function getMaxPriceAttribute()
     {
+        if ($this->relationLoaded('spots')) {
+            return $this->spots->max('price_per_night');
+        }
         return $this->spots()->max('price_per_night');
     }
 }

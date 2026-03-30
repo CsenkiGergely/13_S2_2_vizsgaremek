@@ -1,9 +1,11 @@
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useBooking } from '../composables/useBooking'
 import { useGate } from '../composables/useGate'
 import { useDashboard } from '../composables/useDashboard'
 import { useCamping } from '../composables/useCamping'
+import { useComment } from '../composables/useComment'
+import { AVAILABLE_TAGS as availableTags } from '../constants/campingTags.js'
 import AuthModal from '../components/AuthModal.vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -19,7 +21,15 @@ const {
   generateToken, revokeToken,
 } = useGate()
 const { dashboard, getDashboard } = useDashboard()
-const { createCamping, updateCamping, campingTagList, addCampingTag, deleteCampingTag, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, loading: campingLoading, error: campingError } = useCamping()
+const { createCamping, updateCamping, campingTagList, syncCampingTags, deleteCampingSpot, createCampingSpot, updateCampingSpot, getCampingSpotList, getCampingTagList, getCampingGeojson, uploadCampingGeojson, deleteCampingGeojson, campingGeojson, uploadCampingPhotos, deleteCampingPhoto, setMainPhoto, getCampingPhotoList, loading: campingLoading, error: campingError } = useCamping()
+const { ownerComments, getOwnerComments, replyComment } = useComment()
+
+const replyingTo = ref(null)
+const replyText = ref('')
+const replyLoading = ref(false)
+const replyError = ref(null)
+const replyCooldown = ref(0)
+let cooldownTimer = null
 
 const activeTab = ref('dashboard')
 const monthlyRevenue = ref(0)
@@ -46,6 +56,49 @@ const filteredBookings = computed(() => {
   })
 })
 
+// Foglalások szűrve + rendezve
+const bookingsSorted = computed(() => {
+  const list = [...filteredBookings.value]
+  const key = bookingSortKey.value
+  const dir = bookingSortDir.value === 'asc' ? 1 : -1
+
+  return list.sort((a, b) => {
+    let valA, valB
+    if (key === 'arrival_date') {
+      valA = a.arrival_date || a.arrivalDate || a.checkIn || ''
+      valB = b.arrival_date || b.arrivalDate || b.checkIn || ''
+    } else if (key === 'departure_date') {
+      valA = a.departure_date || a.departureDate || a.checkOut || ''
+      valB = b.departure_date || b.departureDate || b.checkOut || ''
+    } else if (key === 'price') {
+      valA = getBookingPrice(a)
+      valB = getBookingPrice(b)
+    } else if (key === 'status') {
+      valA = a.status || ''
+      valB = b.status || ''
+    } else if (key === 'spot_type') {
+      valA = a.campingSpot?.type || a.camping_spot?.type || ''
+      valB = b.campingSpot?.type || b.camping_spot?.type || ''
+    } else {
+      valA = a.id ?? 0
+      valB = b.id ?? 0
+    }
+    if (valA < valB) return -1 * dir
+    if (valA > valB) return 1 * dir
+    return 0
+  })
+})
+
+// Rendezési irány váltása
+function toggleSort(key) {
+  if (bookingSortKey.value === key) {
+    bookingSortDir.value = bookingSortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    bookingSortKey.value = key
+    bookingSortDir.value = 'desc'
+  }
+}
+
 // Bevételek tab – havi trend adatok
 const revenueFilterCampingId = ref(null)
 const monthlyTrendData = ref([])
@@ -68,8 +121,11 @@ const editSpotError = ref(null)
 const showTagModal = ref(false)
 const tagModalCampingId = ref(null)
 const tagModalExisting = ref([])
+const tagModalSaving = ref(false)
+const tagModalSuccess = ref(false)
 
 // Térkép tab
+const showGeojsonGuide = ref(false)
 const mapSelectedCampingId = ref(null)
 const mapGeojsonData = ref(null)
 const mapFileInput = ref(null)
@@ -79,8 +135,79 @@ const mapLoading = ref(false)
 const dashboardLoading = ref(false)
 const pageLoading = ref(true)
 const mapContainerRef = ref(null)
+
+// Képfeltöltés
+const photoUploading = ref(false)
+const photoFileInput = ref(null)
+const newCampingPhotoFiles = ref([])  // Új kemping létrehozásnál kiválasztott fájlok
+const newCampingMainIndex = ref(0)    // Melyik kép legyen a fő kép (index)
+const photoUploadMessage = ref(null)  // Feltöltési eredmény üzenet (sikeres / hibás fájlok)
 const mapCodeOpen = ref(false)
+
+// Foglalások rendezése
+const bookingSortKey = ref('id')
+const bookingSortDir = ref('desc')
 let leafletMap = null
+
+// Vendég mezők beállítása
+const showGuestFieldsModal = ref(false)
+const guestFieldsModalCampingId = ref(null)
+const guestFieldsModalSelected = ref([])
+const guestFieldsSaving = ref(false)
+const guestFieldsSuccess = ref(false)
+
+const allGuestFields = [
+  { key: 'first_name', label: 'Keresztnév' },
+  { key: 'last_name', label: 'Vezetéknév' },
+  { key: 'birth_date', label: 'Születési dátum' },
+  { key: 'place_of_birth', label: 'Születési hely' },
+  { key: 'gender', label: 'Nem' },
+  { key: 'citizenship', label: 'Állampolgárság' },
+  { key: 'mothers_birth_name', label: 'Anyja születési neve' },
+  { key: 'id_card_number', label: 'Személyi igazolvány szám' },
+  { key: 'passport_number', label: 'Útlevél szám' },
+  { key: 'visa', label: 'Vízum' },
+  { key: 'resident_permit_number', label: 'Tartózkodási engedély szám' },
+  { key: 'date_of_entry', label: 'Belépés dátuma' },
+  { key: 'place_of_entry', label: 'Belépés helye' },
+]
+
+function openGuestFieldsModal(campingId) {
+  const camping = overviewData.value.find(i => i.camping.id === campingId)?.camping
+  guestFieldsModalCampingId.value = campingId
+  guestFieldsModalSelected.value = [...(camping?.required_guest_fields || [])]
+  guestFieldsSuccess.value = false
+  showGuestFieldsModal.value = true
+}
+
+const toggleGuestFieldModal = (fieldKey) => {
+  const idx = guestFieldsModalSelected.value.indexOf(fieldKey)
+  if (idx === -1) {
+    guestFieldsModalSelected.value.push(fieldKey)
+  } else {
+    guestFieldsModalSelected.value.splice(idx, 1)
+  }
+}
+
+const saveGuestFields = async () => {
+  guestFieldsSaving.value = true
+  guestFieldsSuccess.value = false
+  try {
+    const campingId = guestFieldsModalCampingId.value
+    await updateCamping(campingId, {
+      required_guest_fields: guestFieldsModalSelected.value
+    })
+    // Frissítjük a lokális adatot is
+    const camping = overviewData.value.find(i => i.camping.id === campingId)?.camping
+    if (camping) camping.required_guest_fields = [...guestFieldsModalSelected.value]
+    guestFieldsSuccess.value = true
+    setTimeout(() => { guestFieldsSuccess.value = false }, 3000)
+  } catch (e) {
+    console.error('Vendég mezők mentési hiba:', e)
+  } finally {
+    guestFieldsSaving.value = false
+  }
+}
 let geojsonLayer = null
 
 const checkAuthentication = () => {
@@ -114,12 +241,48 @@ const loadData = async () => {
     // Foglalások betöltése
     await getOwnerBookings()
 
+    // Értékelések betöltése
+    try { await getOwnerComments() } catch {}
+
     // Szűrt adatok újraszámolása
     recalculateRevenueData()
   } catch (error) {
     console.error('Hiba az adatok betöltésekor:', error)
   } finally {
     dashboardLoading.value = false
+  }
+}
+
+// Válasz küldése egy értékelésre
+async function sendReply(commentId) {
+  if (!replyText.value.trim()) return
+  const c = ownerComments.value.find(c => c.id === commentId)
+  if (c && (c.replies || []).length >= 3) {
+    replyError.value = 'Maximum 3 válasz adható egy értékelésre.'
+    return
+  }
+  replyLoading.value = true
+  replyError.value = null
+  try {
+    const result = await replyComment(commentId, { comment: replyText.value.trim() })
+    const idx = ownerComments.value.findIndex(c => c.id === commentId)
+    if (idx !== -1) {
+      const replies = ownerComments.value[idx].replies || []
+      ownerComments.value[idx] = { ...ownerComments.value[idx], replies: [...replies, result.reply || result] }
+    }
+    replyingTo.value = null
+    replyText.value = ''
+    // 5 másodperces cooldown
+    replyCooldown.value = 5
+    if (cooldownTimer) clearInterval(cooldownTimer)
+    cooldownTimer = setInterval(() => {
+      replyCooldown.value--
+      if (replyCooldown.value <= 0) { clearInterval(cooldownTimer); cooldownTimer = null }
+    }, 1000)
+  } catch (err) {
+    replyError.value = err.response?.data?.message || 'Hiba a válasz küldésekor.'
+  } finally {
+    replyLoading.value = false
   }
 }
 
@@ -172,10 +335,10 @@ function recalculateRevenueData() {
   previousMonthlyRevenueValue.value = previousMonthlyRevenue
 
   // Bevételek típusonként
-  revenueByType.value = calculateRevenueByType(bookingList)
+  revenueByType.value = calculateRevenueByType(filtered)
 
   // Havi trend kiszámolása az utolsó 6 hónapra
-  calculateMonthlyTrend(bookingList)
+  calculateMonthlyTrend(filtered)
 }
 
 // Bevétel típusok szerint
@@ -185,11 +348,6 @@ const calculateRevenueByType = (bookingsData) => {
   const typeMap = {}
   
   bookingsData.forEach(booking => {
-    // Kemping szűrő
-    if (revenueFilterCampingId.value) {
-      if (Number(cId) !== Number(revenueFilterCampingId.value)) return
-    }
-
     const type = booking.spot
       || booking.camping_spot?.type
       || booking.campingSpot?.type
@@ -258,7 +416,7 @@ const getBookingPrice = (booking) => {
 }
 
 const formatBookingDate = (dateValue) => {
-  return dateValue ? dayjs(dateValue).format('YYYY. MM D.') : '-'
+  return dateValue ? dayjs(dateValue).format('YYYY. MM. DD.') : '-'
 }
 
 const openLoginModal = () => {
@@ -296,13 +454,6 @@ function calculateMonthlyTrend(bookingList) {
     const dateStr = b.arrival_date || b.checkIn || b.arrivalDate || b.created_at
     if (!dateStr) return
     const d = dayjs(dateStr)
-
-    // Kemping szűrő a bevételek tabhoz
-    if (revenueFilterCampingId.value) {
-      const cId = b.camping_id || b.campingId || b.camping?.id
-      if (Number(cId) !== Number(revenueFilterCampingId.value)) return
-    }
-
     const entry = months.find(m => m.month === d.month() && m.year === d.year())
     if (entry) {
       entry.revenue += calcBookingPrice(b)
@@ -474,27 +625,36 @@ async function handleEditSpotSave() {
 function openTagModal(campingId, existingTags) {
   tagModalCampingId.value = campingId
   tagModalExisting.value = existingTags.map(t => t.tag ?? t)
+  tagModalSuccess.value = false
   showTagModal.value = true
 }
 
-async function handleToggleTagFromModal(campingId, tag, existingTags) {
-  const exists = existingTags.some(t => (t.tag ?? t) === tag)
-  if (exists) {
-    const found = existingTags.find(t => (t.tag ?? t) === tag)
-    if (found && found.id) {
-      await handleDeleteTag(campingId, found.id)
-    }
+function toggleTagInModal(tag) {
+  const idx = tagModalExisting.value.indexOf(tag)
+  if (idx === -1) {
+    tagModalExisting.value.push(tag)
   } else {
-    try {
-      await addCampingTag(campingId, { tag })
-      await loadOverviewForCamping(overviewSelectedCampingId.value)
-    } catch (err) {
-      console.error('Tag hozzáadás hiba:', err)
-    }
+    tagModalExisting.value.splice(idx, 1)
   }
-  // Frissítjük a modal meglévő listáját
-  const updated = overviewData.value.find(i => i.camping.id === campingId)
-  if (updated) tagModalExisting.value = updated.tags.map(t => t.tag ?? t)
+}
+
+async function saveTagsFromModal() {
+  tagModalSaving.value = true
+  tagModalSuccess.value = false
+  try {
+    const savedTags = await syncCampingTags(tagModalCampingId.value, tagModalExisting.value)
+    // Frissítjük az overview adatokat közvetlenül, API hívás nélkül
+    const item = overviewData.value.find(i => i.camping.id === tagModalCampingId.value)
+    if (item) {
+      item.tags = Array.isArray(savedTags) ? savedTags : tagModalExisting.value.map(t => ({ tag: t }))
+    }
+    tagModalSuccess.value = true
+    setTimeout(() => { tagModalSuccess.value = false }, 3000)
+  } catch (err) {
+    console.error('Tag mentési hiba:', err)
+  } finally {
+    tagModalSaving.value = false
+  }
 }
 
 // Áttekintésből hely törlés
@@ -510,12 +670,15 @@ async function handleDeleteSpot(campingId, spotId) {
   }
 }
 
-// Áttekintésből tag törlés
+// Áttekintésből tag törlés (sync-kel)
 async function handleDeleteTag(campingId, tagId) {
   if (!confirm('Biztosan törölni akarod ezt a taget?')) return
   try {
-    await deleteCampingTag(campingId, tagId)
-    await loadOverviewForCamping(campingId)
+    const item = overviewData.value.find(i => i.camping.id === campingId)
+    if (!item) return
+    const remainingTags = item.tags.filter(t => (t.id ?? t) !== tagId).map(t => t.tag ?? t)
+    const savedTags = await syncCampingTags(campingId, remainingTags)
+    item.tags = Array.isArray(savedTags) ? savedTags : remainingTags.map(t => ({ tag: t }))
   } catch (err) {
     console.error('Tag törlés sikertelen:', err)
     alert('Nem sikerült törölni: ' + (err.response?.data?.message || err.message))
@@ -532,17 +695,158 @@ async function loadOverviewForCamping(campingId) {
   try {
     const camping = myCampings.value.find(c => c.id === campingId)
     if (!camping) return
-    const [spots, tags] = await Promise.all([
+    const [spots, tags, photos] = await Promise.all([
       getCampingSpotList(campingId).catch(() => []),
       getCampingTagList(campingId).catch(() => []),
+      getCampingPhotoList(campingId).catch(() => []),
     ])
     overviewData.value = [{
       camping,
       spots: Array.isArray(spots) ? spots : [],
       tags: Array.isArray(tags) ? tags : [],
+      photos: Array.isArray(photos) ? photos : [],
     }]
   } finally {
     overviewLoading.value = false
+  }
+}
+
+// Kép feltöltése egy kempinghez (áttekintés fül)
+async function handlePhotoUpload(campingId, event) {
+  const files = Array.from(event.target.files || [])
+  if (files.length === 0) return
+
+  photoUploadMessage.value = null
+
+  // Kliens oldali előzetes validáció (méret + felbontás)
+  const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+  const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
+  const MAX_DIM = 4000
+  const clientErrors = []
+  const validFiles = []
+
+  for (const file of files) {
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    if (!ALLOWED.includes(file.type)) {
+      clientErrors.push(`"${file.name}" – nem támogatott formátum (.${ext}). Elfogadott: JPG, PNG, WebP.`)
+      continue
+    }
+    if (file.size > MAX_SIZE) {
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1)
+      clientErrors.push(`"${file.name}" – a fájl mérete ${sizeMB} MB, de a megengedett maximum 5 MB.`)
+      continue
+    }
+    // Felbontás ellenőrzés kliens oldalon
+    try {
+      const dims = await new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => { resolve({ w: img.naturalWidth, h: img.naturalHeight }); URL.revokeObjectURL(img.src) }
+        img.onerror = () => { URL.revokeObjectURL(img.src); reject() }
+        img.src = URL.createObjectURL(file)
+      })
+      if (dims.w > MAX_DIM || dims.h > MAX_DIM) {
+        const wider = dims.w > MAX_DIM ? `szélesség: ${dims.w} px` : ''
+        const taller = dims.h > MAX_DIM ? `magasság: ${dims.h} px` : ''
+        const detail = [wider, taller].filter(Boolean).join(', ')
+        clientErrors.push(`"${file.name}" – túl nagy felbontás (${detail}). Maximum 4000×4000 px engedélyezett.`)
+        continue
+      }
+    } catch {
+      // Ha nem sikerül olvasni, engedjük a szerverre
+    }
+    validFiles.push(file)
+  }
+
+  if (validFiles.length === 0) {
+    photoUploadMessage.value = { type: 'error', lines: clientErrors }
+    setTimeout(() => { photoUploadMessage.value = null }, 5000)
+    if (event.target) event.target.value = ''
+    return
+  }
+
+  photoUploading.value = true
+  try {
+    const result = await uploadCampingPhotos(campingId, validFiles)
+
+    // Lokális fotólista frissítése újratöltés nélkül
+    if (result.success?.length > 0) {
+      const item = overviewData.value.find(i => i.camping.id === campingId)
+      if (item) {
+        for (const s of result.success) {
+          item.photos.push({ photo_id: s.id, photo_url: s.photo_url })
+        }
+      }
+    }
+
+    // Üzenet összeállítása a szerver válasza alapján
+    const successCount = result.success?.length ?? 0
+    const serverErrors = result.errors ?? []
+    const allErrors = [...clientErrors, ...serverErrors.map(e => `${e.file}: ${e.message}`)]
+
+    if (successCount > 0 && allErrors.length === 0) {
+      photoUploadMessage.value = { type: 'success', lines: [`${successCount} kép sikeresen feltöltve.`] }
+    } else if (successCount > 0) {
+      photoUploadMessage.value = { type: 'partial', lines: [`${successCount} kép feltöltve.`, ...allErrors] }
+    } else {
+      photoUploadMessage.value = { type: 'error', lines: ['Feltöltés sikertelen:', ...allErrors] }
+    }
+    setTimeout(() => { photoUploadMessage.value = null }, 5000)
+  } catch {
+    photoUploadMessage.value = { type: 'error', lines: ['Szerverhiba a feltöltés közben.'] }
+    setTimeout(() => { photoUploadMessage.value = null }, 5000)
+  } finally {
+    photoUploading.value = false
+    if (event.target) event.target.value = ''
+  }
+}
+
+// Kép törlése – lokális lista frissítés, nincs újratöltés
+async function handlePhotoDelete(campingId, photoId) {
+  try {
+    await deleteCampingPhoto(campingId, photoId)
+    const item = overviewData.value.find(i => i.camping.id === campingId)
+    if (item) {
+      item.photos = item.photos.filter(p => p.photo_id !== photoId)
+    }
+  } catch (err) {
+    console.error('Kép törlési hiba:', err)
+  }
+}
+
+// Fő kép beállítása – lokálisan is átrendezzük, nincs újratöltés
+async function handleSetMainPhoto(campingId, photoId) {
+  try {
+    await setMainPhoto(campingId, photoId)
+    const item = overviewData.value.find(i => i.camping.id === campingId)
+    if (item) {
+      const idx = item.photos.findIndex(p => p.photo_id === photoId)
+      if (idx > 0) {
+        const [moved] = item.photos.splice(idx, 1)
+        item.photos.unshift(moved)
+      }
+    }
+  } catch (err) {
+    console.error('Fő kép beállítási hiba:', err)
+  }
+}
+
+// Fájl előnézet URL generálása (böngésző lokális blob URL)
+function getFilePreview(file) {
+  return URL.createObjectURL(file)
+}
+
+// Kép eltávolítása az új kemping képlistából
+function removeNewCampingPhoto(index) {
+  const files = [...newCampingPhotoFiles.value]
+  files.splice(index, 1)
+  newCampingPhotoFiles.value = files
+  // Ha a fő kép indexét töröltük, reseteljük 0-ra
+  if (newCampingMainIndex.value >= files.length) {
+    newCampingMainIndex.value = Math.max(0, files.length - 1)
+  } else if (newCampingMainIndex.value === index) {
+    newCampingMainIndex.value = 0
+  } else if (newCampingMainIndex.value > index) {
+    newCampingMainIndex.value--
   }
 }
 
@@ -645,7 +949,7 @@ async function handleGenerateToken(gateId) {
 
 async function handleRevokeToken(gateId) {
   if (!selectedCampingId.value) return
-  if (!confirm('Biztosan visszavonod a tokent? Az szkenner nem fog működni ezután.')) return
+  if (!confirm('Biztosan visszavonod a tokent? A szkenner nem fog működni ezután.')) return
   try {
     await revokeToken(selectedCampingId.value, gateId)
   } catch (err) {
@@ -693,26 +997,91 @@ const newCampingForm = ref({
 const campingFormError = ref(null)
 const campingFormSuccess = ref(null)
 
+// OpenStreetMap település autocomplete
+const citySuggestions = ref([])
+const showCitySuggestions = ref(false)
+const citySelectedFromAutocomplete = ref(false)
+let cityDebounceTimer = null
+
+const STREET_TYPES = [
+  { value: 'utca', label: 'Utca', numberLabel: 'Házszám' },
+  { value: 'út', label: 'Út', numberLabel: 'Házszám' },
+  { value: 'tér', label: 'Tér', numberLabel: 'Szám' },
+  { value: 'köz', label: 'Köz', numberLabel: 'Házszám' },
+  { value: 'körút', label: 'Körút', numberLabel: 'Házszám' },
+  { value: 'sugárút', label: 'Sugárút', numberLabel: 'Házszám' },
+  { value: 'sétány', label: 'Sétány', numberLabel: 'Szám' },
+  { value: 'sor', label: 'Sor', numberLabel: 'Szám' },
+  { value: 'dűlő', label: 'Dűlő', numberLabel: 'Helyrajzi szám' },
+  { value: 'fasor', label: 'Fasor', numberLabel: 'Házszám' },
+  { value: 'park', label: 'Park', numberLabel: 'Szám' },
+  { value: 'rakpart', label: 'Rakpart', numberLabel: 'Házszám' },
+]
+const selectedStreetType = ref('utca')
+const streetName = ref('')
+const streetNumber = ref('')
+
+const streetNumberLabel = computed(() => {
+  const found = STREET_TYPES.find(t => t.value === selectedStreetType.value)
+  return found ? found.numberLabel : 'Házszám'
+})
+
+async function fetchCitySuggestions(query) {
+  if (!query || query.length < 2) {
+    citySuggestions.value = []
+    showCitySuggestions.value = false
+    return
+  }
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&countrycodes=hu&limit=6&accept-language=hu`
+    const res = await fetch(url)
+    const data = await res.json()
+    // Csak települések (city/town/village)
+    const seen = new Set()
+    citySuggestions.value = data
+      .filter(d => d.address && (d.address.city || d.address.town || d.address.village))
+      .map(d => ({
+        name: d.address.city || d.address.town || d.address.village,
+        zip: d.address.postcode || '',
+        county: d.address.county || '',
+        lat: d.lat,
+        lon: d.lon,
+      }))
+      .filter(d => {
+        const key = d.name + d.zip
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+    showCitySuggestions.value = citySuggestions.value.length > 0
+  } catch {
+    citySuggestions.value = []
+    showCitySuggestions.value = false
+  }
+}
+
+function onCityInput() {
+  citySelectedFromAutocomplete.value = false
+  clearTimeout(cityDebounceTimer)
+  cityDebounceTimer = setTimeout(() => fetchCitySuggestions(newCampingForm.value.city), 300)
+}
+
+function selectCity(suggestion) {
+  newCampingForm.value.city = suggestion.name
+  newCampingForm.value.zip_code = suggestion.zip
+  if (suggestion.lat) newCampingForm.value.latitude = suggestion.lat
+  if (suggestion.lon) newCampingForm.value.longitude = suggestion.lon
+  citySelectedFromAutocomplete.value = true
+  showCitySuggestions.value = false
+}
+
+function onCityBlur() {
+  setTimeout(() => { showCitySuggestions.value = false }, 200)
+}
+
 // Tag kezelés – előre megadható, elküldés a kemping létrehozásával együtt
 const showInfoNotice = ref(true)
-const availableTags = [
-  'Sátorhelyek',
-  'Lakókocsi beálló',
-  'Áramcsatlakozás',
-  'Ivóvíz vételi hely',
-  'Közös zuhanyzó',
-  'Közös mosdó',
-  'Mosókonyha',
-  'Tűzrakóhely',
-  'Játszótér',
-  'Kutyabarát',
-  'Kerékpárkölcsönzés',
-  'Horgászási lehetőség',
-  'Vízparti hozzáférés',
-  'Árnyékos parcellák',
-  'Hulladékgyűjtő pont',
-]
-const pendingTags = ref([])   // helyi lista, még nem mentve az API-ra
+const pendingTags = ref([]) // helyi lista, még nem mentve az API-ra
 
 function toggleTag(tag) {
   if (pendingTags.value.includes(tag)) {
@@ -726,15 +1095,26 @@ async function handleAddCamping() {
   campingFormError.value = null
   campingFormSuccess.value = null
 
+  // Település autocomplete ellenőrzés
+  if (!citySelectedFromAutocomplete.value && newCampingForm.value.city) {
+    campingFormError.value = 'Kérlek válaszd ki a települést a legördülő listából!'
+    return
+  }
+
+  // Cím összeállítása a részekből
+  const composedStreet = `${streetName.value} ${selectedStreetType.value} ${streetNumber.value}`.trim()
+  newCampingForm.value.street_address = composedStreet
+
   if (!newCampingForm.value.camping_name || !newCampingForm.value.description ||
-      !newCampingForm.value.city || !newCampingForm.value.zip_code || !newCampingForm.value.street_address ||
+      !newCampingForm.value.city ||
+      !streetName.value || !streetNumber.value ||
       !newCampingForm.value.company_name || !newCampingForm.value.tax_id || !newCampingForm.value.billing_address) {
     campingFormError.value = 'Kérlek töltsd ki az összes kötelező mezőt!'
     return
   }
 
-  // Irányítószám validáció – 4 számjegy
-  if (!isValidZipCode(newCampingForm.value.zip_code)) {
+  // Irányítószám validáció – csak ha meg van adva
+  if (newCampingForm.value.zip_code && !isValidZipCode(newCampingForm.value.zip_code)) {
     campingFormError.value = 'Az irányítószámnak 4 számjegyből kell állnia! (pl. 1011)'
     return
   }
@@ -764,7 +1144,7 @@ async function handleAddCamping() {
 
     // Tagek mentése az újonnan létrehozott kempinghez
     if (newId && pendingTags.value.length > 0) {
-      await Promise.all(pendingTags.value.map(tag => addCampingTag(newId, { tag })))
+      await syncCampingTags(newId, pendingTags.value)
     }
 
     campingFormSuccess.value = 'Kemping sikeresen létrehozva!'
@@ -773,6 +1153,10 @@ async function handleAddCamping() {
       billing_address: '', city: '', zip_code: '', street_address: '',
       latitude: '', longitude: '',
     }
+    streetName.value = ''
+    streetNumber.value = ''
+    selectedStreetType.value = 'utca'
+    citySelectedFromAutocomplete.value = false
     pendingTags.value = []
     await fetchMyCampings()
   } catch (err) {
@@ -1038,15 +1422,33 @@ onMounted(async () => {
     pageLoading.value = false
     return
   }
-  await fetchMyCampings()
-  // Ha van kemping, automatikusan kiválasztjuk az elsőt
-  if (myCampings.value.length > 0) {
-    selectedCampingId.value = myCampings.value[0].id
-    overviewSelectedCampingId.value = myCampings.value[0].id
+  try {
+    await fetchMyCampings()
+    // Ha van kemping, automatikusan kiválasztjuk az elsőt
+    if (myCampings.value.length > 0) {
+      selectedCampingId.value = myCampings.value[0].id
+      overviewSelectedCampingId.value = myCampings.value[0].id
+    }
+    await loadData()
+  } catch (err) {
+    if (err.response?.status === 401) {
+      isAuthenticated.value = false
+    }
+  } finally {
+    pageLoading.value = false
   }
-  loadData()
-  pageLoading.value = false
 })
+
+// Scroll lock – ha bármelyik modal nyitva van, a háttér ne legyen görgethető
+const anyModalOpen = computed(() =>
+  showEditCampingModal.value || showEditSpotModal.value || showTagModal.value ||
+  showBookingDetailModal.value || showGateModal.value || showRenameModal.value ||
+  showTokenModal.value || showGeojsonGuide.value || showGuestFieldsModal.value
+)
+watch(anyModalOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+})
+onUnmounted(() => { document.body.style.overflow = '' })
 
 </script>
 
@@ -1054,7 +1456,7 @@ onMounted(async () => {
 
   <!-- Betöltés -->
   <div v-if="pageLoading" class="text-center py-20">
-    <p class="text-lg text-gray-500">Dashboard betöltése...</p>
+    <p class="text-lg text-gray-500">Vezérlőpult betöltése...</p>
   </div>
 
   <div v-else class="container">
@@ -1142,17 +1544,62 @@ onMounted(async () => {
 
             <!-- Tagek -->
             <div class="overview-section">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div class="overview-section-header">
                 <h5 class="overview-section-title" style="margin:0;">Tagek</h5>
                 <button class="btn-add-gate" style="font-size:12px; padding:5px 12px;" @click="openTagModal(item.camping.id, item.tags)">+ Tag kezelés</button>
               </div>
               <div v-if="item.tags.length > 0" class="tag-list">
                 <span v-for="t in item.tags" :key="t.id ?? t.tag ?? t" class="tag-badge">
                   {{ t.tag ?? t }}
-                  <button class="tag-remove" @click="handleDeleteTag(item.camping.id, t.id)" title="Tag törlése">✕</button>
                 </span>
               </div>
               <p v-else class="tag-empty">Nincsenek tagek hozzáadva.</p>
+            </div>
+
+            <!-- Képek -->
+            <div class="overview-section">
+              <div class="overview-section-header">
+                <h5 class="overview-section-title" style="margin:0;">Képek</h5>
+                <label class="btn-add-gate" style="font-size:12px; padding:5px 12px; cursor:pointer;">
+                  {{ photoUploading ? '⏳ Feltöltés...' : '+ Kép feltöltése' }}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+                    :disabled="photoUploading"
+                    @change="handlePhotoUpload(item.camping.id, $event)" />
+                </label>
+              </div>
+              <!-- Kép korlátok infó -->
+              <div class="photo-limits-info">
+                <span class="photo-limit-tag">Max 5 MB / kép</span>
+                <span class="photo-limit-tag">Max 4000×4000 px</span>
+                <span class="photo-limit-tag">Max 10 kép / kemping</span>
+                <span class="photo-limit-tag">JPG, PNG, WebP</span>
+              </div>
+              <!-- Feltöltési eredmény üzenet -->
+              <div v-if="photoUploadMessage" :style="{
+                marginTop: '10px',
+                marginBottom: '14px',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                background: photoUploadMessage.type === 'success' ? '#d1fae5' : photoUploadMessage.type === 'partial' ? '#fef9c3' : '#fee2e2',
+                color: photoUploadMessage.type === 'success' ? '#065f46' : photoUploadMessage.type === 'partial' ? '#92400e' : '#991b1b',
+              }">
+                <button @click="photoUploadMessage = null" style="float:right; background:none; border:none; cursor:pointer; font-size:14px; margin-top:-2px;">&times;</button>
+                <div v-for="(line, li) in photoUploadMessage.lines" :key="li" style="padding:1px 0;">{{ line }}</div>
+              </div>
+              <div v-if="item.photos && item.photos.length > 0" class="photo-grid" style="margin-top: 12px;">
+                <div v-for="(photo, photoIndex) in item.photos" :key="photo.photo_id" class="photo-grid-item" :class="{ 'photo-main': photoIndex === 0 }">
+                  <!-- Fő kép jelölő badge -->
+                  <span v-if="photoIndex === 0" class="photo-main-badge">★ Fő kép</span>
+                  <!-- Kép megjelenítés: S3 URL-t közvetlenül, lokálisat prefix-elve -->
+                  <img :src="photo.photo_url.startsWith('http') ? photo.photo_url : 'http://localhost:8000' + photo.photo_url" :alt="'Kemping kép'" loading="lazy" decoding="async" @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'" />
+                  <div class="photo-actions">
+                    <button v-if="photoIndex !== 0" class="photo-main-btn" @click="handleSetMainPhoto(item.camping.id, photo.photo_id)" title="Beállítás fő képnek">★</button>
+                    <button class="photo-delete-btn" @click="handlePhotoDelete(item.camping.id, photo.photo_id)" title="Kép törlése"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <p v-else class="tag-empty">Nincsenek képek feltöltve.</p>
             </div>
 
             <!-- Kemping helyek -->
@@ -1161,7 +1608,7 @@ onMounted(async () => {
               <div v-if="item.spots.length > 0" class="overview-spots-grid">
                 <div v-for="spot in item.spots" :key="spot.id ?? spot.spot_id" class="overview-spot-card">
                   <div class="overview-spot-header">
-                    <span class="overview-spot-name">{{ spot.name }}</span>
+                    <span class="overview-spot-name">{{ spot.name }} <span class="overview-spot-id">#{{ spot.spot_id || spot.id }}</span></span>
                     <div class="overview-spot-actions">
                       <span class="overview-spot-type">{{ spot.type }}</span>
                       <button class="gate-action-btn edit" title="Szerkesztés" @click="openEditSpotModal(item.camping.id, spot)">
@@ -1201,6 +1648,19 @@ onMounted(async () => {
               </div>
             </div>
 
+            <!-- Vendég adatok beállítása -->
+            <div class="overview-section">
+              <div class="overview-section-header">
+                <h5 class="overview-section-title" style="margin:0;">Kért vendég adatok</h5>
+                <button class="btn-add-gate" style="font-size:12px; padding:5px 12px;" @click="openGuestFieldsModal(item.camping.id)">⚙ Beállítás</button>
+              </div>
+              <div v-if="(item.camping.required_guest_fields || []).length > 0" class="tag-list">
+                <span v-for="key in item.camping.required_guest_fields" :key="key" class="tag-badge">
+                  {{ allGuestFields.find(f => f.key === key)?.label || key }}
+                </span>
+              </div>
+              <p v-else class="tag-empty">Nincsenek vendég adatok beállítva.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -1332,13 +1792,48 @@ onMounted(async () => {
               class="tag-checkbox-item"
               :class="{ selected: tagModalExisting.includes(tag) }"
             >
-              <input type="checkbox" :checked="tagModalExisting.includes(tag)" @change="handleToggleTagFromModal(tagModalCampingId, tag, overviewData.find(i => i.camping.id === tagModalCampingId)?.tags || [])" />
+              <input type="checkbox" :checked="tagModalExisting.includes(tag)" @change="toggleTagInModal(tag)" />
               <span>{{ tag }}</span>
             </label>
           </div>
+          <div v-if="tagModalSuccess" class="modal-success-msg">✅ Sikeresen mentve!</div>
         </div>
         <div class="modal-footer">
-          <button class="btn-submit-camping" style="max-width:140px;" @click="showTagModal = false">Kész</button>
+          <button class="btn-submit-camping" style="max-width:160px;" @click="saveTagsFromModal" :disabled="tagModalSaving">
+            {{ tagModalSaving ? '⏳ Mentés...' : '💾 Mentés' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VENDÉG ADATOK MODAL -->
+    <div v-if="showGuestFieldsModal" class="modal-overlay" @click.self="showGuestFieldsModal = false">
+      <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header">
+          <h3>Kért vendég adatok</h3>
+          <button class="modal-close" @click="showGuestFieldsModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px; color:#6b7280; margin:0 0 14px;">Válaszd ki, mely adatokat kéred a vendégektől foglaláskor.</p>
+          <div class="tag-checkbox-grid">
+            <label
+              v-for="field in allGuestFields"
+              :key="field.key"
+              class="tag-checkbox-item"
+              :class="{ selected: guestFieldsModalSelected.includes(field.key) }"
+            >
+              <input type="checkbox"
+                :checked="guestFieldsModalSelected.includes(field.key)"
+                @change="toggleGuestFieldModal(field.key)" />
+              <span>{{ field.label }}</span>
+            </label>
+          </div>
+          <div v-if="guestFieldsSuccess" class="modal-success-msg">✅ Sikeresen mentve!</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-submit-camping" style="max-width:160px;" @click="saveGuestFields" :disabled="guestFieldsSaving">
+            {{ guestFieldsSaving ? '⏳ Mentés...' : '💾 Mentés' }}
+          </button>
         </div>
       </div>
     </div>
@@ -1367,6 +1862,58 @@ onMounted(async () => {
           <small>Havi bevétel</small>
           <h2>{{ (dashboard?.monthlyRevenue || 0).toLocaleString('hu-HU') }} Ft</h2>
           <div class="trend">{{ formatChange(dashboard?.monthlyRevenue, dashboard?.previousMonthlyRevenue) || '—' }}</div>
+        </div>
+      </div>
+
+      <!-- Vendég értékelések -->
+      <div class="section">
+        <h3>Értékelések</h3>
+        <p>A kempingjeidhez érkezett vendégértékelések</p>
+
+        <div v-if="ownerComments.length === 0" style="color:#6b7280; font-size:14px; padding:12px 0;">
+          Még nincsenek értékelések.
+        </div>
+
+        <div v-else class="owner-comments-list">
+          <div v-for="c in ownerComments" :key="c.id" class="owner-comment-card">
+            <div class="owner-comment-header">
+              <div class="owner-comment-stars">
+                <span v-for="s in 5" :key="s" :style="{ color: s <= c.rating ? '#f59e0b' : '#d1d5db' }">★</span>
+              </div>
+              <span class="owner-comment-meta">{{ timeAgo(c.created_at) }}</span>
+            </div>
+            <div class="owner-comment-info">
+              <span class="owner-comment-tag">{{ c.camping_name }}</span>
+              <span v-if="c.spot_name" class="owner-comment-tag">{{ c.spot_name }}</span>
+              <span v-if="c.booking_id" class="owner-comment-tag">#{{ c.booking_id }}</span>
+            </div>
+            <div class="owner-comment-user">{{ c.user?.owner_first_name || c.user?.first_name }} {{ c.user?.owner_last_name || c.user?.last_name }}</div>
+            <p class="owner-comment-text">{{ c.comment }}</p>
+
+            <!-- Meglévő válaszok -->
+            <div v-if="c.replies && c.replies.length > 0" class="owner-comment-replies">
+              <div v-for="r in c.replies" :key="r.id" class="owner-comment-reply">
+                <strong>{{ r.user?.owner_first_name || r.user?.first_name || 'Tulajdonos' }}:</strong> {{ r.comment }}
+                <span class="owner-comment-meta" style="margin-left:8px;">{{ timeAgo(r.created_at) }}</span>
+              </div>
+            </div>
+
+            <!-- Válasz űrlap -->
+            <div v-if="replyingTo === c.id" class="owner-comment-reply-form">
+              <textarea v-model="replyText" rows="2" class="form-input" placeholder="Válasz írása..." maxlength="1000"></textarea>
+              <div v-if="replyError" style="color:#dc2626; font-size:12px; margin-top:4px;">{{ replyError }}</div>
+              <div style="display:flex; gap:8px; margin-top:6px;">
+                <button class="btn-reply-send" :disabled="replyLoading || !replyText.trim() || replyCooldown > 0" @click="sendReply(c.id)">
+                  {{ replyLoading ? 'Küldés...' : replyCooldown > 0 ? `Várj ${replyCooldown} mp` : 'Küldés' }}
+                </button>
+                <button class="btn-reply-cancel" @click="replyingTo = null; replyText = ''; replyError = null">Mégse</button>
+              </div>
+            </div>
+            <button v-else-if="(c.replies || []).length >= 3" class="btn-reply-open" disabled style="opacity:.5;cursor:not-allowed;">Maximum 3 válasz</button>
+            <button v-else class="btn-reply-open" :disabled="replyCooldown > 0" @click="replyingTo = c.id; replyText = ''; replyError = null">
+              {{ replyCooldown > 0 ? `Várj ${replyCooldown} mp` : 'Válasz' }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1410,23 +1957,35 @@ onMounted(async () => {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th @click="toggleSort('id')" class="sortable-th">
+                ID <span class="sort-icon">{{ bookingSortKey==='id' ? (bookingSortDir==='asc' ? '▲' : '▼') : '⇅' }}</span>
+              </th>
               <th>Kemping</th>
               <th>Vendég</th>
-              <th>Hely</th>
-              <th>Érkezés</th>
-              <th>Távozás</th>
+              <th @click="toggleSort('spot_type')" class="sortable-th">
+                Hely <span class="sort-icon">{{ bookingSortKey==='spot_type' ? (bookingSortDir==='asc' ? '▲' : '▼') : '⇅' }}</span>
+              </th>
+              <th @click="toggleSort('arrival_date')" class="sortable-th">
+                Érkezés <span class="sort-icon">{{ bookingSortKey==='arrival_date' ? (bookingSortDir==='asc' ? '▲' : '▼') : '⇅' }}</span>
+              </th>
+              <th @click="toggleSort('departure_date')" class="sortable-th">
+                Távozás <span class="sort-icon">{{ bookingSortKey==='departure_date' ? (bookingSortDir==='asc' ? '▲' : '▼') : '⇅' }}</span>
+              </th>
               <th>Vendégek</th>
-              <th>Státusz</th>
-              <th>Ár</th>
+              <th @click="toggleSort('status')" class="sortable-th">
+                Státusz <span class="sort-icon">{{ bookingSortKey==='status' ? (bookingSortDir==='asc' ? '▲' : '▼') : '⇅' }}</span>
+              </th>
+              <th @click="toggleSort('price')" class="sortable-th">
+                Ár <span class="sort-icon">{{ bookingSortKey==='price' ? (bookingSortDir==='asc' ? '▲' : '▼') : '⇅' }}</span>
+              </th>
               <th>Műveletek</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="filteredBookings.length === 0">
+            <tr v-if="bookingsSorted.length === 0">
               <td colspan="10" style="text-align:center; color:#6b7280; padding:30px;">Nincsenek foglalások.</td>
             </tr>
-            <tr v-for="booking in filteredBookings" :key="booking.id">
+            <tr v-for="booking in bookingsSorted" :key="booking.id">
               <td><strong>{{ booking.id }}</strong></td>
               <td>{{ booking.camping?.camping_name || '-' }}</td>
               <td>{{ getBookingFirstName(booking) }} {{ getBookingLastName(booking) }}</td>
@@ -1569,7 +2128,6 @@ onMounted(async () => {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <span v-if="gate.opening_time && gate.closing_time">{{ gate.opening_time }} – {{ gate.closing_time }}</span>
               <span v-else>Nincs nyitvatartás megadva</span>
-              <span>| Kemping ID: {{ selectedCampingId }}</span>
             </div>
 
             <div class="gate-divider"></div>
@@ -1675,7 +2233,77 @@ onMounted(async () => {
       <div class="new-camping-header">
         <div>
           <h2 class="gates-title">Térkép kezelés</h2>
-          <p class="gates-subtitle">GeoJSON térkép feltöltése a kempinghez</p>
+          <p class="gates-subtitle">GeoJSON térkép feltöltése a kempinghez · <a href="#" class="geojson-guide-link" @click.prevent="showGeojsonGuide = true">📖 Útmutató a GeoJSON készítéshez</a></p>
+        </div>
+      </div>
+
+      <!-- GeoJSON Útmutató Modal -->
+      <div v-if="showGeojsonGuide" class="geojson-guide-overlay" @click.self="showGeojsonGuide = false">
+        <div class="geojson-guide-modal">
+          <div class="geojson-guide-header">
+            <h2>📖 GeoJSON Térkép Útmutató</h2>
+            <button class="geojson-guide-close" @click="showGeojsonGuide = false">&times;</button>
+          </div>
+          <div class="geojson-guide-body">
+            <p>Használd a <a href="https://geojson.io" target="_blank" rel="noopener">geojson.io</a> online szerkesztőt. Ingyenes, nem kell regisztráció.</p>
+
+            <h3>1. lépés – Kemping határ (LineString)</h3>
+            <p>Rajzold körbe a kemping teljes területét egy <strong>vonallal (Draw a polyline)</strong>. Ez adja meg a kemping határvonalát.</p>
+
+            <h3>2. lépés – Kempinghelyek megjelölése</h3>
+            <p>Két módon jelölhetsz kempinghelyet:</p>
+
+            <h4>a) Terület (Polygon)</h4>
+            <p>A <strong>Draw a rectangle / polygon</strong> eszközzel rajzolj egy területet. Használd, ha a hely méretét is meg akarod mutatni (parcella).</p>
+
+            <h4>b) Pont (Point)</h4>
+            <p>A <strong>Draw a marker</strong> eszközzel helyezz el egy pontot. Használd, ha csak a pozíciót jelölöd.</p>
+
+            <p><strong>Mindkét esetben</strong> írd be a properties-be a hely azonosítóját:</p>
+            <pre class="geojson-guide-code">{ "spot_id": 5 }</pre>
+            <p class="geojson-guide-hint">A spot_id értékét a „Helyek" menüpont alatt találod.</p>
+
+            <h3>3. lépés – Tájékoztató pontok (opcionális)</h3>
+            <p>Nem foglalható jelölők (recepció, mosdó, játszótér). A <strong>Draw a marker</strong> eszközzel, properties:</p>
+            <pre class="geojson-guide-code">{ "type": "info", "label": "Recepció" }</pre>
+
+            <h3>Feature típusok összefoglaló</h3>
+            <table class="geojson-guide-table">
+              <thead>
+                <tr><th>Típus</th><th>Geometria</th><th>Properties</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Határ</td><td>LineString</td><td>–</td></tr>
+                <tr><td>Kempinghely</td><td>Polygon</td><td><code>spot_id: szám</code></td></tr>
+                <tr><td>Kempinghely</td><td>Point</td><td><code>spot_id: szám</code></td></tr>
+                <tr><td>Tájékoztató</td><td>Point</td><td><code>type: "info", label: "..."</code></td></tr>
+              </tbody>
+            </table>
+
+            <h3>Opcionális stílus</h3>
+            <table class="geojson-guide-table">
+              <thead>
+                <tr><th>Property</th><th>Leírás</th><th>Példa</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>stroke</code></td><td>Vonal szín</td><td>#16a34a</td></tr>
+                <tr><td><code>stroke-width</code></td><td>Vonal vastagság</td><td>2</td></tr>
+                <tr><td><code>fill</code></td><td>Kitöltés szín</td><td>#bbf7d0</td></tr>
+                <tr><td><code>fill-opacity</code></td><td>Kitöltés átlátszóság</td><td>0.2</td></tr>
+                <tr><td><code>marker-color</code></td><td>Info pont szín</td><td>#3b82f6</td></tr>
+              </tbody>
+            </table>
+
+            <h3>Feltöltés</h3>
+            <ol>
+              <li>A geojson.io-ban: <strong>Save → GeoJSON</strong></li>
+              <li>A letöltött <code>.geojson</code> fájlt töltsd fel itt a Térkép fülön</li>
+            </ol>
+
+            <div class="geojson-guide-warning">
+              <strong>⚠️ Fontos:</strong> Minden spot_id érték egy létező kempinghely azonosítónak kell megfeleljen. Egy spot_id csak egyszer szerepeljen.
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1872,11 +2500,6 @@ onMounted(async () => {
       </div>
 
       <div class="new-camping-card-full">
-        <!-- Hiba üzenet -->
-        <div v-if="campingFormError" class="form-alert error">
-          ⚠️ {{ campingFormError }}
-        </div>
-
         <!-- Alap adatok + Tagek egy sorban -->
         <div class="new-camping-top-row">
           <div class="form-section new-camping-section-grow">
@@ -1920,18 +2543,41 @@ onMounted(async () => {
           <div class="form-section new-camping-section-grow">
             <h4 class="form-section-title">Helyszín</h4>
             <div class="form-row">
-              <div class="form-group half">
+              <div class="form-group half" style="position: relative;">
                 <label class="form-label">Város <span class="required">*</span></label>
-                <input type="text" class="form-input" v-model="newCampingForm.city" placeholder="pl. Budapest" />
+                <input type="text" class="form-input" v-model="newCampingForm.city"
+                  placeholder="Kezdj el gépelni..."
+                  @input="onCityInput"
+                  @blur="onCityBlur"
+                  autocomplete="off" />
+                <ul v-if="showCitySuggestions && citySuggestions.length" class="city-autocomplete-list">
+                  <li v-for="s in citySuggestions" :key="s.name + s.zip" @mousedown.prevent="selectCity(s)">
+                    <strong>{{ s.name }}</strong>
+                    <span v-if="s.zip"> – {{ s.zip }}</span>
+                  </li>
+                </ul>
+
               </div>
               <div class="form-group half">
-                <label class="form-label">Irányítószám <span class="required">*</span></label>
-                <input type="text" class="form-input" v-model="newCampingForm.zip_code" placeholder="pl. 1011" maxlength="4" />
+                <label class="form-label">Irányítószám</label>
+                <input type="text" class="form-input" v-model="newCampingForm.zip_code" placeholder="Automatikusan kitöltődik" maxlength="4" />
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Utca, házszám <span class="required">*</span></label>
-              <input type="text" class="form-input" v-model="newCampingForm.street_address" placeholder="pl. Fő utca, 12." />
+            <div class="form-row">
+              <div class="form-group" style="flex:2;">
+                <label class="form-label">Közterület neve <span class="required">*</span></label>
+                <input type="text" class="form-input" v-model="streetName" placeholder="pl. Fő" />
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label class="form-label">Közterület jellege <span class="required">*</span></label>
+                <select class="form-input" v-model="selectedStreetType">
+                  <option v-for="t in STREET_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label class="form-label">{{ streetNumberLabel }} <span class="required">*</span></label>
+                <input type="text" class="form-input" v-model="streetNumber" placeholder="pl. 12." />
+              </div>
             </div>
           </div>
 
@@ -1952,6 +2598,15 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- Képek feltöltése utólag lehetséges -->
+        <div style="display:flex; align-items:flex-start; gap:8px; padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; background:#f9fafb; margin-top:8px;">
+          <span style="flex-shrink:0; width:20px; height:20px; border-radius:50%; background:#e0e7ff; color:#4f46e5; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">i</span>
+          <span style="color:#4b5563; font-size:13px; line-height:1.4;">Képeket a kemping létrehozása után az <strong>Áttekintés</strong> fülön tudsz feltölteni.</span>
+        </div>
+
+        <div v-if="campingFormError" class="form-alert error" style="margin-top: 16px;">
+          ⚠️ {{ campingFormError }}
+        </div>
         <div v-if="campingFormSuccess" class="form-alert success">
           ✅ {{ campingFormSuccess }}
         </div>
@@ -2132,6 +2787,11 @@ onMounted(async () => {
     .tabs::-webkit-scrollbar {
       display: none; /* Chrome, Safari */
     }
+
+    .tab {
+      padding: 7px 10px;
+      font-size: 13px;
+    }
   }
 
   .tab {
@@ -2140,6 +2800,8 @@ onMounted(async () => {
     cursor: pointer;
     border-radius: 8px;
     color: #374151;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .tab.active {
@@ -2642,6 +3304,18 @@ onMounted(async () => {
     margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid #f3f4f6;
+  }
+
+  .modal-success-msg {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
   }
 
   .form-group {
@@ -3163,6 +3837,69 @@ onMounted(async () => {
     border: 1px solid #fecaca;
   }
 
+  /* Rendezhető oszlopfejlécek */
+  .sortable-th {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .sortable-th:hover {
+    color: #2563eb;
+  }
+  .sort-icon {
+    font-size: 11px;
+    opacity: 0.5;
+    margin-left: 2px;
+  }
+  .sortable-th:hover .sort-icon {
+    opacity: 1;
+  }
+
+  /* Kép korlátok info */
+  .photo-limits-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .photo-limit-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #4b5563;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+  }
+
+  /* Település autocomplete */
+  .city-autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 4px 0;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .city-autocomplete-list li {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .city-autocomplete-list li:hover {
+    background: #f0fdf4;
+  }
+
   .tab.active[data-tab="ujkemping"] {
     background: #f0fdf4;
     color: #3f6212;
@@ -3262,6 +3999,15 @@ onMounted(async () => {
     margin-top: 20px;
   }
 
+  .overview-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
   .overview-section-title {
     font-size: 13px;
     font-weight: 700;
@@ -3296,6 +4042,13 @@ onMounted(async () => {
     font-weight: 700;
     font-size: 14px;
     color: #1f2937;
+  }
+
+  .overview-spot-id {
+    font-weight: 500;
+    font-size: 11px;
+    color: #6b7280;
+    margin-left: 4px;
   }
 
   .overview-spot-type {
@@ -3419,6 +4172,30 @@ onMounted(async () => {
 
   .overview-company-row strong {
     color: #1f2937;
+  }
+
+
+  /* Áttekintés mobil nézet */
+  @media (max-width: 640px) {
+    .overview-card-header {
+      padding: 14px 14px;
+      flex-wrap: wrap;
+    }
+    .overview-card-body {
+      padding: 0 14px 14px;
+    }
+    .overview-card-stats {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .overview-spots-grid {
+      grid-template-columns: 1fr;
+    }
+    .overview-section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
   }
 
   /* Kemping hely felvitel */
@@ -3792,6 +4569,369 @@ onMounted(async () => {
   .geojson-empty p {
     margin: 0;
     font-size: 14px;
+  }
+
+  /* GeoJSON útmutató link */
+  .geojson-guide-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s;
+  }
+  .geojson-guide-link:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  /* GeoJSON útmutató modal */
+  .geojson-guide-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .geojson-guide-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  }
+  .geojson-guide-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+  }
+  .geojson-guide-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+  .geojson-guide-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: #9ca3af;
+    line-height: 1;
+    padding: 0 4px;
+    transition: color 0.15s;
+  }
+  .geojson-guide-close:hover {
+    color: #374151;
+  }
+  .geojson-guide-body {
+    padding: 24px;
+    overflow-y: auto;
+    line-height: 1.6;
+    font-size: 14px;
+    color: #374151;
+  }
+  .geojson-guide-body h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 20px 0 8px;
+  }
+  .geojson-guide-body h3:first-of-type {
+    margin-top: 12px;
+  }
+  .geojson-guide-body h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 12px 0 4px;
+  }
+  .geojson-guide-body p {
+    margin: 4px 0 8px;
+  }
+  .geojson-guide-body a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .geojson-guide-body a:hover {
+    text-decoration: underline;
+  }
+  .geojson-guide-body ol {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  .geojson-guide-body ol li {
+    margin-bottom: 4px;
+  }
+  .geojson-guide-code {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    color: #1f2937;
+    margin: 8px 0;
+    overflow-x: auto;
+  }
+  .geojson-guide-hint {
+    font-size: 13px;
+    color: #6b7280;
+    font-style: italic;
+  }
+  .geojson-guide-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 16px;
+    font-size: 13px;
+  }
+  .geojson-guide-table th,
+  .geojson-guide-table td {
+    border: 1px solid #e5e7eb;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .geojson-guide-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+  }
+  .geojson-guide-table code {
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .geojson-guide-warning {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #92400e;
+  }
+
+  /* Képgaléria */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .photo-grid-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+  }
+  .photo-grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-delete-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(220,38,38,0.85);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .photo-grid-item:hover .photo-delete-btn,
+  .photo-grid-item:hover .photo-main-btn {
+    opacity: 1;
+  }
+
+  /* Fő kép jelölés */
+  .photo-main {
+    outline: 3px solid #4A7434;
+    outline-offset: -3px;
+    box-shadow: 0 0 0 3px #4A7434;
+  }
+  .photo-main-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: #4A7434;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .photo-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+  .photo-main-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(74,116,52,0.85);
+    color: #ffe066;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .photo-main-btn:hover {
+    background: #4A7434;
+    transform: scale(1.1);
+  }
+  .photo-delete-btn:hover {
+    background: rgba(220,38,38,1);
+    transform: scale(1.1);
+  }
+
+  /* Mobil nézet - képgaléria */
+  @media (max-width: 768px) {
+    .photo-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    .photo-actions {
+      gap: 8px;
+    }
+    .photo-main-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+    }
+  }
+  @media (max-width: 480px) {
+    .photo-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+  }
+
+  /* Owner comment cards */
+  .owner-comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  .owner-comment-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .owner-comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .owner-comment-stars {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  .owner-comment-meta {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+  .owner-comment-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .owner-comment-tag {
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .owner-comment-user {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+  }
+  .owner-comment-text {
+    font-size: 14px;
+    color: #374151;
+    margin: 0 0 8px;
+    line-height: 1.5;
+  }
+  .owner-comment-replies {
+    border-left: 3px solid #e5e7eb;
+    padding-left: 12px;
+    margin-bottom: 8px;
+  }
+  .owner-comment-reply {
+    font-size: 13px;
+    color: #4b5563;
+    padding: 4px 0;
+  }
+  .owner-comment-reply-form {
+    margin-top: 8px;
+  }
+  .btn-reply-open {
+    background: none;
+    border: 1px solid #d1d5db;
+    color: #4b5563;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-reply-open:hover { border-color: #4A7434; color: #4A7434; }
+  .btn-reply-send {
+    background: #4A7434;
+    color: #fff;
+    border: none;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-reply-send:hover { background: #F17E21; }
+  .btn-reply-send:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-reply-cancel {
+    background: none;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    cursor: pointer;
   }
 
 </style>

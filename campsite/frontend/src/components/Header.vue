@@ -62,7 +62,7 @@ const handleLogout = async () => {
 
 <template>
 <header class="bg-white shadow-md sticky top-0 z-50">
-  <div class="max-w-[1400px] mx-auto px-6 flex items-center justify-between h-12">
+  <div class="max-w-[1140px] mx-auto w-full px-6 flex items-center justify-between h-12">
     <!-- logo -->
     <router-link to="/" class="logo flex items-center">
       <img src="/img/CampSite.svg" alt="CampSite Logo" class="h-20"/>
@@ -129,6 +129,14 @@ const handleLogout = async () => {
             </router-link>
 
             <router-link 
+              to="/foglalasaim" 
+              @click="closeProfileMenu"
+              class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] transition"
+            >
+              📅 Foglalásaim
+            </router-link>
+
+            <router-link 
               v-if="user && user.role === true"
               to="/Tulajdonos" 
               @click="closeProfileMenu"
@@ -183,6 +191,9 @@ const handleLogout = async () => {
         <router-link to="/profil" @click="mobileMenuOpen = false" class="flex items-center gap-2 px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
           👤 Profilom
         </router-link>
+        <router-link to="/foglalasaim" @click="mobileMenuOpen = false" class="flex items-center gap-2 px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
+          📅 Foglalásaim
+        </router-link>
         <button @click="openPhoneLoginModal" class="flex items-center gap-2 w-full text-left px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
           🤝 Legyél partnerünk
         </button>
@@ -209,6 +220,9 @@ const handleLogout = async () => {
         </div>
         <router-link to="/profil" @click="mobileMenuOpen = false" class="flex items-center gap-2 px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
           👤 Profilom
+        </router-link>
+        <router-link to="/foglalasaim" @click="mobileMenuOpen = false" class="flex items-center gap-2 px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
+          📅 Foglalásaim
         </router-link>
         <router-link v-if="user && user.role === true" to="/Tulajdonos" @click="mobileMenuOpen = false" class="flex items-center gap-2 px-2 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#4A7434] rounded-lg transition">
           🏕️ Saját szálláshelyeim

@@ -1,7 +1,61 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api/axios'
+import 'vue3-carousel/carousel.css'
+import { Carousel, Slide, Navigation, Pagination } from 'vue3-carousel'
+
+// Legjobb kempingek
+const topCampings = ref([])
+const topCampingsLoading = ref(true)   // loading skeleton vezérlő
+const statsLoading = ref(true)          // statisztikák skeleton
+
+const carouselConfig = {
+  height: 420,
+  itemsToShow: 1,
+  gap: 16,
+  autoplay: 8000,
+  wrapAround: true,
+  pauseAutoplayOnHover: true,
+  snapAlign: 'center',
+  breakpoints: {
+    640: { itemsToShow: 2 },
+    1024: { itemsToShow: 3 },
+  },
+}
+
+const fetchTopCampings = async () => {
+  topCampingsLoading.value = true
+  try {
+    const res = await api.get('/campings/top')
+    const data = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    topCampings.value = data.map(c => ({
+      id: c.id,
+      name: c.camping_name || c.name,
+      rating: parseFloat(c.average_rating) || 0,
+      reviews: c.reviews_count || 0,
+      location: c.location?.city || (typeof c.location === 'string' ? c.location : ''),
+      // Thumbnail URL használata (fájlnév_thumb.ext) a gyorsabb betöltéshez
+      image: c.photos?.[0]?.photo_url
+        ? (c.photos[0].photo_url.startsWith('http')
+          ? c.photos[0].photo_url.replace(/(\.[\w]+)$/, '_thumb$1')
+          : 'http://localhost:8000' + c.photos[0].photo_url)
+        : (c.photos?.[0]?.url || c.image || 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'),
+      price: c.min_price || 0,
+    }))
+  } catch (e) {
+    console.error('Top kempingek betöltési hiba:', e)
+  } finally {
+    topCampingsLoading.value = false
+  }
+}
+
+const renderStars = (rating) => {
+  const full = Math.floor(rating)
+  const half = rating - full >= 0.5 ? 1 : 0
+  const empty = 5 - full - half
+  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty)
+}
 
 const router = useRouter()
 const today = new Date().toISOString().split('T')[0]
@@ -10,15 +64,15 @@ const searchForm = ref({
   location: '',
   checkIn: '',
   checkOut: '',
-  adults: 2,
-  children: 0
+  guests: 2,
 })
 
-// --- Autocomplete ---
+// Autocomplete mező találatjavaslatokkal
 const suggestions = ref([])
 const showSuggestions = ref(false)
 const activeSuggestionIndex = ref(-1)
 const locationInputRef = ref(null)
+const locationSelectedFromAutocomplete = ref(false)
 let debounceTimer = null
 
 const fetchSuggestions = async (query) => {
@@ -33,28 +87,26 @@ const fetchSuggestions = async (query) => {
     showSuggestions.value = suggestions.value.length > 0
     activeSuggestionIndex.value = -1
   } catch (err) {
-    console.error('Autocomplete hiba:', err)
     suggestions.value = []
     showSuggestions.value = false
   }
 }
 
 const onLocationInput = () => {
+  locationSelectedFromAutocomplete.value = false
   clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    fetchSuggestions(searchForm.value.location)
-  }, 250)
+  debounceTimer = setTimeout(() => fetchSuggestions(searchForm.value.location), 250)
 }
 
-const selectSuggestion = (suggestion) => {
-  searchForm.value.location = suggestion.label
+const selectSuggestion = (s) => {
+  searchForm.value.location = s.label
+  locationSelectedFromAutocomplete.value = true
   showSuggestions.value = false
   activeSuggestionIndex.value = -1
 }
 
 const onLocationKeydown = (e) => {
   if (!showSuggestions.value || suggestions.value.length === 0) return
-
   if (e.key === 'ArrowDown') {
     e.preventDefault()
     activeSuggestionIndex.value = Math.min(activeSuggestionIndex.value + 1, suggestions.value.length - 1)
@@ -70,14 +122,14 @@ const onLocationKeydown = (e) => {
 }
 
 const onClickOutside = (e) => {
-  const wrapper = document.querySelector('.location-col')
-  if (wrapper && !wrapper.contains(e.target)) {
-    showSuggestions.value = false
-  }
+  const wrapper = document.querySelector('.search-location-col')
+  if (wrapper && !wrapper.contains(e.target)) showSuggestions.value = false
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', onClickOutside)
+  await fetchTopCampings()
+  fetchStats()
 })
 
 onBeforeUnmount(() => {
@@ -85,420 +137,940 @@ onBeforeUnmount(() => {
   clearTimeout(debounceTimer)
 })
 
-// Beírt szöveg kiemelése a javaslatban
 const highlightMatch = (text) => {
-  const query = searchForm.value.location
-  if (!query) return text
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-  return text.replace(regex, '<strong>$1</strong>')
+  const q = searchForm.value.location
+  if (!q) return text
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escaped})`, 'gi')
+  return text.replace(regex, (match) => `<strong>${match.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</strong>`)
 }
-// --- Autocomplete vége ---
 
-const minCheckOut = computed(() => {
-  return searchForm.value.checkIn || today
+const minCheckOut = computed(() => searchForm.value.checkIn || today)
+
+const canSearch = computed(() => {
+  return locationSelectedFromAutocomplete.value
 })
 
-const incrementAdults = () => {
-  if (searchForm.value.adults < 10) searchForm.value.adults++
-}
-
-const decrementAdults = () => {
-  if (searchForm.value.adults > 1) searchForm.value.adults--
-}
-
-const incrementChildren = () => {
-  if (searchForm.value.children < 10) searchForm.value.children++
-}
-
-const decrementChildren = () => {
-  if (searchForm.value.children > 0) searchForm.value.children--
-}
-
-const handleSearch = async () => {
+const handleSearch = () => {
+  if (!locationSelectedFromAutocomplete.value) return
   showSuggestions.value = false
-
   const query = {
-    location: searchForm.value.location || undefined,
-    guests: (searchForm.value.adults + searchForm.value.children) || undefined
+    location: searchForm.value.location,
+    guests: searchForm.value.guests || undefined,
   }
-
-  // Dátumokat csak akkor küldjük, ha mindkettő meg van adva
   if (searchForm.value.checkIn && searchForm.value.checkOut) {
     query.checkIn = searchForm.value.checkIn
     query.checkOut = searchForm.value.checkOut
   }
-
-  router.push({
-    path: '/kereses',
-    query
-  })
+  router.push({ path: '/kereses', query })
 }
+
+// "Miért a CampSite?" szekció: valós adatok
+const campingCount = ref(0)
+const averageRating = ref(0)
+
+const fetchStats = async () => {
+  statsLoading.value = true
+  try {
+    const res = await api.get('/campings/stats')
+    campingCount.value = res.data?.camping_count || 0
+    averageRating.value = res.data?.average_rating || 0
+  } catch (e) {
+    console.error('Statisztika betöltési hiba:', e)
+  } finally {
+    statsLoading.value = false
+  }
+}
+
+const stats = computed(() => [
+  { icon: '🏕️', value: campingCount.value > 0 ? `${campingCount.value}+` : '...', label: 'kemping az oldalon' },
+  { icon: '⭐', value: averageRating.value > 0 ? `${averageRating.value}/5` : '...', label: 'átlagos vendégértékelés' },
+  { icon: '🕐', value: '24/7', label: 'ügyfélszolgálat' },
+])
+
+const features = [
+  {
+    icon: '🧭',
+    color: '#4A7434',
+    title: 'Térkép alapú keresés',
+    desc: 'A kemping térképén kiválaszthatod a számodra legjobb helyet, látod, mi hol van, és azonnal foglalhatsz.',
+  },
+  {
+    icon: '🚪',
+    color: '#F17E21',
+    title: 'Automatikus beengedés',
+    desc: 'Érkezéskor a QR-kódos azonosítás alapján a sorompó egy mozdulattal nyílik, nem kell sorban állni a recepcióra.',
+  },
+  {
+    icon: '⚡',
+    color: '#F17E21',
+    title: 'Gyors foglalás',
+    desc: 'Válassz helyet, add meg a dátumot, és foglalj. Pár kattintás az egész.',
+  },
+  {
+    icon: '⭐',
+    color: '#4A7434',
+    title: 'Valódi vendégvélemények',
+    desc: 'Olvasd el mások tapasztalatait, és hasonlítsd össze a kempingeket értékelések alapján.',
+  },
+  {
+    icon: '📍',
+    color: '#4A7434',
+    title: 'Helyszín részletekkel',
+    desc: 'Minden kempingnél látod a pontos címet, térképet, elérhető helyeket és az árakat.',
+  },
+  {
+    icon: '✉',
+    color: '#F17E21',
+    title: 'Azonnali visszajelzés',
+    desc: 'A foglalásról e-mailben kapsz visszaigazolást, így mindig tudod, mi a helyzet.',
+  },
+]
 </script>
+
 <template>
- 
+<div class="home-page">
 
-  <div class="hero" role="banner">
-    <div class="container">
-      <div class="title">
-        <h1>Találd meg a tökéletes kempinget</h1>
-        <p class="lead">Fedezd fel a legjobb kempinghelyeket Magyarországon</p>
-      </div>
+  <!-- Hero + Keresés -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+      <h1>Találd meg a tökéletes kempinget</h1>
+      <p class="hero-sub">Fedezd fel a legjobb kempinghelyeket Magyarországon</p>
 
-      <div class="search-card" aria-labelledby="search-heading">
-        <form class="grid" id="searchForm" @submit.prevent="handleSearch">
-          <div class="location-col">
-            <label for="location">📍 Helyszín</label>
-            <div class="autocomplete-wrapper">
-              <input 
-                id="location" 
-                ref="locationInputRef"
-                name="location" 
-                type="text" 
-                placeholder="Pl. Balaton, Tisza-tó..." 
-                v-model="searchForm.location"
-                @input="onLocationInput"
-                @keydown="onLocationKeydown"
-                @focus="searchForm.location.length >= 1 && suggestions.length > 0 && (showSuggestions = true)"
-                autocomplete="off"
+      <!-- Kereső — 1 sorban desktopra -->
+      <form class="search-bar" @submit.prevent="handleSearch">
+        <div class="search-location-col">
+          <div class="search-field">
+            <span class="search-icon">📍</span>
+            <input
+              ref="locationInputRef"
+              type="text"
+              placeholder="Helyszín (pl. Balaton)"
+              v-model="searchForm.location"
+              @input="onLocationInput"
+              @keydown="onLocationKeydown"
+              @focus="searchForm.location.length >= 1 && suggestions.length > 0 && (showSuggestions = true)"
+              autocomplete="off"
+            />
+          </div>
+          <!-- Autocomplete lista -->
+          <ul v-if="showSuggestions" class="suggestions-list">
+            <li
+              v-for="(s, idx) in suggestions"
+              :key="idx"
+              :class="{ active: idx === activeSuggestionIndex }"
+              @mousedown.prevent="selectSuggestion(s)"
+              @mouseenter="activeSuggestionIndex = idx"
+            >
+              <span class="sug-icon">{{ s.type === 'camping' ? '🏕️' : '📍' }}</span>
+              <span class="sug-label" v-html="highlightMatch(s.label)"></span>
+              <span class="sug-type">{{ s.type === 'camping' ? 'Kemping' : 'Helyszín' }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="search-field">
+          <span class="search-icon">📅</span>
+          <input type="date" v-model="searchForm.checkIn" :min="today" placeholder="Érkezés" />
+        </div>
+
+        <div class="search-field">
+          <span class="search-icon">📅</span>
+          <input type="date" v-model="searchForm.checkOut" :min="minCheckOut" placeholder="Távozás" />
+        </div>
+
+        <div class="search-field search-field--narrow">
+          <span class="search-icon">👥</span>
+          <input type="number" min="1" max="20" v-model.number="searchForm.guests" />
+        </div>
+
+        <button type="submit" class="search-btn" :disabled="!canSearch" :class="{ 'search-btn--disabled': !canSearch }">Keresés</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 1. Legfelkapottabb kempingek szekció -->
+  <section class="section section--gray">
+    <div class="section-header">
+      <span class="section-badge">Kedvencek</span>
+      <h2>A legjobban értékelt kempingek</h2>
+      <p class="section-sub">Vendégeink által legtöbbre értékelt helyszínek</p>
+    </div>
+
+    <!-- Carousel: betöltés után mutatjuk, különben skeleton -->
+    <div v-if="!topCampingsLoading && topCampings.length > 0" class="carousel-wrap">
+      <Carousel v-bind="carouselConfig">
+        <Slide v-for="camping in topCampings" :key="camping.id">
+          <router-link :to="'/foglalas/' + camping.id" class="card-link">
+            <div class="card">
+              <img
+                :src="camping.image"
+                :alt="camping.name"
+                loading="lazy"
+                decoding="async"
+                width="400"
+                height="360"
+                @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
               />
-              <ul v-if="showSuggestions" class="suggestions-list">
-                <li 
-                  v-for="(s, idx) in suggestions" 
-                  :key="idx"
-                  :class="{ active: idx === activeSuggestionIndex }"
-                  @mousedown.prevent="selectSuggestion(s)"
-                  @mouseenter="activeSuggestionIndex = idx"
-                >
-                  <span class="suggestion-icon">{{ s.type === 'camping' ? '🏕️' : '📍' }}</span>
-                  <span class="suggestion-label" v-html="highlightMatch(s.label)"></span>
-                  <span class="suggestion-type">{{ s.type === 'camping' ? 'Kemping' : 'Helyszín' }}</span>
-                </li>
-              </ul>
+              <div class="card-overlay">
+                <div class="card-badge">
+                  <span class="stars-text">{{ renderStars(camping.rating) }}</span>
+                  <span class="rating-num">{{ camping.rating.toFixed(1) }}</span>
+                </div>
+                <h3>{{ camping.name }}</h3>
+                <p v-if="camping.location" class="card-loc">📍 {{ camping.location }}</p>
+                <p v-if="camping.price > 0" class="card-price">
+                  Már <strong>{{ camping.price.toLocaleString('hu-HU') }} Ft</strong> / éj
+                </p>
+                <span class="card-btn">Foglalás →</span>
+              </div>
             </div>
-          </div>
-
-          <div>
-            <label for="checkIn">📅 Érkezés</label>
-            <input 
-              id="checkIn" 
-              name="checkIn" 
-              type="date" 
-              v-model="searchForm.checkIn"
-              :min="today"
-            />
-          </div>
-
-          <div>
-            <label for="checkOut">📅 Távozás</label>
-            <input 
-              id="checkOut" 
-              name="checkOut" 
-              type="date" 
-              v-model="searchForm.checkOut"
-              :min="minCheckOut"
-            />
-          </div>
-
-          <div>
-            <label for="adults">👥 Vendégek</label>
-            <input 
-              id="adults" 
-              name="adults" 
-              type="number" 
-              min="1" 
-              max="10"
-              v-model.number="searchForm.adults"
-            />
-          </div>
-
-          <div class="submit-col" style="margin-top:.5rem">
-            <button type="submit" class="btn">🔍 Keresés</button>
-          </div>
-        </form>
+          </router-link>
+        </Slide>
+        <template #addons>
+          <Navigation />
+          <Pagination />
+        </template>
+      </Carousel>
+    </div>
+    <!-- Skeleton – betöltés közben -->
+    <div v-else class="carousel-skeleton-wrap">
+      <div class="carousel-skeleton-card" v-for="n in 3" :key="n">
+        <div class="skel skel-img"></div>
+        <div class="skel-overlay-fake">
+          <div class="skel skel-badge"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-sub"></div>
+          <div class="skel skel-btn"></div>
+        </div>
       </div>
     </div>
-  </div>
-  
-  <main class="content" role="main">
-    
-    <h2 class="section-title">Népszerű Kempingek</h2>
-    <p class="muted">Válogatásunk a legkedveltebb kempingek közül — kattints a képekre a részletekért.</p>
+  </section>
 
-   
-    <div class="gallery" aria-label="Népszerű régiók képei">
-      <router-link to="/foglalas">
-        <a href="#"><img src="/img/spring-4891823_1920.jpg" alt="Naplemente a Balaton felett"/></a>
-      </router-link>
-      <router-link to="/foglalas">
-        <a href="#"><img src="/img/camp-2650359_1920.jpg" alt="Tisza-tó partja és csónakok"/></a>
-      </router-link>
-      <router-link to="/foglalas">
-        <a href="#"><img src="/img/camping-4806279_1920.jpg" alt="Erdő és kempinghely természetes környezetben"/></a>
-      </router-link>
-      <router-link to="/foglalas">
-        <a href="#"><img src="/img/people-4817872_1920.jpg" alt="Tanyasi horizont és csillagos égbolt"/></a>
-      </router-link>
+  <!-- 2. Miért a CampSite? szekció -->
+  <section class="section why-section">
+    <div class="section-header">
+      <span class="section-badge">Miért a CampSite?</span>
+      <h2>Egyszerű foglalás, térkép alapú keresés<br>és automatikus beengedés.</h2>
+      <p class="section-sub">Keresd meg a helyed a térképen, foglalj pár kattintással, és érkezéskor a kapu egy mozdulattal nyílik.</p>
     </div>
 
-    <h2 class="section-title" style="margin-top:2rem">Kiemelt kempingünk</h2>
-    <p class="muted">Különlegesen ajánlott hely — családbarát szolgáltatásokkal és gyönyörű panorámával.</p>
-   
-    <div class="single-image" aria-hidden="false">
-      <img src="/img/night-1189929_1920.jpg" alt="Kiemelt kemping nagy panorámakép"/>
+    <!-- Statisztikák – skeleton vagy valós adat -->
+    <div v-if="statsLoading" class="stats-row">
+      <div v-for="n in 3" :key="n" class="stat-card">
+        <div class="skel stat-icon-skel"></div>
+        <div style="flex:1;">
+          <div class="skel" style="width:60px;height:22px;margin-bottom:6px;"></div>
+          <div class="skel" style="width:110px;height:14px;"></div>
+        </div>
+      </div>
     </div>
-  </main>
+    <div v-else class="stats-row">
+      <div v-for="(s, i) in stats" :key="i" class="stat-card">
+        <span class="stat-icon">{{ s.icon }}</span>
+        <div>
+          <div class="stat-value">{{ s.value }}</div>
+          <div class="stat-label">{{ s.label }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature kártyák -->
+    <div class="features-grid">
+      <div v-for="(f, i) in features" :key="i" class="feature-card">
+        <span class="feature-icon" :style="{ backgroundColor: f.color + '18', color: f.color }">
+          {{ f.icon }}
+        </span>
+        <h4>{{ f.title }}</h4>
+        <p>{{ f.desc }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Kiemelt kemping szekció -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-badge">Kiemelt</span>
+      <h2>A vendégek kedvence</h2>
+      <p class="section-sub">A legtöbb pozitív értékelést kapott kemping</p>
+    </div>
+
+    <!-- Kiemelt kemping: betöltés után mutatjuk -->
+    <div v-if="!topCampingsLoading && topCampings.length > 0" class="featured">
+      <router-link :to="'/foglalas/' + topCampings[0].id" class="featured-link">
+        <div class="featured-img">
+          <img
+            :src="topCampings[0].image"
+            :alt="topCampings[0].name"
+            loading="lazy"
+            decoding="async"
+            width="1140"
+            height="400"
+            @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'"
+          />
+          <div class="featured-overlay">
+            <div class="featured-stars">
+              <span class="stars-text">{{ renderStars(topCampings[0].rating) }}</span>
+              <span class="rating-num">{{ topCampings[0].rating.toFixed(1) }}</span>
+              <span v-if="topCampings[0].reviews" class="review-count">({{ topCampings[0].reviews }} értékelés)</span>
+            </div>
+            <h3>{{ topCampings[0].name }}</h3>
+            <p v-if="topCampings[0].location" class="featured-loc">📍 {{ topCampings[0].location }}</p>
+            <p v-if="topCampings[0].price > 0" class="featured-price">
+              Már <strong>{{ topCampings[0].price.toLocaleString('hu-HU') }} Ft</strong> / éj
+            </p>
+            <span class="featured-cta">Részletek és foglalás →</span>
+          </div>
+        </div>
+      </router-link>
+    </div>
+    <!-- Skeleton – betöltés közben -->
+    <div v-else class="featured-skeleton">
+      <div class="skel skel-featured-img">
+        <div class="featured-skel-overlay-fake">
+          <div class="skel skel-feat-badge"></div>
+          <div class="skel skel-feat-title"></div>
+          <div class="skel skel-feat-loc"></div>
+          <div class="skel skel-feat-price"></div>
+          <div class="skel skel-feat-btn"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
 </template>
 
 <style scoped>
+/* Változók */
+.home-page {
+  --accent: #4A7434;
+  --cta: #F17E21;
+  --radius: 1rem;
+  --max-w: 1140px;
+}
 
-    :root{
-      --accent:#4A7434;
-      --cta:#F17E21;
-      --bg-grad-start:#f7faf7; 
-      --bg-grad-end:#f1f5f7;
-      --card-bg:#ffffff;
-    }
+/* Hero */
+.hero {
+  position: relative;
+  padding: 3rem 1.25rem 3.5rem;
+  display: flex;
+  justify-content: center;
+  overflow: visible;
+  z-index: 10;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  z-index: 0;
+}
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/img/ground-camping-8260968_1280.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.07;
+}
+.hero-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--max-w);
+  text-align: center;
+  color: #fff;
+}
+.hero h1 {
+  font-size: clamp(1.5rem, 4vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 0.4rem;
+}
+.hero-sub {
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 2rem;
+}
 
-    *{box-sizing:border-box;margin:0;padding:0}
+/* Keresősor */
+.search-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+}
+.search-location-col {
+  position: relative;
+  flex: 2;
+}
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f7f8fa;
+  border-radius: 0.625rem;
+  padding: 0 0.75rem;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.search-field:focus-within {
+  border-color: var(--accent);
+  background: #fff;
+}
+.search-field--narrow {
+  max-width: 100%;
+}
+.search-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.search-field input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.7rem 0;
+  font-size: 0.92rem;
+  outline: none;
+  color: #1f2937;
+  min-width: 0;
+}
+.search-field input::placeholder {
+  color: #9ca3af;
+}
+.search-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.625rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.search-btn:hover {
+  background: var(--cta);
+}
+.search-btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.search-btn--disabled:hover {
+  background: var(--accent);
+}
 
-    .hero{
-      position: relative;
-      overflow: hidden;
-      padding:3.5rem 0;
-      color: #fff;
+/* Desktop: 1 sor */
+@media (min-width: 860px) {
+  .search-bar {
+    flex-direction: row;
+    align-items: stretch;
+    padding: 0.5rem;
+    gap: 0.35rem;
+  }
+  .search-field--narrow {
+    max-width: 100px;
+  }
+  .search-btn {
+    padding: 0 2rem;
+  }
+}
 
-      background-color: rgba(74,116,52,1);
-    }
-    .hero::before{
-      content: "";
-      position: absolute;
-      inset: 0;
+/* Autocomplete */
+.suggestions-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: auto;
+  min-width: 100%;
+  width: max-content;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 0.625rem 0.625rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  z-index: 200;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  max-height: 260px;
+  overflow-y: auto;
+}
+.suggestions-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #374151;
+  transition: background 0.1s;
+  text-align: left;
+}
+.suggestions-list li:hover,
+.suggestions-list li.active {
+  background: #f0f7ed;
+}
+.sug-icon { flex-shrink: 0; }
+.sug-label { flex: 1; text-align: left; }
+.sug-label :deep(strong) { color: var(--accent); font-weight: 700; }
+.sug-type {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
 
-      background-image: url('/img/ground-camping-8260968_1280.jpg');
-      background-size: cover;
-      background-position: center;
+/* Szekció */
+.section {
+  padding: 3rem 1.25rem;
+}
+.section--gray {
+  background: #f8faf8;
+}
+.section-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 2rem;
+}
+.section-badge {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  border: 1px solid #c5dbb8;
+  border-radius: 999px;
+  padding: 0.25rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.section-header h2 {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 800;
+  color: #1f2937;
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+}
+.section-sub {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
 
-      opacity: 0.06;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .hero .container{
-      position: relative;
-      z-index: 1;
-    }
-    .container{
-      width: min(1100px, 92%);
-      margin: 0 auto;
-    }
+/* Kiemelt kemping */
+.featured {
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+.featured-link {
+  text-decoration: none;
+  display: block;
+}
+.featured-img {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+.featured-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s;
+  background: #e8ede5;
+}
+.featured-link:hover .featured-img img {
+  transform: scale(1.03);
+}
+.featured-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem 1.75rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 55%);
+  color: #fff;
+}
+.featured-stars {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.3rem;
+}
+.featured-overlay h3 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 0.2rem;
+}
+.featured-loc {
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.85);
+}
+.featured-price {
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 0.65rem;
+}
+.featured-price strong { color: #fff; }
+.featured-cta {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+  width: fit-content;
+}
+.featured-link:hover .featured-cta { background: var(--cta); }
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skel {
+  background: linear-gradient(90deg, #e8ede5 25%, #f5f8f3 50%, #e8ede5 75%);
+  background-size: 1200px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
 
-    .hero .title{
-      text-align:center;
-      margin-bottom:2rem;
-    }
-    .hero h1{
-      font-size: clamp(1.6rem, 3.5vw, 2.5rem);
-      font-weight:700;
-      margin-bottom:0.5rem;
-      line-height:1.05;
-      color: white;
-    }
-    .hero p.lead{
-      font-size:1.05rem;
-      color: rgba(255,255,255,0.95);
-    }
-    
-    .search-card{
-      background-color: #fff;
-      color: black;
-      border-radius:1rem;
-      padding:1.25rem;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-      transform: translateY(40px);
-    }
-    form.grid{
-      display:grid;
-      grid-template-columns: repeat(1,1fr);
-      gap:0.75rem;
-      align-items:end;
-    }
-    label{
-      display:block;
-      font-size:.85rem;
-      font-weight:600;
-      margin-bottom:.35rem;
-      color:#374151;
-    }
-    input[type="text"], input[type="date"], input[type="number"]{
-      width:100%;
-      padding:.75rem 1rem;
-      border:1px solid #829dd4;
-      border-radius:.625rem;
-      outline:none;
-      font-size:0.95rem;
-      transition: box-shadow .15s, border-color .15s;
-    }
-    input:focus{
-      box-shadow: 0 0 0 4px rgba(74,116,52,0.12);
-    }
-    .btn{
-      background-color: #4A7434;
-      color:#fff;
-      padding:.7rem 1.5rem;
-      border-radius:.75rem;
-      border:none;
-      cursor:pointer;
-      font-weight:700;
-      box-shadow: 0 8px 18px rgba(241,126,33,0.22);
-      transition: background .25s, box-shadow .25s, transform .08s;
-    }
-    .btn:hover{ background: #F17E21; box-shadow: 0 14px 30px rgba(0,0,0,0.18)}
-    .btn:active{ transform: translateY(1px) }
+/* Kiemelt skeleton */
+.featured-skeleton {
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+.skel-featured-img {
+  width: 100%;
+  height: 320px;
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+}
+.featured-skel-overlay-fake {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.2) 0%, transparent 100%);
+}
+.skel-feat-badge  { width: 100px; height: 16px; border-radius: 6px; }
+.skel-feat-title  { width: 55%;   height: 28px; border-radius: 6px; }
+.skel-feat-loc    { width: 35%;   height: 14px; border-radius: 6px; }
+.skel-feat-price  { width: 28%;   height: 14px; border-radius: 6px; }
+.skel-feat-btn    { width: 160px; height: 36px; border-radius: 8px; margin-top: 4px; }
 
-    
-    @media(min-width:720px){
-      form.grid{ grid-template-columns: repeat(2,1fr); }
-      .location-col{ grid-column: span 2; }
-    }
-    @media(min-width:1024px){
-      form.grid{ grid-template-columns: repeat(3,1fr); }
-      .location-col{ grid-column: span 3; }
-      .submit-col{ grid-column: 1 / -1; display:flex; justify-content:center; margin-top:.5rem; }
-      .submit-col .btn{ padding: .8rem 3rem; font-size:1rem; }
-    }
+@media (min-width: 768px) {
+  .featured-img { height: 400px; }
+  .skel-featured-img { height: 400px; }
+  .featured-skeleton .skel-feat-title { width: 40%; height: 32px; }
+}
 
-    .content {
-      width: min(1100px, 92%);
-      margin: 4rem auto;
-    }
-    .section-title{
-      font-size:1.4rem;
-      font-weight:700;
-      color:var(--accent);
-      margin: 1rem 0 0.75rem;
-      text-align:center;
-    }
-   
-    .gallery{
-      display:grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap:0.75rem;
-      margin-top:1rem;
-    }
+/* Carousel */
+.carousel-wrap {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  overflow: hidden;
+}
+.card-link {
+  text-decoration: none;
+  display: block;
+  width: 100%;
+}
+.card {
+  position: relative;
+  width: 100%;
+  height: 360px;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #e8ede5;
+}
+.card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.25rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%);
+  color: #fff;
+}
+.card-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.25rem;
+}
+.stars-text {
+  color: #ffe066;
+  font-size: 0.88rem;
+  letter-spacing: 0.03em;
+}
+.rating-num {
+  color: #ffe066;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.review-count {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.78rem;
+}
+.card-overlay h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.15rem;
+}
+.card-loc {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.85);
+}
+.card-price {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 0.5rem;
+}
+.card-price strong { color: #fff; }
+.card-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  width: fit-content;
+  transition: background 0.2s;
+}
+.card-link:hover .card-btn { background: var(--cta); }
 
-    .gallery img{
-      width:100%;
-      height:220px;
-      object-fit:cover;
-      display:block;
-      border-radius:.75rem;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-    }
-  
-    .single-image{
-      margin-top:1.25rem;
-      display:flex;
-      justify-content:center;
-    }
-    .single-image img{
-      width:100%;
-      max-width:980px;
-      height:360px;
-      object-fit:cover;
-      border-radius:1rem;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.08);
-    }
+.carousel-skeleton-wrap {
+  display: flex;
+  gap: 16px;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  overflow: hidden;
+}
+.carousel-skeleton-card {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+}
+.skel-img {
+  width: 100%;
+  height: 360px;
+  border-radius: var(--radius);
+}
+.skel-overlay-fake {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 100%);
+}
+.skel-badge  { width: 80px;  height: 14px; border-radius: 6px; }
+.skel-title  { width: 65%;   height: 16px; border-radius: 6px; }
+.skel-sub    { width: 45%;   height: 12px; border-radius: 6px; }
+.skel-btn    { width: 90px;  height: 28px; border-radius: 6px; margin-top: 4px; }
 
-    @media(min-width:880px){
-      .gallery{ grid-template-columns: repeat(4, 1fr); }
-      .gallery img{ height:160px; }
-      .single-image img{ height:420px; }
-    }
-   
-    .muted{
-      color:#6b7280;
-      font-size:.95rem;
-      text-align:center;
-      margin-top:.5rem;
-    }
+/* A 2. és 3. kártya elrejtése mobilon */
+.carousel-skeleton-card:nth-child(2),
+.carousel-skeleton-card:nth-child(3) {
+  display: none;
+}
+@media (min-width: 640px) {
+  .carousel-skeleton-card:nth-child(2) { display: block; }
+}
+@media (min-width: 1024px) {
+  .carousel-skeleton-card:nth-child(3) { display: block; }
+}
 
-    .modal {
-      display: none; /* alapból rejtett */
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5); /* félátlátszó fekete */
-      justify-content: center;
-      align-items: center;
-    }
+/* Carousel stílusok */
+:deep(.carousel) {
+  --vc-nav-background: rgba(255,255,255,0.9);
+  --vc-nav-border-radius: 100%;
+  --vc-nav-color: var(--accent);
+  --vc-nav-color-hover: #fff;
+  padding-bottom: 48px;
+}
+:deep(.carousel__prev:hover),
+:deep(.carousel__next:hover) {
+  background: var(--accent);
+}
+:deep(.carousel__slide) {
+  padding: 0 8px;
+  opacity: 0.7;
+  transform: scale(0.92);
+  transition: opacity 300ms, transform 300ms;
+}
+:deep(.carousel__slide--active) {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 2;
+}
+:deep(.carousel__slide--prev),
+:deep(.carousel__slide--next) {
+  opacity: 0.85;
+  transform: scale(0.95);
+}
+:deep(.carousel__pagination) {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0 0;
+  margin: 0;
+  list-style: none;
+}
+:deep(.carousel__pagination-button) {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d1d5db;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, width 0.2s, border-radius 0.2s;
+}
+:deep(.carousel__pagination-button--active) {
+  background: var(--accent);
+  width: 24px;
+  border-radius: 4px;
+}
 
-    /* A modális tartalom */
-    .modal-content {
-      background-color: white;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-      width: 300px;
-    }
+/* Miért a CampSite? */
+.why-section {
+  background: #f8faf8;
+}
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  max-width: var(--max-w);
+  margin: 0 auto 2rem;
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: #fff;
+  border: 1px solid #e8ede5;
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+}
+.stat-icon {
+  font-size: 1.5rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef4eb;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #1f2937;
+  line-height: 1.2;
+}
+.stat-label {
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+.stat-icon-skel {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 
-    .close-btn {
-      margin-top: 10px;
-      padding: 5px 10px;
-    }
+@media (min-width: 640px) {
+  .stats-row { grid-template-columns: repeat(3, 1fr); }
+}
 
-    /* Autocomplete */
-    .autocomplete-wrapper {
-      position: relative;
-    }
-    .suggestions-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-top: none;
-      border-radius: 0 0 .625rem .625rem;
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      z-index: 100;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-      max-height: 280px;
-      overflow-y: auto;
-    }
-    .suggestions-list li {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1rem;
-      cursor: pointer;
-      font-size: 0.92rem;
-      color: #333;
-      transition: background 0.12s;
-    }
-    .suggestions-list li:hover,
-    .suggestions-list li.active {
-      background: #f0f7ed;
-    }
-    .suggestion-icon {
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
-    .suggestion-label {
-      flex: 1;
-    }
-    .suggestion-label strong {
-      color: #4A7434;
-      font-weight: 700;
-    }
-    .suggestion-type {
-      font-size: 0.75rem;
-      color: #999;
-      flex-shrink: 0;
-      background: #f3f4f6;
-      padding: 2px 8px;
-      border-radius: 10px;
-    }
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+.feature-card {
+  background: #fff;
+  border: 1px solid #e8ede5;
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.625rem;
+  font-size: 1.2rem;
+  margin-bottom: 0.75rem;
+}
+.feature-card h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.35rem;
+}
+.feature-card p {
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+@media (min-width: 640px) {
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 960px) {
+  .features-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Mobil finomhangolások */
+@media (max-width: 639px) {
+  .hero { padding: 2rem 1rem 2.5rem; }
+  .hero h1 { font-size: 1.5rem; }
+  .hero-sub { font-size: 0.92rem; margin-bottom: 1.25rem; }
+  .section { padding: 2rem 1rem; }
+  .featured-img { height: 260px; }
+  .skel-featured-img { height: 260px; }
+  .skel-img { height: 300px; }
+  .featured-overlay { padding: 1rem 1.25rem; }
+  .featured-overlay h3 { font-size: 1.15rem; }
+  .card { height: 300px; }
+
+  :deep(.carousel__prev),
+  :deep(.carousel__next) {
+    display: none;
+  }
+}
 </style>

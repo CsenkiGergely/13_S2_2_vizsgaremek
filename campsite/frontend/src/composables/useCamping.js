@@ -219,17 +219,25 @@ const getCampingPhotoList = async (campingId) => {
   }
 }
 
-// Kemping fotójának feltöltése
-const uploadCampingPhoto = async (campingId, file) => {
+// Kemping fotóinak feltöltése (több fájl egyszerre, fájlonkénti hibajelentéssel)
+const uploadCampingPhotos = async (campingId, files) => {
   loading.value = true
   error.value = null
   try {
     const formData = new FormData()
-    formData.append('photo', file)
-    const response = await api.post(`/campings/${campingId}/photos`, formData)
-    campingPhotoDetails.value = response.data.data || response.data
-    return campingPhotoDetails.value
+    for (const file of files) {
+      formData.append('photos[]', file)
+    }
+    const response = await api.post(`/campings/${campingId}/photos`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    // { success: [...], errors: [...], remaining_slots, message }
+    return response.data
   } catch (err) {
+    // A szerver 422-t / 4xx-et ad vissza strukturált hibával
+    if (err.response?.data) {
+      return err.response.data
+    }
     console.error('Hiba a fotó feltöltésekor:', err)
     error.value = getErrorMessage(err)
     throw err
@@ -271,6 +279,22 @@ const deleteCampingPhoto = async (campingId, photoId) => {
   }
 }
 
+// Fő kép beállítása (a kiválasztott kép lesz az első)
+const setMainPhoto = async (campingId, photoId) => {
+  loading.value = true
+  error.value = null
+  try {
+    const response = await api.put(`/campings/${campingId}/photos/${photoId}/set-main`)
+    return response.data
+  } catch (err) {
+    console.error('Hiba a fő kép beállításakor:', err)
+    error.value = getErrorMessage(err)
+    throw err
+  } finally {
+    loading.value = false
+  }
+}
+
 // Kemping tagjeinek lekérése
 const getCampingTagList = async (campingId) => {
   loading.value = true
@@ -288,31 +312,15 @@ const getCampingTagList = async (campingId) => {
   }
 }
 
-// Új tag hozzáadása
-const addCampingTag = async (campingId, data) => {
+// Tagek szinkronizálása (egyben mentés)
+const syncCampingTags = async (campingId, tags) => {
   loading.value = true
   error.value = null
   try {
-    const response = await api.post(`/campings/${campingId}/tags`, data)
-    return response.data.data || response.data
-  } catch (err) {
-    console.error('Hiba a tag hozzáadásakor:', err)
-    error.value = getErrorMessage(err)
-    throw err
-  } finally {
-    loading.value = false
-  }
-}
-
-// Tag törlése
-const deleteCampingTag = async (campingId, tagId) => {
-  loading.value = true
-  error.value = null
-  try {
-    const response = await api.delete(`/campings/${campingId}/tags/${tagId}`)
+    const response = await api.put(`/campings/${campingId}/tags/sync`, { tags })
     return response.data
   } catch (err) {
-    console.error('Hiba a tag törlésekor:', err)
+    console.error('Hiba a tagek szinkronizálásakor:', err)
     error.value = getErrorMessage(err)
     throw err
   } finally {
@@ -326,9 +334,16 @@ const getCampingGeojson = async (campingId) => {
   error.value = null
   try {
     const response = await api.get(`/campings/${campingId}/geojson`)
-    campingGeojson.value = response.data.data || response.data
-    return campingGeojson.value
+    // Ha a backend null geojson-t küld vissza (nincs feltöltve), azt kezeljük
+    const geojson = response.data?.geojson ?? response.data?.data ?? null
+    campingGeojson.value = geojson
+    return geojson
   } catch (err) {
+    if (err.response?.status === 404) {
+      // Nincs térkép feltöltve ehhez a kempinghez – normál állapot
+      campingGeojson.value = null
+      return null
+    }
     console.error('Hiba a GeoJSON lekérésekor:', err)
     error.value = getErrorMessage(err)
     throw err
@@ -398,12 +413,12 @@ export function useCamping() {
     updateCampingSpot,
     deleteCampingSpot,
     getCampingPhotoList,
-    uploadCampingPhoto,
+    uploadCampingPhotos,
     addCampingPhotoByUrl,
     deleteCampingPhoto,
+    setMainPhoto,
     getCampingTagList,
-    addCampingTag,
-    deleteCampingTag,
+    syncCampingTags,
     getCampingGeojson,
     uploadCampingGeojson,
     deleteCampingGeojson

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Comment;
 use App\Models\Camping;
 use App\Models\Booking;
+use App\Models\CampingSpot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -31,6 +32,54 @@ class CommentController extends Controller
         ]);
     }
 
+    // Tulajdonos összes kempingjéhez tartozó értékelések
+    public function ownerComments()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Nincs bejelentkezve.'], 401);
+        }
+
+        $campingIds = Camping::where('user_id', $user->id)->pluck('id');
+
+        $comments = Comment::whereIn('camping_id', $campingIds)
+            ->whereNull('parent_id')
+            ->with(['user', 'childrenRecursive', 'campingComments'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Booking + spot infó hozzárendelése
+        $result = $comments->map(function ($comment) {
+            $booking = Booking::where('camping_id', $comment->camping_id)
+                ->where('user_id', $comment->user_id)
+                ->whereIn('status', ['checked_in', 'completed'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            $spotName = null;
+            if ($booking && $booking->camping_spot_id) {
+                $spot = CampingSpot::where('spot_id', $booking->camping_spot_id)->first();
+                $spotName = $spot?->name;
+            }
+
+            return [
+                'id' => $comment->id,
+                'camping_id' => $comment->camping_id,
+                'camping_name' => $comment->campingComments?->camping_name,
+                'user' => $comment->user,
+                'rating' => $comment->rating,
+                'comment' => $comment->comment,
+                'created_at' => $comment->created_at,
+                'updated_at' => $comment->updated_at,
+                'booking_id' => $booking?->id,
+                'spot_name' => $spotName,
+                'replies' => $comment->childrenRecursive,
+            ];
+        });
+
+        return response()->json($result);
+    }
+
     
     // Új értékelés létrehozása (csak vendég, aki foglalt már)
     public function store(Request $request, $campingId)
@@ -38,34 +87,33 @@ class CommentController extends Controller
         $user = Auth::user();
         $camping = Camping::findOrFail($campingId);
 
-        // Ellenőrizzük, hogy a user-nek van-e befejezett foglalása ennél a kempingnél
-        $hasBooking = Booking::where('camping_id', $campingId)
+        $validated = $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        // Számláló-alapú ellenőrzés: annyi véleményt írhat, ahány befejezett foglalása van
+        $bookingCount = Booking::where('camping_id', $campingId)
             ->where('user_id', $user->id)
             ->whereIn('status', ['checked_in', 'completed'])
-            ->exists();
+            ->count();
 
-        if (!$hasBooking) {
+        if ($bookingCount === 0) {
             return response()->json([
                 'message' => 'Csak azok értékelhetnek, akik már foglaltak ennél a kempingnél.'
             ], 403);
         }
 
-        // Ellenőrizzük, hogy már értékelt-e
-        $existingComment = Comment::where('camping_id', $campingId)
+        $reviewCount = Comment::where('camping_id', $campingId)
             ->where('user_id', $user->id)
             ->whereNull('parent_id')
-            ->exists();
+            ->count();
 
-        if ($existingComment) {
+        if ($reviewCount >= $bookingCount) {
             return response()->json([
-                'message' => 'Már értékelted ezt a kempinget.'
+                'message' => 'Már minden foglalásodhoz írtál véleményt ennél a kempingnél.'
             ], 422);
         }
-
-        $validated = $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string|max:1000',
-        ]);
 
         $comment = Comment::create([
             'camping_id' => $campingId,

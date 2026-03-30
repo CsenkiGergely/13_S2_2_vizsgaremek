@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import api from '../api/axios'
 
 const router = useRouter()
 const route = useRoute()
@@ -9,11 +10,12 @@ const paymentSuccess = ref(false)
 const paymentLoading = ref(false)
 
 // Foglalási adatok a query-ből
-const bookingId = computed(() => route.query.bookingId || null)
+const bookingId = ref(null)
 const totalAmount = computed(() => Number(route.query.total) || 0)
 const nightsCount = computed(() => Number(route.query.nights) || 0)
 const campingName = computed(() => route.query.campingName || '')
 const spotName = computed(() => route.query.spotName || '')
+const paymentError = ref(null)
 
 const paymentForm = ref({
   cardNumber: '',
@@ -29,46 +31,6 @@ const paymentForm = ref({
 const errors = ref({})
 
 // Validációs függvények
-const validateCardNumber = (cardNumber) => {
-  const cleaned = cardNumber.replace(/\s/g, '')
-  
-  // Kártyatípus szerint validálás
-  if (activeTab.value === 'visa') {
-    if (!/^4\d{15}$/.test(cleaned)) {
-      return 'Visa kártya 16 számjegyből áll és 4-gyel kezdődik'
-    }
-  } else if (activeTab.value === 'mastercard') {
-    if (!/^5[1-5]\d{14}$/.test(cleaned)) {
-      return 'Mastercard 16 számjegyből áll és 51-55 között kezdődik'
-    }
-  } else if (activeTab.value === 'amex') {
-    if (!/^3[47]\d{13}$/.test(cleaned)) {
-      return 'American Express 15 számjegyből áll és 34 vagy 37-tel kezdődik'
-    }
-  }
-  
-  // Luhn algoritmus
-  let sum = 0
-  let isEven = false
-  
-  for (let i = cleaned.length - 1; i >= 0; i--) {
-    let digit = parseInt(cleaned[i])
-    
-    if (isEven) {
-      digit *= 2
-      if (digit > 9) digit -= 9
-    }
-    
-    sum += digit
-    isEven = !isEven
-  }
-  
-  if (sum % 10 !== 0) {
-    return 'Érvénytelen kártyaszám'
-  }
-  
-  return null
-}
 
 const validateExpiryDate = (expiry) => {
   if (!/^\d{2}\/\d{2}$/.test(expiry)) {
@@ -182,11 +144,8 @@ const handleCardTypeChange = () => {
   errors.value = {}
 }
 
-const handlePayment = () => {
+const handlePayment = async () => {
   errors.value = {}
-  
-  const cardNumberError = validateCardNumber(paymentForm.value.cardNumber)
-  if (cardNumberError) errors.value.cardNumber = cardNumberError
   
   const expiryError = validateExpiryDate(paymentForm.value.expiryDate)
   if (expiryError) errors.value.expiryDate = expiryError
@@ -213,12 +172,26 @@ const handlePayment = () => {
     return
   }
   
-  // Nincs valódi fizetés — ha az adatok helyesek, a foglalás megerősítve
+  // Fizetés szimulálása, majd foglalás létrehozása
   paymentLoading.value = true
-  setTimeout(() => {
-    paymentLoading.value = false
+  paymentError.value = null
+  try {
+    const response = await api.post('/bookings', {
+      camping_id: route.query.campingId,
+      camping_spot_id: route.query.campingSpotId,
+      arrival_date: route.query.arrivalDate,
+      departure_date: route.query.departureDate,
+      guests: Number(route.query.guests)
+    })
+    const booking = response.data.booking || response.data
+    bookingId.value = booking.id
     paymentSuccess.value = true
-  }, 1500)
+  } catch (err) {
+    console.error('Foglalás hiba fizetés után:', err)
+    paymentError.value = err.response?.data?.message || 'Nem sikerült a foglalás létrehozása. Próbáld újra!'
+  } finally {
+    paymentLoading.value = false
+  }
 }
 </script>
 
@@ -435,6 +408,7 @@ const handlePayment = () => {
             </div>
 
             <div class="submit-col">
+              <p v-if="paymentError" class="error-message" style="margin-bottom: 0.5rem; color: #d32f2f;">{{ paymentError }}</p>
               <button class="btn" type="submit" :disabled="paymentLoading">
                 {{ paymentLoading ? 'Feldolgozás...' : '✅ Foglalás megerősítése' }}
               </button>

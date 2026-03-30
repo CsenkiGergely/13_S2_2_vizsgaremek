@@ -7,11 +7,12 @@
 #include <WiFi.h>
 #include <WiFiManager.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <Preferences.h>
 #include "esp_camera.h"
 
 // ---- Laravel konfig ----
-#define LARAVEL_URL  "http://192.168.1.231:8000/api/bookings/scan-image"
+#define LARAVEL_URL "https://campsite-460d.onrender.com/api/bookings/scan-image"
 // ------------------------
 
 Preferences prefs;
@@ -39,8 +40,11 @@ unsigned long lastScanTime = 0;
 
 // Laravel-nek küldi a JPEG képet feldolgozásra
 void sendToLaravel(camera_fb_t *fb) {
+  WiFiClientSecure client;
+  client.setInsecure(); // SSL tanúsítvány ellenőrzés kihagyása
+
   HTTPClient http;
-  http.begin(LARAVEL_URL);
+  http.begin(client, LARAVEL_URL);
   http.addHeader("Content-Type", "image/jpeg");
   http.addHeader("Authorization", "Bearer " + String(auth_token));
   http.addHeader("Accept", "application/json");
@@ -136,7 +140,7 @@ void setup() {
   strncpy(camp_id, prefs.getString("campid", "").c_str(), sizeof(camp_id));
 
   WiFiManager wm;
-  wm.resetSettings(); // <- csak akkor uncommenteld ha új WiFi-re kell átállni
+  // wm.resetSettings(); // <- csak akkor uncommenteld ha új WiFi-re kell átállni
 
   // CampSite dizájn a captive portalon
   const char* wm_menu[] = {"wifi", "exit"};
@@ -213,6 +217,12 @@ void setup() {
   prefs.end();
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
+  Serial.print("Token: [");
+  Serial.print(auth_token);
+  Serial.println("]");
+  Serial.print("Camp ID: [");
+  Serial.print(camp_id);
+  Serial.println("]");
   Serial.println("Szkennelés indult...");
 }
 

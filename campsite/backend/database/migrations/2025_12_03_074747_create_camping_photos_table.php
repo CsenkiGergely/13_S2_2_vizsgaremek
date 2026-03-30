@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('camping_id')->constrained('campings')->onDelete('cascade');
             $table->string('photo_url', 255);
             $table->string('caption', 255)->nullable();
-            $table->date('uploaded_at')->nullable();
             $table->timestamps();
         });
     }

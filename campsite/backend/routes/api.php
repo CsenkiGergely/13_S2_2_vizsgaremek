@@ -25,24 +25,25 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // Auth
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
-Route::post('/resend-verification', [AuthController::class, 'resendVerification']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,15');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
+// Email megerősítés — throttle: max 5 kérés/perc (brute force védelem)
+Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:5,1');
+// Megerősítő email újraküldés — throttle: max 3 kérés/15 perc (spam védelem)
+Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->middleware('throttle:3,15');
 
 // Partner státuszra váltás only login  -> nincs külön nincs jogosultságod üzenet
 Route::post('/upgrade-to-partner', [AuthController::class, 'upgradeToPartner'])->middleware('auth:sanctum');
 
-// Kempingek
-Route::get('/campings', [CampingController::class, 'getCampings']);
+// Kempingek (publikus)
+Route::get('/campings/top', [CampingController::class, 'getTopCampings']);
+Route::get('/campings/stats', [CampingController::class, 'getStats']);
 Route::get('/campings/{id}', [CampingController::class, 'show']);
 Route::get('/campings/{id}/availability', [CampingController::class, 'getAvailability']);
 Route::get('/booking/search', [BookingSearchController::class, 'search']);
-Route::get('/bookings/getAll', [BookingController::class, 'getAllBookings']);
-Route::get('/bookings/prices', [BookingController::class, 'getPrices']);
 
 // Értékelések (publikus lekérés)
 Route::get('/campings/{campingId}/comments', [CommentController::class, 'index']);
@@ -56,7 +57,8 @@ Route::get('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class
 
 // ESP32 QR szkenner végpont (saját Bearer auth_token, nem Sanctum)
 // Regisztrálva a Sanctum csoport ELŐTT, hogy a POST /bookings/{id} wildcard ne kapja el
-Route::post('/bookings/scan-image', [BookingController::class, 'scanImage']);
+// Throttle: max 30 kérés/perc per IP (DoS védelem az ESP32 végpontra)
+Route::post('/bookings/scan-image', [BookingController::class, 'scanImage'])->middleware('throttle:30,1');
 // GeoJSON térkép lekérése (publikus - nem kell auth)
 Route::get('/campings/{id}/geojson', [CampingController::class, 'getGeojson']);
 
@@ -65,8 +67,13 @@ Route::get('/campings/{campingId}/tags', [CampingTagController::class, 'index'])
 
 // Foglalások
 Route::middleware('auth:sanctum')->group(function () {
+    // Összes kemping lekérése (csak superuser)
+    Route::get('/campings', [CampingController::class, 'getCampings']);
+
     // felhasználói foglalások
     Route::get('/bookings', [BookingController::class, 'index']);
+    Route::get('/bookings/getAll', [BookingController::class, 'getAllBookings']);
+    Route::get('/bookings/prices', [BookingController::class, 'getPrices']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::put('/bookings/{id}', [BookingController::class, 'update']);
@@ -76,7 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // tulajdonosi funkciók
     Route::get('/owner/bookings', [BookingController::class, 'ownerBookings']);
     Route::patch('/bookings/{id}/status', [BookingController::class, 'updateStatus']);
-    Route::post('/bookings/scan', [BookingController::class, 'scanQrCode']);
+    // TÖRÖLVE: scanQrCode — elavult, globális ENV tokent használt
+    // Helyette: POST /bookings/scan-image (per-gate token, Sanctum csoporton KÍVÜL)
     
     // Saját kempingek lekérése (tulajdonos)
     Route::get('/my-campings', [CampingController::class, 'myCampings']);
@@ -85,7 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'getOwnerDashboard']);
     
     // Kemping kezelés (csak tulajdonosoknak)
-    Route::post('/campings', [CampingController::class, 'store']);
+    Route::post('/campings', [CampingController::class, 'store'])->middleware('throttle:5,1');
     Route::put('/campings/{id}', [CampingController::class, 'update']);
     Route::delete('/campings/{id}', [CampingController::class, 'destroy']);
     
@@ -105,16 +113,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/campings/{campingId}/gates/{gateId}/auth-token', [EntranceGateController::class, 'revokeToken']);
     
     // Kemping helyek kezelése (csak tulajdonosoknak)
-    Route::post('/campings/{campingId}/spots', [CampingSpotController::class, 'store']);
+    Route::post('/campings/{campingId}/spots', [CampingSpotController::class, 'store'])->middleware('throttle:20,1');
     Route::put('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'update']);
     Route::delete('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class, 'destroy']);
     
     // Kemping képek kezelése (csak tulajdonosoknak)
     Route::post('/campings/{campingId}/photos', [CampingPhotoController::class, 'upload']);
     Route::post('/campings/{campingId}/photos/url', [CampingPhotoController::class, 'addByUrl']);
+    Route::put('/campings/{campingId}/photos/{photoId}/set-main', [CampingPhotoController::class, 'setMain']);
     Route::delete('/campings/{campingId}/photos/{photoId}', [CampingPhotoController::class, 'destroy']);
     
     // Értékelések kezelése (authentikált felhasználóknak)
+    Route::get('/owner/comments', [CommentController::class, 'ownerComments']); // Tulajdonos összes értékelése
     Route::post('/campings/{campingId}/comments', [CommentController::class, 'store']); // Új értékelés
     Route::post('/comments/{commentId}/reply', [CommentController::class, 'reply']); // Válasz (csak tulajdonos)
     Route::put('/comments/{commentId}', [CommentController::class, 'update']); // Saját szerkesztése
@@ -128,7 +138,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/user-guests/{id}', [UserGuestController::class, 'destroy']);
 
     // Kemping tag-ek kezelése (csak tulajdonosoknak)
-    Route::post('/campings/{campingId}/tags', [CampingTagController::class, 'store']);
-    Route::delete('/campings/{campingId}/tags/{tagId}', [CampingTagController::class, 'destroy']);
+    Route::put('/campings/{campingId}/tags/sync', [CampingTagController::class, 'sync']);
 
 });
