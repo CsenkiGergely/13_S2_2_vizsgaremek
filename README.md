@@ -5,7 +5,7 @@
 - Ha több hely van UI nézet kitalálása hogy ne írja ki az összeset egyszerre 
 - Terképek szerkesztése, hogy legyen minta fájl 
 - ✅Profilon lévő foglalasi statisztika külön api hívás
-- Keresási találatok rendezése ár stb. szerint
+- ✅Keresási találatok rendezése ár stb. szerint
 - ✅Tegek egyezésének ellenörzése 
 - Regisztrációs email validáció - adatok szerkesztése validáció - fogalalás megerősítése 
 - Foglalásnál bekért adatok modosíthatóak legyen a dashboardon
