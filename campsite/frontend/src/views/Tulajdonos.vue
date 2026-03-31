@@ -720,7 +720,7 @@ async function handlePhotoUpload(campingId, event) {
 
   // Kliens oldali előzetes validáció (méret + felbontás)
   const ALLOWED = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-  const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
+  const MAX_SIZE = 20 * 1024 * 1024 // 20 MB
   const MAX_DIM = 4000
   const clientErrors = []
   const validFiles = []
@@ -733,7 +733,7 @@ async function handlePhotoUpload(campingId, event) {
     }
     if (file.size > MAX_SIZE) {
       const sizeMB = (file.size / 1024 / 1024).toFixed(1)
-      clientErrors.push(`"${file.name}" – a fájl mérete ${sizeMB} MB, de a megengedett maximum 5 MB.`)
+      clientErrors.push(`"${file.name}" – a fájl mérete ${sizeMB} MB, de a megengedett maximum 20 MB.`)
       continue
     }
     // Felbontás ellenőrzés kliens oldalon
@@ -1569,7 +1569,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
               </div>
               <!-- Kép korlátok infó -->
               <div class="photo-limits-info">
-                <span class="photo-limit-tag">Max 5 MB / kép</span>
+                <span class="photo-limit-tag">Max 20 MB / kép</span>
                 <span class="photo-limit-tag">Max 4000×4000 px</span>
                 <span class="photo-limit-tag">Max 10 kép / kemping</span>
                 <span class="photo-limit-tag">JPG, PNG, WebP</span>

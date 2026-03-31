@@ -26,6 +26,9 @@ const selectedTags = ref([])
 const minRating = ref(null)
 const showAllTags = ref(false)
 
+// Ár szerinti rendezés: null | 'asc' | 'desc'
+const priceSort = ref(null)
+
 // PrimeVue Slider range tömb: [min, max]
 const priceRange = computed({
   get: () => [priceMin.value, priceMax.value],
@@ -283,6 +286,13 @@ const applyClientFilters = () => {
     filtered = filtered.filter(c => c.rating >= minRating.value)
   }
 
+  // Ár szerinti rendezés
+  if (priceSort.value === 'asc') {
+    filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
+  } else if (priceSort.value === 'desc') {
+    filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
+  }
+
   searchResults.value = filtered
 }
 
@@ -299,6 +309,7 @@ const resetFilters = () => {
   priceMax.value = actualPriceMax.value
   selectedTags.value = []
   minRating.value = null
+  priceSort.value = null
   currentPage.value = 1
   fetchCampsites()
 }
@@ -320,6 +331,16 @@ const toggleTag = (tagName) => {
   } else {
     selectedTags.value.push(tagName)
   }
+}
+
+// Ár rendezés váltása – ugyanarra kattintva kikapcsol, másikra kattintva átvált
+const setPriceSort = (direction) => {
+  if (priceSort.value === direction) {
+    priceSort.value = null
+  } else {
+    priceSort.value = direction
+  }
+  applyClientFilters()
 }
 
 // Slider min ne lehessen nagyobb a max-nál
@@ -455,6 +476,20 @@ watch(() => route.query, (newQuery) => {
                 :step="500"
                 class="price-slider"
             />
+            <div class="price-sort-buttons">
+                <button
+                    :class="['price-sort-btn', { active: priceSort === 'asc' }]"
+                    @click="setPriceSort('asc')"
+                >
+                    <span class="sort-arrow">↑</span> Legolcsóbb elöl
+                </button>
+                <button
+                    :class="['price-sort-btn', { active: priceSort === 'desc' }]"
+                    @click="setPriceSort('desc')"
+                >
+                    <span class="sort-arrow">↓</span> Legdrágább elöl
+                </button>
+            </div>
         </div>
 
         <h3>Szolgáltatások</h3>
@@ -1123,6 +1158,49 @@ watch(() => route.query, (newQuery) => {
     .price-slider {
         width: 100%;
         margin-top: 6px;
+    }
+
+    /* Ár rendezés gombok */
+    .price-sort-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .price-sort-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 7px 6px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #555;
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+
+    .price-sort-btn:hover {
+        background: #e8f5e9;
+        border-color: #4A7434;
+        color: #4A7434;
+    }
+
+    .price-sort-btn.active {
+        background: #4A7434;
+        color: #fff;
+        border-color: #4A7434;
+        font-weight: 600;
+    }
+
+    .sort-arrow {
+        font-size: 13px;
+        font-weight: 700;
     }
 
     :deep(.p-slider) {

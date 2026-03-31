@@ -1,3 +1,7 @@
+# PHP upload limitek
+php_value upload_max_filesize 20M
+php_value post_max_size 25M
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
