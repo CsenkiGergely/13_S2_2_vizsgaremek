@@ -31,19 +31,26 @@ const register = async (userData) => {
       password_confirmation: userData.password_confirmation
     })
     
-    // Backend válasza várhatóan tartalmaz user és token mezőket
+    // Backend válasza tartalmaz user mezőt; token regisztrációnál lehet null
     const { user: userData2, token: newToken } = response.data
-    
-    // Laravel Sanctum esetén lehet plainTextToken, egyébként csak token
-    const plainToken = newToken.plainTextToken || newToken
-    token.value = plainToken
-    user.value = userData2
-    
-    // Lokális tárolás a session megőrzéséhez oldalfrissítés után is
-    localStorage.setItem('auth_token', plainToken)
-    localStorage.setItem('user', JSON.stringify(userData2))
-    
-    return { success: true, user: userData2 }
+
+    if (newToken) {
+      // Laravel Sanctum esetén lehet plainTextToken, egyébként csak token
+      const plainToken = newToken?.plainTextToken || newToken
+      token.value = plainToken
+      user.value = userData2
+
+      // Lokális tárolás a session megőrzéséhez oldalfrissítés után is
+      localStorage.setItem('auth_token', plainToken)
+      localStorage.setItem('user', JSON.stringify(userData2))
+    }
+
+    return {
+      success: true,
+      user: userData2,
+      message: response.data?.message,
+      requiresVerification: !newToken,
+    }
   } catch (err) {
     // 422 validációs hibák kezelése
     if (err.response?.status === 422) {

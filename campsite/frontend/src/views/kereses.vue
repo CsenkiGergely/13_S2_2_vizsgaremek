@@ -46,9 +46,14 @@ const visibleTags = computed(() =>
 // Szolgáltatás számok dinamikus frissítése a kiválasztott szűrők alapján
 const filteredTagCounts = computed(() => {
   const counts = {}
-  // Ha nincs szűrő kiválasztva, az eredeti count-ot mutatjuk
+    // Ha nincs tag szűrő kiválasztva, a jelenlegi találati listából számolunk.
   if (selectedTags.value.length === 0) {
-    availableTags.value.forEach(t => { counts[t.name] = t.count })
+        const baseCampings = searchResults.value.length > 0 ? searchResults.value : allResults.value
+        availableTags.value.forEach(t => {
+            counts[t.name] = baseCampings.filter(c =>
+                c.tags.some(tag => tag.name === t.name)
+            ).length
+        })
     return counts
   }
   // Van aktív szűrő → az eredményekből számoljuk, hogy a többi tag hány kempingben fordul elő
@@ -210,13 +215,11 @@ const fetchCampsites = async (isNewSearch = true) => {
   }
 }
 
-// Kép URL kinyerése – thumbnail verzió a listához
+// Kép URL kinyerése
 const getFirstPhoto = (camping) => {
   if (camping.photos && camping.photos.length > 0) {
     const url = camping.photos[0].photo_url || camping.photos[0].url || camping.photos[0]
-    // Thumbnail: fájlnév_thumb.ext a gyorsabb betöltéshez
-    if (url.startsWith('http')) return url.replace(/(\.[\w]+)$/, '_thumb$1')
-    return 'http://localhost:8000' + url
+        return url
   }
   if (camping.image) return camping.image
   return 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'

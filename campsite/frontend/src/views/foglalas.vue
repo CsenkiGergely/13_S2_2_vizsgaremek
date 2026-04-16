@@ -60,9 +60,7 @@ const fetchCamping = async () => {
 const images = computed(() => {
   if (!camping.value) return []
   if (camping.value.photos && camping.value.photos.length > 0) {
-    return camping.value.photos.map(p =>
-      p.photo_url.startsWith('http') ? p.photo_url : 'http://localhost:8000' + p.photo_url
-    )
+    return camping.value.photos.map(p => p.photo_url)
   }
   return ['https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp']
 })
@@ -71,11 +69,7 @@ const images = computed(() => {
 const thumbImages = computed(() => {
   if (!camping.value) return []
   if (camping.value.photos && camping.value.photos.length > 0) {
-    return camping.value.photos.map(p =>
-      p.photo_url.startsWith('http')
-        ? p.photo_url.replace(/(\.[\w]+)$/, '_thumb$1')
-        : 'http://localhost:8000' + p.photo_url
-    )
+    return camping.value.photos.map(p => p.photo_url)
   }
   return ['https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp']
 })

@@ -245,13 +245,13 @@ onMounted(() => {
         <div
           v-for="booking in activeBookings"
           :key="booking.id"
-          class="booking-card"
+          :class="['booking-card', { 'qr-open': qrVisible[booking.id] }]"
         >
           <!-- Kép -->
           <div class="booking-image">
             <img
               v-if="booking.camping?.photos?.length > 0"
-              :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url.replace(/(\.[\w]+)$/, '_thumb$1') : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
+              :src="booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
               loading="lazy"
               decoding="async"
@@ -294,37 +294,39 @@ onMounted(() => {
               </div>
             </div>
 
-            <!-- Ár -->
-            <div class="booking-price" v-if="booking.camping_spot?.price_per_night">
-              <span class="price-total">
-                {{ (getNights(booking.arrival_date, booking.departure_date) * booking.camping_spot.price_per_night).toLocaleString('hu-HU') }} Ft
-              </span>
-              <span class="price-detail">
-                ({{ booking.camping_spot.price_per_night.toLocaleString('hu-HU') }} Ft × {{ getNights(booking.arrival_date, booking.departure_date) }} éj)
-              </span>
-            </div>
+            <div class="price-actions-row">
+              <!-- Ár -->
+              <div class="booking-price" v-if="booking.camping_spot?.price_per_night">
+                <span class="price-total">
+                  {{ (getNights(booking.arrival_date, booking.departure_date) * booking.camping_spot.price_per_night).toLocaleString('hu-HU') }} Ft
+                </span>
+                <span class="price-detail">
+                  ({{ booking.camping_spot.price_per_night.toLocaleString('hu-HU') }} Ft × {{ getNights(booking.arrival_date, booking.departure_date) }} éj)
+                </span>
+              </div>
 
-            <!-- Műveletek -->
-            <div class="booking-actions">
-              <!-- QR kód gomb - csak confirmed/checked_in esetén -->
-              <button
-                v-if="canShowQr(booking)"
-                @click="generateQr(booking)"
-                :disabled="qrGenerating[booking.id]"
-                class="qr-btn"
-              >
-                {{ qrGenerating[booking.id] ? 'Generálás...' : qrVisible[booking.id] ? '✕ QR elrejtése' : '📱 Belépési QR kód' }}
-              </button>
+              <!-- Műveletek -->
+              <div class="booking-actions">
+                <!-- QR kód gomb - csak confirmed/checked_in esetén -->
+                <button
+                  v-if="canShowQr(booking)"
+                  @click="generateQr(booking)"
+                  :disabled="qrGenerating[booking.id]"
+                  class="qr-btn"
+                >
+                  {{ qrGenerating[booking.id] ? 'Generálás...' : qrVisible[booking.id] ? '✕ QR elrejtése' : '📱 Belépési QR kód' }}
+                </button>
 
-              <!-- Lemondás -->
-              <button
-                v-if="booking.status === 'pending' || booking.status === 'confirmed'"
-                @click="cancelBooking(booking.id)"
-                :disabled="cancellingId === booking.id"
-                class="cancel-btn"
-              >
-                {{ cancellingId === booking.id ? 'Lemondás...' : '✕ Lemondás' }}
-              </button>
+                <!-- Lemondás -->
+                <button
+                  v-if="booking.status === 'pending' || booking.status === 'confirmed'"
+                  @click="cancelBooking(booking.id)"
+                  :disabled="cancellingId === booking.id"
+                  class="cancel-btn"
+                >
+                  {{ cancellingId === booking.id ? 'Lemondás...' : '✕ Lemondás' }}
+                </button>
+              </div>
             </div>
 
             <!-- QR kód megjelenítése -->
@@ -350,12 +352,12 @@ onMounted(() => {
         <div
           v-for="booking in pastBookings"
           :key="booking.id"
-          class="booking-card past"
+          :class="['booking-card', 'past', { 'qr-open': qrVisible[booking.id] }]"
         >
           <div class="booking-image">
             <img
               v-if="booking.camping?.photos?.length > 0"
-              :src="booking.camping.photos[0].photo_url.startsWith('http') ? booking.camping.photos[0].photo_url.replace(/(\.[\\w]+)$/, '_thumb$1') : 'http://localhost:8000' + booking.camping.photos[0].photo_url"
+              :src="booking.camping.photos[0].photo_url"
               :alt="booking.camping?.camping_name"
               loading="lazy"
               decoding="async"
@@ -393,22 +395,24 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="booking-price" v-if="booking.camping_spot?.price_per_night">
-              <span class="price-total">
-                {{ (getNights(booking.arrival_date, booking.departure_date) * booking.camping_spot.price_per_night).toLocaleString('hu-HU') }} Ft
-              </span>
-            </div>
+            <div class="price-actions-row">
+              <div class="booking-price" v-if="booking.camping_spot?.price_per_night">
+                <span class="price-total">
+                  {{ (getNights(booking.arrival_date, booking.departure_date) * booking.camping_spot.price_per_night).toLocaleString('hu-HU') }} Ft
+                </span>
+              </div>
 
-            <!-- Vélemény gomb - csak completed foglalásokhoz -->
-            <div class="booking-actions" v-if="booking.status === 'completed'">
-              <button
-                v-if="!booking.has_review"
-                class="review-btn"
-                @click="openReviewModal(booking)"
-              >
-                ⭐ Vélemény írása
-              </button>
-              <span v-else class="review-done">✅ Értékelve</span>
+              <!-- Vélemény gomb - csak completed foglalásokhoz -->
+              <div class="booking-actions" v-if="booking.status === 'completed'">
+                <button
+                  v-if="!booking.has_review"
+                  class="review-btn"
+                  @click="openReviewModal(booking)"
+                >
+                  ⭐ Vélemény írása
+                </button>
+                <span v-else class="review-done">✅ Értékelve</span>
+              </div>
             </div>
           </div>
         </div>
@@ -486,7 +490,7 @@ onMounted(() => {
 }
 
 .container {
-  max-width: 1140px;
+  max-width: 1240px;
   margin: auto;
   padding: 30px 20px;
 }
@@ -494,18 +498,23 @@ onMounted(() => {
 /* Fejléc */
 .page-header {
   margin-bottom: 28px;
+  background: linear-gradient(135deg, #f5fbef 0%, #ffffff 55%, #eef7ff 100%);
+  border: 1px solid #dbe8d2;
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 8px 28px rgba(31, 41, 55, 0.06);
 }
 
 .page-header h1 {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   color: #1f2937;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #6b7280;
-  margin-top: 4px;
+  color: #4b5563;
+  margin-top: 6px;
 }
 
 /* Szekciók */
@@ -526,20 +535,22 @@ onMounted(() => {
 .bookings-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .booking-card {
   display: flex;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
   overflow: hidden;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .booking-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.12);
+  transform: translateY(-2px);
 }
 
 .booking-card.past {
@@ -552,16 +563,18 @@ onMounted(() => {
 
 .booking-image {
   position: relative;
-  width: 220px;
-  height: 180px;
+  width: 260px;
+  height: 200px;
   flex-shrink: 0;
   align-self: flex-start;
 }
 
 .booking-image img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
 }
 
 .booking-status {
@@ -599,34 +612,38 @@ onMounted(() => {
 
 .booking-details {
   flex: 1;
-  padding: 16px 20px;
+  padding: 18px 22px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .booking-name {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #1f2937;
 }
 
 .booking-location {
   font-size: 13px;
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .booking-info-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 14px;
   margin-top: 4px;
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  background: #f9fafb;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  padding: 9px 10px;
 }
 
 .info-label {
@@ -644,10 +661,19 @@ onMounted(() => {
 }
 
 .booking-price {
-  margin-top: 4px;
+  margin-top: 2px;
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 10px;
+}
+
+.price-actions-row {
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .price-total {
@@ -663,8 +689,8 @@ onMounted(() => {
 
 /* Műveletek */
 .booking-actions {
-  margin-top: auto;
-  padding-top: 8px;
+  margin-top: 0;
+  padding-top: 0;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -768,8 +794,9 @@ onMounted(() => {
   text-align: center;
   padding: 60px 20px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
 }
 
 .empty-icon {
@@ -811,8 +838,9 @@ onMounted(() => {
   color: #6b7280;
   padding: 30px 0;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.05);
 }
 
 .empty-text.error {
@@ -837,17 +865,135 @@ onMounted(() => {
     flex-direction: column;
   }
 
+  .page-header {
+    padding: 14px 16px;
+    border-radius: 12px;
+  }
+
   .booking-image {
     width: 100%;
     height: 180px;
   }
 
+  .booking-details {
+    padding: 14px;
+  }
+
   .booking-info-grid {
-    gap: 8px 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .price-actions-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .page-header h1 {
     font-size: 22px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 34px 28px;
+  }
+
+  .section {
+    margin-bottom: 38px;
+  }
+
+  .section-title {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  .booking-card {
+    height: 200px;
+    min-height: 200px;
+  }
+
+  .booking-card.qr-open {
+    height: auto;
+    min-height: 200px;
+  }
+
+  .booking-image {
+    width: 300px;
+    height: 200px;
+  }
+
+  .booking-status {
+    top: 12px;
+    left: 12px;
+  }
+
+  .booking-details {
+    padding: 12px 16px;
+    gap: 6px;
+  }
+
+  .booking-name {
+    font-size: 18px;
+  }
+
+  .booking-location {
+    font-size: 12px;
+  }
+
+  .booking-info-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 0;
+  }
+
+  .info-item {
+    padding: 6px 8px;
+    gap: 1px;
+  }
+
+  .info-label {
+    font-size: 10px;
+  }
+
+  .info-value {
+    font-size: 13px;
+  }
+
+  .price-actions-row {
+    margin-top: 0;
+    gap: 8px;
+  }
+
+  .booking-price {
+    margin-top: 0;
+    gap: 6px;
+  }
+
+  .price-total {
+    font-size: 16px;
+  }
+
+  .price-detail {
+    font-size: 11px;
+  }
+
+  .booking-actions {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .qr-btn,
+  .cancel-btn,
+  .review-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .qr-section {
+    margin-top: 14px;
+    padding-top: 14px;
   }
 }
 

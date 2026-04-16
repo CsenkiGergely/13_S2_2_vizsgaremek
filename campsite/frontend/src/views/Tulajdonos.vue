@@ -590,7 +590,7 @@ function openEditSpotModal(campingId, spot) {
   editSpotForm.value = {
     id: spot.spot_id || spot.id,
     name: spot.name || '',
-    type: spot.type || 'tent',
+    type: spot.type || '',
     capacity: spot.capacity || 1,
     price_per_night: spot.price_per_night || 0,
     description: spot.description || '',
@@ -1214,7 +1214,6 @@ const spotFormSuccess = ref(null)
 const spotTypes = [
   'Sátorhely',
   'Lakókocsi',
-  'Karaván',
   'Faház',
   'Glamping',
   'Egyéb',
@@ -1591,8 +1590,7 @@ onUnmounted(() => { document.body.style.overflow = '' })
                 <div v-for="(photo, photoIndex) in item.photos" :key="photo.photo_id" class="photo-grid-item" :class="{ 'photo-main': photoIndex === 0 }">
                   <!-- Fő kép jelölő badge -->
                   <span v-if="photoIndex === 0" class="photo-main-badge">★ Fő kép</span>
-                  <!-- Kép megjelenítés: S3 URL-t közvetlenül, lokálisat prefix-elve -->
-                  <img :src="photo.photo_url.startsWith('http') ? photo.photo_url : 'http://localhost:8000' + photo.photo_url" :alt="'Kemping kép'" loading="lazy" decoding="async" @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'" />
+                  <img :src="photo.photo_url" :alt="'Kemping kép'" loading="lazy" decoding="async" @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'" />
                   <div class="photo-actions">
                     <button v-if="photoIndex !== 0" class="photo-main-btn" @click="handleSetMainPhoto(item.camping.id, photo.photo_id)" title="Beállítás fő képnek">★</button>
                     <button class="photo-delete-btn" @click="handlePhotoDelete(item.camping.id, photo.photo_id)" title="Kép törlése"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
@@ -1746,11 +1744,8 @@ onUnmounted(() => { document.body.style.overflow = '' })
             <div class="form-group" style="flex:1;">
               <label class="form-label">Típus</label>
               <select class="form-select" style="width:100%;" v-model="editSpotForm.type">
-                <option value="tent">Sátor</option>
-                <option value="caravan">Lakókocsi</option>
-                <option value="bungalow">Bungaló</option>
-                <option value="motorhome">Lakóautó</option>
-                <option value="glamping">Glamping</option>
+                <option disabled value="">Válassz típust</option>
+                <option v-for="t in spotTypes" :key="t" :value="t">{{ t }}</option>
               </select>
             </div>
             <div class="form-group" style="flex:1;">

@@ -35,11 +35,9 @@ const fetchTopCampings = async () => {
       rating: parseFloat(c.average_rating) || 0,
       reviews: c.reviews_count || 0,
       location: c.location?.city || (typeof c.location === 'string' ? c.location : ''),
-      // Thumbnail URL használata (fájlnév_thumb.ext) a gyorsabb betöltéshez
+      // A képek AWS-ről jönnek, ezért közvetlenül a photo_url-t használjuk.
       image: c.photos?.[0]?.photo_url
-        ? (c.photos[0].photo_url.startsWith('http')
-          ? c.photos[0].photo_url.replace(/(\.[\w]+)$/, '_thumb$1')
-          : 'http://localhost:8000' + c.photos[0].photo_url)
+        ? c.photos[0].photo_url
         : (c.photos?.[0]?.url || c.image || 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'),
       price: c.min_price || 0,
     }))
@@ -393,7 +391,7 @@ const features = [
     <div class="section-header">
       <span class="section-badge">Kiemelt</span>
       <h2>A vendégek kedvence</h2>
-      <p class="section-sub">A legtöbb pozitív értékelést kapott kemping</p>
+      <p class="section-sub">A legjobb értékeléssel rendelkező kemping</p>
     </div>
 
     <!-- Kiemelt kemping: betöltés után mutatjuk -->

@@ -9,25 +9,8 @@
       <div class="footer">
         <!-- 1. oszlop -->
         <div class="footer-column">
-          <h3>KempingFoglaló</h3>
+          <h3>CampSite</h3>
           <p>A legjobb kempinghelyek Magyarországon. Találd meg a tökéletes helyet a természetben.</p>
-        </div>
-        
-        <!-- 2. oszlop -->
-        <div class="footer-column">
-          <h3>Gyors linkek</h3>
-          <router-link to="/">
-            Főoldal
-          </router-link>
-          <router-link to="/kereses">
-            Keresés
-          </router-link>
-          <router-link to="/Tulajdonos">
-           <a href="#">Tulajdonos</a>
-          </router-link>
-          <router-link to="/fizetes">
-           <a href="#">Fizetés</a>
-          </router-link>
         </div>
         
           <!-- 3. oszlop -->
@@ -43,14 +26,8 @@
           </div>
           <div class="sor">
             <img src="/img/mail-svgrepo-com.svg" alt="Példa kép" class="kicsi-kep">
-            <label for="opcio1" class="color">info@kempingfoglalo.hu</label>
+            <label for="opcio1" class="color">info@campsite.hu</label>
           </div>
-        </div>
-
-        <!-- 4. oszlop -->
-        <div class="footer-column">
-          <h3>Extra információ</h3>
-          <p>Itt adhatsz hozzá további információkat, például közösségi média ikonokat, nyitvatartást, vagy promóciós linkeket.</p>
         </div>
       </div>
 
@@ -97,14 +74,24 @@
   .footer {
     display: flex;
     flex-wrap: wrap;      /* Mobilon lecsorogjon */
-    gap: 20px;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 32px;
     background-color: #4A7434;
     padding: 40px;
     padding-bottom: 20px;
   }
 
   .footer-column {
-    flex: 1 1 200px;      /* Minden oszlop rugalmas, minimum 200px */
+    flex: 1 1 280px;      /* Minden oszlop rugalmas, minimum 280px */
+  }
+
+  .footer-column:first-child {
+    flex: 2 1 420px;
+  }
+
+  .footer-column:last-child {
+    flex: 1 1 300px;
   }
 
   .footer-column h3 {

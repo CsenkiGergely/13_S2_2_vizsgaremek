@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -40,43 +41,17 @@ class AuthController extends Controller
 
         $user = User::create($fields);
 
-        // Aktiváló token generálása és mentése
-        $token = Str::random(64);
+        // Email verifikacio ideiglenesen kikapcsolva: azonnali aktiválás.
+        $user->email_verified_at = now();
+        $user->save();
 
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $user->email],
-            [
-                'email' => $user->email,
-                'token' => Hash::make($token),
-                'created_at' => now()
-            ]
-        );
-
-        // API token generálása (Sanctum)
+        // API token generálása (Sanctum) azonnali belépéshez.
         $authToken = $user->createToken($request->owner_first_name)->plainTextToken;
-
-        // Aktiváló email küldése (ha sikertelen, nem akadályozza a regisztrációt)
-        $emailSent = false;
-        try {
-            $verifyUrl = config('app.frontend_url', 'http://localhost:5173')
-                . '/verify-email?token=' . $token
-                . '&email=' . urlencode($user->email);
-
-            Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
-                $message->to($user->email);
-                $message->subject('Email Megerősítés - CampSite');
-            });
-            $emailSent = true;
-        } catch (\Exception $e) {
-            error_log('Email küldési hiba: ' . $e->getMessage());
-        }
 
         return response()->json([
             'user' => $user,
             'token' => $authToken,
-            'message' => $emailSent
-                ? 'Sikeres regisztráció! Kérjük erősítsd meg az email címedet a kiküldött levélben található linkre kattintva.'
-                : 'Sikeres regisztráció! (Az email küldés jelenleg nem elérhető.)'
+            'message' => 'Sikeres regisztráció! A fiókod azonnal aktiválva lett.'
         ], 201);
     }
 
@@ -96,13 +71,6 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Hibás email vagy jelszó.'
             ], 401);
-        }
-
-        // Ellenőrizzük, hogy az email meg van-e erősítve
-        if (!$user->email_verified_at) {
-            return response()->json([
-                'message' => 'Kérjük erősítsd meg az email címedet a belépés előtt.'
-            ], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -151,10 +119,17 @@ class AuthController extends Controller
 
         $resetUrl = config('app.frontend_url', 'http://localhost:5173') . '/reset-password?token=' . $token . '&email=' . urlencode($request->email);
 
-        Mail::send('emails.reset-password', ['resetUrl' => $resetUrl, 'user' => $user], function($message) use ($request) {
-            $message->to($request->email);
-            $message->subject('Jelszó Visszaállítás - CampSite');
-        });
+        try {
+            Mail::send('emails.reset-password', ['resetUrl' => $resetUrl, 'user' => $user], function($message) use ($request) {
+                $message->to($request->email);
+                $message->subject('Jelszó Visszaállítás - CampSite');
+            });
+        } catch (\Exception $e) {
+            Log::error('Email kuldesi hiba jelszo visszaallitasnal', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'message' => 'Ha ez az email cím regisztrálva van, elküldtük a visszaállító linket.'
@@ -348,10 +323,28 @@ class AuthController extends Controller
             . '/verify-email?token=' . $token
             . '&email=' . urlencode($user->email);
 
-        Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
-            $message->to($user->email);
-            $message->subject('Email Megerősítés - CampSite');
-        });
+        try {
+            Mail::send('emails.verify-email', ['verifyUrl' => $verifyUrl, 'user' => $user], function ($message) use ($user) {
+                $message->to($user->email);
+                $message->subject('Email Megerősítés - CampSite');
+            });
+        } catch (\Exception $e) {
+            Log::error('Email kuldesi hiba megerosito email ujrakuldesnel', [
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            $mailMessage = strtolower($e->getMessage());
+            if (str_contains($mailMessage, 'ms42225') || str_contains($mailMessage, 'unique recipients limit')) {
+                return response()->json([
+                    'message' => 'Az email szolgaltato trial limitet ert el, ezert most nem tudtuk ujrakuldeni az aktivalo emailt.'
+                ], 503);
+            }
+
+            return response()->json([
+                'message' => 'Az aktivalo email ujrakuldese jelenleg nem elerheto.'
+            ], 503);
+        }
 
         return response()->json([
             'message' => 'Ha ez az email cím regisztrálva van, elküldtük az aktiváló linket.'

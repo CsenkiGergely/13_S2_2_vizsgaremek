@@ -384,6 +384,13 @@ class BookingController extends Controller
             ], 403);
         }
 
+        // Régebbi foglalásoknál előfordulhat, hogy hiányzik a QR kód.
+        if (empty($booking->qr_code)) {
+            $randomString = strtoupper(Str::random(8));
+            $booking->qr_code = 'USR' . $booking->user_id . '-BKG' . $booking->id . '-' . $randomString;
+            $booking->save();
+        }
+
         return response()->json([
             'qr_code' => $booking->qr_code,
             'booking_id' => $booking->id,

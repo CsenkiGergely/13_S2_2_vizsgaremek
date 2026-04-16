@@ -751,7 +751,7 @@
 			"description": "Kempingek listázása, keresés, részletek - nem igényel autentikációt",
 			"item": [
 				{
-					"name": "02.1 - Kempingek listázása",
+					"name": "02.1 - Kempingek listázása (Top Campings - Publikus)",
 					"event": [
 						{
 							"listen": "test",
@@ -761,17 +761,11 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test('Pagináció struktúra helyes', function () {",
+									"pm.test('Eredmény tömb és kemping ID mentése', function () {",
 									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('data');",
-									"    pm.expect(json).to.have.property('current_page');",
-									"    pm.expect(json).to.have.property('total');",
-									"});",
-									"",
-									"pm.test('Első kemping ID mentése', function () {",
-									"    var json = pm.response.json();",
-									"    if (json.data && json.data.length > 0) {",
-									"        pm.collectionVariables.set('camping_id', json.data[0].id);",
+									"    pm.expect(json).to.be.an('array');",
+									"    if (json && json.length > 0) {",
+									"        pm.collectionVariables.set('camping_id', json[0].id);",
 									"    }",
 									"});"
 								],
@@ -785,80 +779,14 @@
 							{ "key": "Accept", "value": "application/json" }
 						],
 						"url": {
-							"raw": "{{base_url}}/campings",
+							"raw": "{{base_url}}/campings/top",
 							"host": ["{{base_url}}"],
-							"path": ["campings"]
+							"path": ["campings", "top"]
 						}
 					}
 				},
 				{
-					"name": "02.2 - Kempingek keresés szöveggel",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Keresés - 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test('Pagináció struktúra', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('data');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Accept", "value": "application/json" }
-						],
-						"url": {
-							"raw": "{{base_url}}/campings?search=kemping",
-							"host": ["{{base_url}}"],
-							"path": ["campings"],
-							"query": [
-								{ "key": "search", "value": "kemping" }
-							]
-						}
-					}
-				},
-				{
-					"name": "02.3 - Kempingek ár szűréssel",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Ár szűrés - 200', function () {",
-									"    pm.response.to.have.status(200);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{ "key": "Accept", "value": "application/json" }
-						],
-						"url": {
-							"raw": "{{base_url}}/campings?min_price=1000&max_price=5000",
-							"host": ["{{base_url}}"],
-							"path": ["campings"],
-							"query": [
-								{ "key": "min_price", "value": "1000" },
-								{ "key": "max_price", "value": "5000" }
-							]
-						}
-					}
-				},
-				{
-					"name": "02.4 - Kemping részletek",
+					"name": "02.2 - Kemping részletek",
 					"event": [
 						{
 							"listen": "test",
@@ -896,7 +824,7 @@
 					}
 				},
 				{
-					"name": "02.5 - Kemping nem található (404)",
+					"name": "02.3 - Kemping nem található (404)",
 					"event": [
 						{
 							"listen": "test",
@@ -923,7 +851,7 @@
 					}
 				},
 				{
-					"name": "02.6 - Kemping elérhetőség lekérése",
+					"name": "02.4 - Kemping elérhetőség lekérése",
 					"event": [
 						{
 							"listen": "test",
@@ -960,7 +888,7 @@
 					}
 				},
 				{
-					"name": "02.7 - GeoJSON térkép lekérése",
+					"name": "02.5 - GeoJSON térkép lekérése",
 					"event": [
 						{
 							"listen": "test",

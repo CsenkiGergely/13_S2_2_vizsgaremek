@@ -131,6 +131,7 @@ const handleLogin = async () => {
 // Regisztráció kezelése jelszóerősség és egyezés ellenőrzéssel
 const handleRegister = async () => {
   formError.value = null
+  successMessage.value = null
 
   if (registerForm.value.password !== registerForm.value.password_confirmation) {
     formError.value = 'A jelszavak nem egyeznek!'
@@ -139,6 +140,15 @@ const handleRegister = async () => {
 
   const result = await register(registerForm.value)
   if (result.success) {
+    if (result.requiresVerification) {
+      mode.value = 'login'
+      formError.value = null
+      successMessage.value = result.message || `Sikeres regisztracio! Aktivacios emailt kuldtunk erre a cimre: ${registerForm.value.email}`
+      registerForm.value.password = ''
+      registerForm.value.password_confirmation = ''
+      return
+    }
+
     emit('success', result.user)
     closeModal()
   } else {

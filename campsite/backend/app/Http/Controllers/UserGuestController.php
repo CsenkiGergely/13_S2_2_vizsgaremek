@@ -22,17 +22,22 @@ class UserGuestController extends Controller
      */
     public function store(Request $request)
     {
+        // Visszafelé kompatibilitás: régi kliensek visa_flight_number mezőt küldhetnek.
+        if ($request->filled('visa_flight_number') && !$request->filled('visa')) {
+            $request->merge(['visa' => $request->input('visa_flight_number')]);
+        }
+
         $fields = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'birth_date' => 'required|date',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'birth_date' => 'nullable|date',
             'place_of_birth' => 'nullable|string|max:255',
             'gender' => 'nullable|string|max:50',
             'citizenship' => 'nullable|string|max:100',
             'mothers_birth_name' => 'nullable|string|max:255',
             'id_card_number' => 'nullable|string|max:50',
             'passport_number' => 'nullable|string|max:50',
-            'visa_flight_number' => 'nullable|string|max:50',
+            'visa' => 'nullable|string|max:50',
             'resident_permit_number' => 'nullable|string|max:50',
             'date_of_entry' => 'nullable|date',
             'place_of_entry' => 'nullable|string|max:255',
@@ -63,6 +68,11 @@ class UserGuestController extends Controller
         $guest = UserGuest::where('user_id', $request->user()->id)
             ->findOrFail($id);
 
+        // Visszafelé kompatibilitás: régi kliensek visa_flight_number mezőt küldhetnek.
+        if ($request->filled('visa_flight_number') && !$request->filled('visa')) {
+            $request->merge(['visa' => $request->input('visa_flight_number')]);
+        }
+
         $fields = $request->validate([
             'first_name' => 'sometimes|string|max:255',
             'last_name' => 'sometimes|string|max:255',
@@ -73,7 +83,7 @@ class UserGuestController extends Controller
             'mothers_birth_name' => 'nullable|string|max:255',
             'id_card_number' => 'nullable|string|max:50',
             'passport_number' => 'nullable|string|max:50',
-            'visa_flight_number' => 'nullable|string|max:50',
+            'visa' => 'nullable|string|max:50',
             'resident_permit_number' => 'nullable|string|max:50',
             'date_of_entry' => 'nullable|date',
             'place_of_entry' => 'nullable|string|max:255',

@@ -225,15 +225,35 @@ class CampingController extends Controller
             'required_guest_fields.*' => 'string',
         ]);
 
-        // isset megnézése 
-        if (isset($fields['city']) || isset($fields['zip_code']) || isset($fields['street_address'])) {
-            $camping->location()->update([
+        // Location mezők frissítése: ha a location rekord meg van osztva több kemping között,
+        // előbb leválasztjuk egy új location rekordra, így nem írjuk felül a többi kemping címét.
+        if (
+            array_key_exists('city', $fields) ||
+            array_key_exists('zip_code', $fields) ||
+            array_key_exists('street_address', $fields) ||
+            array_key_exists('latitude', $fields) ||
+            array_key_exists('longitude', $fields)
+        ) {
+            $locationData = [
                 'city' => $fields['city'] ?? $camping->location->city,
                 'zip_code' => $fields['zip_code'] ?? $camping->location->zip_code,
                 'street_address' => $fields['street_address'] ?? $camping->location->street_address,
                 'latitude' => $fields['latitude'] ?? $camping->location->latitude,
                 'longitude' => $fields['longitude'] ?? $camping->location->longitude,
-            ]);
+            ];
+
+            $isSharedLocation = Camping::where('location_id', $camping->location_id)
+                ->where('id', '!=', $camping->id)
+                ->exists();
+
+            if ($isSharedLocation) {
+                $newLocation = Location::create($locationData);
+                $camping->location_id = $newLocation->id;
+                $camping->save();
+                $camping->setRelation('location', $newLocation);
+            } else {
+                $camping->location()->update($locationData);
+            }
         }
 
         
