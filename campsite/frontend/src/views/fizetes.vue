@@ -231,7 +231,7 @@ const handlePayment = async () => {
 
           <div class="success-actions">
             <button class="btn btn-primary" @click="router.push('/')">Vissza a főoldalra</button>
-            <button class="btn btn-outline" @click="router.push('/kereses')">Új keresés</button>
+            
           </div>
         </div>
 
