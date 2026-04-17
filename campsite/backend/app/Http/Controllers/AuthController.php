@@ -174,7 +174,7 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // token lejárat ellenőrzése 60p                       carbon atrakni datetime ra és a db t laravel lekeresre 
+        // token lejárat ellenőrzése 60p                       
         $createdAt = \Carbon\Carbon::parse($passwordReset->created_at);
         if ($createdAt->addMinutes(60)->isPast()) {
             return response()->json([
