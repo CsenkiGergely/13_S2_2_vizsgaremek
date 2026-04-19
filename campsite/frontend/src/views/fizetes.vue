@@ -311,7 +311,7 @@ const handlePayment = async () => {
                 :maxlength="activeTab === 'amex' ? 17 : 19"
                 :class="{ 'error': errors.cardNumber }"
               />
-              <span v-if="errors.cardNumber" class="error-message">{{ errors.cardNumber }}</span>
+              <span class="error-message" :class="{ 'is-visible': errors.cardNumber }">{{ errors.cardNumber || ' ' }}</span>
             </div>
 
             <div>
@@ -325,7 +325,7 @@ const handlePayment = async () => {
                 maxlength="5"
                 :class="{ 'error': errors.expiryDate }"
               />
-              <span v-if="errors.expiryDate" class="error-message">{{ errors.expiryDate }}</span>
+              <span class="error-message" :class="{ 'is-visible': errors.expiryDate }">{{ errors.expiryDate || ' ' }}</span>
             </div>
 
             <div>
@@ -339,7 +339,7 @@ const handlePayment = async () => {
                 :maxlength="activeTab === 'amex' ? 4 : 3"
                 :class="{ 'error': errors.cvv }"
               />
-              <span v-if="errors.cvv" class="error-message">{{ errors.cvv }}</span>
+              <span class="error-message" :class="{ 'is-visible': errors.cvv }">{{ errors.cvv || ' ' }}</span>
             </div>
 
             <!-- Személyes adatok -->
@@ -354,7 +354,7 @@ const handlePayment = async () => {
                 placeholder="Pl. János"
                 :class="{ 'error': errors.firstName }"
               />
-              <span v-if="errors.firstName" class="error-message">{{ errors.firstName }}</span>
+              <span class="error-message" :class="{ 'is-visible': errors.firstName }">{{ errors.firstName || ' ' }}</span>
             </div>
 
             <div>
@@ -366,7 +366,7 @@ const handlePayment = async () => {
                 placeholder="Pl. Kovács"
                 :class="{ 'error': errors.lastName }"
               />
-              <span v-if="errors.lastName" class="error-message">{{ errors.lastName }}</span>
+              <span class="error-message" :class="{ 'is-visible': errors.lastName }">{{ errors.lastName || ' ' }}</span>
             </div>
 
             <div>
@@ -378,7 +378,7 @@ const handlePayment = async () => {
                 placeholder="Pl. Budapest"
                 :class="{ 'error': errors.city }"
               />
-              <span v-if="errors.city" class="error-message">{{ errors.city }}</span>
+              <span class="error-message" :class="{ 'is-visible': errors.city }">{{ errors.city || ' ' }}</span>
             </div>
 
             <div>
@@ -390,7 +390,7 @@ const handlePayment = async () => {
                 placeholder="Pl. Fő utca 12."
                 :class="{ 'error': errors.streetAndNumber }"
               />
-              <span v-if="errors.streetAndNumber" class="error-message">{{ errors.streetAndNumber }}</span>
+              <span class="error-message" :class="{ 'is-visible': errors.streetAndNumber }">{{ errors.streetAndNumber || ' ' }}</span>
             </div>
 
             <div>
@@ -404,7 +404,7 @@ const handlePayment = async () => {
                 maxlength="4"
                 :class="{ 'error': errors.postalCode }"
               />
-              <span v-if="errors.postalCode" class="error-message">{{ errors.postalCode }}</span>
+              <span class="error-message" :class="{ 'is-visible': errors.postalCode }">{{ errors.postalCode || ' ' }}</span>
             </div>
 
             <div class="submit-col">
@@ -537,7 +537,7 @@ form.grid {
   display: grid;
   grid-template-columns: repeat(1, 1fr);
   gap: 0.75rem;
-  align-items: end;
+  align-items: start;
 }
 
 .section-header {
@@ -588,10 +588,15 @@ input[type="text"].error {
 
 .error-message {
   display: block;
-  color: #ef4444;
+  color: transparent;
   font-size: 0.75rem;
   margin-top: 0.25rem;
   font-weight: 500;
+  min-height: 1rem;
+}
+
+.error-message.is-visible {
+  color: #ef4444;
 }
 
 .btn {

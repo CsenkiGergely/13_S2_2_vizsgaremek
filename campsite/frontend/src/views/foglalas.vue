@@ -19,6 +19,10 @@ const currentImage = ref(0)
 const selectedSpot = ref(null)
 const bookingLoading = ref(false)
 const bookingError = ref(null)
+const baseSpots = ref([])
+const spots = ref([])
+const blockedDatesBySpot = ref({})
+const fullyBookedDates = ref(new Set())
 
 // Foglalási form
 const bookingForm = ref({
@@ -46,6 +50,8 @@ const fetchCamping = async () => {
       api.get(`/campings/${id}/comments`).catch(() => ({ data: { data: [] } }))
     ])
     camping.value = campingRes.data
+    baseSpots.value = (camping.value?.spots || []).map((spot) => ({ ...spot }))
+    spots.value = (camping.value?.spots || []).map((spot) => ({ ...spot }))
     comments.value = commentsRes.data.comments || commentsRes.data.data || []
   } catch (err) {
     console.error('Hiba a kemping betöltésekor:', err)
@@ -72,11 +78,6 @@ const thumbImages = computed(() => {
     return camping.value.photos.map(p => p.photo_url)
   }
   return ['https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp']
-})
-
-const spots = computed(() => {
-  if (!camping.value || !camping.value.spots) return []
-  return camping.value.spots
 })
 
 const tags = computed(() => {
@@ -116,6 +117,8 @@ const totalPrice = computed(() => {
 const avgRating = computed(() => {
   return camping.value?.average_rating || 0
 })
+
+const hasSpotOverflow = computed(() => spots.value.length > 3)
 
 const reviewsCount = computed(() => {
   return camping.value?.reviews_count || 0
@@ -168,6 +171,155 @@ const nextMonth = () => {
   else currentMonth.value++
 }
 
+const toDateAtMidnight = (dateStr) => {
+  if (!dateStr) return null
+  return new Date(`${dateStr}T00:00:00`)
+}
+
+const toDateString = (dateObj) => {
+  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
+}
+
+const getVisibleMonthRange = () => {
+  const firstDay = new Date(currentYear.value, currentMonth.value, 1)
+  const lastDay = new Date(currentYear.value, currentMonth.value + 1, 0)
+  return { firstDay, lastDay }
+}
+
+const buildDateSetForBookings = (bookings, monthStart, monthEnd) => {
+  const dateSet = new Set()
+
+  for (const booking of bookings || []) {
+    const bookingStart = toDateAtMidnight(booking.arrival_date)
+    const bookingEnd = toDateAtMidnight(booking.departure_date)
+
+    if (!bookingStart || !bookingEnd) continue
+
+    const start = new Date(Math.max(bookingStart.getTime(), monthStart.getTime()))
+    const end = new Date(Math.min(bookingEnd.getTime(), monthEnd.getTime()))
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dateSet.add(toDateString(d))
+    }
+  }
+
+  return dateSet
+}
+
+const refreshMonthAvailability = async () => {
+  if (!camping.value?.id) return
+
+  const { firstDay, lastDay } = getVisibleMonthRange()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (lastDay < today) {
+    blockedDatesBySpot.value = {}
+    fullyBookedDates.value = new Set()
+    return
+  }
+
+  const queryStart = firstDay < today ? new Date(today) : firstDay
+
+  try {
+    const res = await api.get(`/campings/${camping.value.id}/availability`, {
+      params: {
+        start_date: toDateString(queryStart),
+        end_date: toDateString(lastDay)
+      }
+    })
+
+    const rows = res.data?.availability || []
+    const bySpot = {}
+    const busyCountByDate = new Map()
+    const selectableSpotIds = new Set(
+      baseSpots.value.filter((s) => s.is_available !== false).map((s) => s.spot_id)
+    )
+
+    for (const row of rows) {
+      const setForSpot = buildDateSetForBookings(row.bookings || [], queryStart, lastDay)
+      bySpot[row.spot_id] = setForSpot
+
+      if (!selectableSpotIds.has(row.spot_id)) continue
+      for (const dateStr of setForSpot) {
+        busyCountByDate.set(dateStr, (busyCountByDate.get(dateStr) || 0) + 1)
+      }
+    }
+
+    const totalSelectableSpots = selectableSpotIds.size
+    const fullSet = new Set()
+
+    if (totalSelectableSpots > 0) {
+      for (const [dateStr, count] of busyCountByDate.entries()) {
+        if (count >= totalSelectableSpots) {
+          fullSet.add(dateStr)
+        }
+      }
+    }
+
+    blockedDatesBySpot.value = bySpot
+    fullyBookedDates.value = fullSet
+  } catch (err) {
+    console.error('Nem sikerült lekérni a havi foglaltságot:', err)
+  }
+}
+
+const refreshSpotsAvailability = async () => {
+  if (!camping.value?.id) return
+
+  const checkIn = bookingForm.value.checkIn
+  const checkOut = bookingForm.value.checkOut
+
+  if (!checkIn || !checkOut || checkOut <= checkIn) {
+    spots.value = baseSpots.value.map((spot) => ({ ...spot }))
+    return
+  }
+
+  try {
+    const res = await api.get(`/campings/${camping.value.id}/spots`, {
+      params: {
+        start_date: checkIn,
+        end_date: checkOut
+      }
+    })
+
+    const apiSpots = res.data || []
+    const statusBySpot = new Map(apiSpots.map((s) => [s.spot_id, s]))
+
+    spots.value = baseSpots.value.map((baseSpot) => {
+      const apiSpot = statusBySpot.get(baseSpot.spot_id)
+      const isBooked = Boolean(apiSpot?.is_booked)
+      return {
+        ...baseSpot,
+        is_booked: isBooked,
+        is_available: baseSpot.is_available !== false && !isBooked
+      }
+    })
+
+    if (selectedSpot.value) {
+      const refreshed = spots.value.find((s) => s.spot_id === selectedSpot.value.spot_id)
+      if (!refreshed || !refreshed.is_available) {
+        selectedSpot.value = null
+      } else {
+        selectedSpot.value = refreshed
+      }
+    }
+  } catch (err) {
+    console.error('Nem sikerült lekérni a helyek foglaltságát:', err)
+  }
+}
+
+const isDateBooked = (dateStr) => {
+  if (!dateStr) return false
+
+  if (selectedSpot.value) {
+    const setForSpot = blockedDatesBySpot.value[selectedSpot.value.spot_id]
+    return Boolean(setForSpot?.has(dateStr))
+  }
+
+  return fullyBookedDates.value.has(dateStr)
+}
+
 const calendarDays = computed(() => {
   const days = []
   const firstDay = new Date(currentYear.value, currentMonth.value, 1)
@@ -192,13 +344,15 @@ const calendarDays = computed(() => {
     const date = new Date(currentYear.value, currentMonth.value, day)
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     const isPast = date < today
+    const isBooked = isDateBooked(dateStr)
     const isCheckIn = dateStr === bookingForm.value.checkIn
     const isCheckOut = dateStr === bookingForm.value.checkOut
     const isInRange = bookingForm.value.checkIn && bookingForm.value.checkOut &&
       dateStr > bookingForm.value.checkIn && dateStr < bookingForm.value.checkOut
 
     days.push({
-      day, date: dateStr, isCurrentMonth: true, isDisabled: isPast,
+      day, date: dateStr, isCurrentMonth: true, isDisabled: isPast || isBooked,
+      isBooked,
       isSelected: isCheckIn || isCheckOut, isInRange,
       key: `current-${day}`
     })
@@ -208,7 +362,7 @@ const calendarDays = computed(() => {
   for (let day = 1; day <= remainingDays; day++) {
     days.push({
       day, date: '', isCurrentMonth: false, isDisabled: true,
-      isSelected: false, isInRange: false, key: `next-${day}`
+      isBooked: false, isSelected: false, isInRange: false, key: `next-${day}`
     })
   }
   return days
@@ -409,6 +563,14 @@ const initMap = async () => {
   } catch (e) { console.warn('GeoJSON parse error:', e) }
 }
 
+watch([currentMonth, currentYear], () => {
+  refreshMonthAvailability()
+})
+
+watch(() => [bookingForm.value.checkIn, bookingForm.value.checkOut], () => {
+  refreshSpotsAvailability()
+})
+
 // Inicializálás
 onMounted(async () => {
   if (route.query.checkIn) bookingForm.value.checkIn = route.query.checkIn
@@ -416,6 +578,8 @@ onMounted(async () => {
   if (route.query.guests) bookingForm.value.guests = parseInt(route.query.guests) || 2
 
   await fetchCamping()
+  await refreshMonthAvailability()
+  await refreshSpotsAvailability()
   if (camping.value && hasGeoJson.value) {
     await nextTick()
     initMap()
@@ -450,9 +614,21 @@ onMounted(async () => {
              @error="$event.target.src = 'https://cmpst-amzn-s3.s3.eu-north-1.amazonaws.com/placeholder.webp'" />
         <template v-if="images.length > 1">
           <button @click="prevImage"
-                  class="gallery-btn absolute left-3 top-1/2 -translate-y-1/2">&#8249;</button>
+                  class="gallery-btn absolute left-3 top-1/2 -translate-y-1/2"
+                  type="button"
+                  aria-label="Előző kép">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="gallery-btn-icon" aria-hidden="true">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
           <button @click="nextImage"
-                  class="gallery-btn absolute right-3 top-1/2 -translate-y-1/2">&#8250;</button>
+                  class="gallery-btn absolute right-3 top-1/2 -translate-y-1/2"
+                  type="button"
+                  aria-label="Következő kép">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="gallery-btn-icon" aria-hidden="true">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
           <div class="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-3 py-1 rounded-full">
             {{ currentImage + 1 }} / {{ images.length }}
           </div>
@@ -516,8 +692,13 @@ onMounted(async () => {
               <div id="campingMap" class="w-full rounded-lg border border-gray-200 mb-4" style="height: 400px; z-index: 0;"></div>
             </template>
 
-            <!-- Spot kártyák -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Spot kártyák: 3 elemnyi látható rész, a többi görgethető -->
+            <div
+              :class="[
+                'grid grid-cols-1 gap-3',
+                hasSpotOverflow ? 'max-h-[430px] overflow-y-auto pr-1 spots-scroll' : ''
+              ]"
+            >
               <div v-for="spot in spots" :key="spot.spot_id"
                    @click="selectSpot(spot)"
                    :class="[
@@ -544,6 +725,10 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
+
+            <p v-if="hasSpotOverflow" class="mt-3 text-xs text-gray-500">
+              További helyek görgetéssel érhetők el.
+            </p>
           </div>
 
           <!-- Vendég vélemények -->
@@ -664,6 +849,7 @@ onMounted(async () => {
                        date.isCurrentMonth ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300',
                        date.isDisabled ? 'cursor-not-allowed opacity-30 hover:bg-transparent' : '',
                        date.isSelected ? 'bg-[#4A7434] text-white hover:bg-[#4A7434]' : '',
+                       date.isBooked ? 'bg-red-50 text-red-400' : '',
                        date.isInRange ? 'bg-[#E8F5E9]' : ''
                      ]">
                   {{ date.day }}
@@ -733,13 +919,20 @@ onMounted(async () => {
     border-radius: 50%;
     width: 40px;
     height: 40px;
-    font-size: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0;
     cursor: pointer;
     transition: background 0.2s;
     color: #333;
+  }
+
+  .gallery-btn-icon {
+    width: 18px;
+    height: 18px;
+    display: block;
+    flex-shrink: 0;
   }
 
   .gallery-btn:hover {
@@ -772,6 +965,25 @@ onMounted(async () => {
   img {
     border-radius: 0.5rem;
     object-fit: cover;
+  }
+
+  .spots-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(74, 116, 52, 0.45) rgba(0, 0, 0, 0.08);
+  }
+
+  .spots-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .spots-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+  }
+
+  .spots-scroll::-webkit-scrollbar-thumb {
+    background: rgba(74, 116, 52, 0.45);
+    border-radius: 999px;
   }
   
 </style>
