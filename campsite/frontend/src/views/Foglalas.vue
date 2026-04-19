@@ -180,6 +180,8 @@ const toDateString = (dateObj) => {
   return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
 }
 
+const spotKey = (id) => String(id)
+
 const getVisibleMonthRange = () => {
   const firstDay = new Date(currentYear.value, currentMonth.value, 1)
   const lastDay = new Date(currentYear.value, currentMonth.value + 1, 0)
@@ -284,10 +286,10 @@ const refreshSpotsAvailability = async () => {
     })
 
     const apiSpots = res.data || []
-    const statusBySpot = new Map(apiSpots.map((s) => [s.spot_id, s]))
+    const statusBySpot = new Map(apiSpots.map((s) => [spotKey(s.spot_id), s]))
 
     spots.value = baseSpots.value.map((baseSpot) => {
-      const apiSpot = statusBySpot.get(baseSpot.spot_id)
+      const apiSpot = statusBySpot.get(spotKey(baseSpot.spot_id))
       const isBooked = Boolean(apiSpot?.is_booked)
       return {
         ...baseSpot,
@@ -297,7 +299,7 @@ const refreshSpotsAvailability = async () => {
     })
 
     if (selectedSpot.value) {
-      const refreshed = spots.value.find((s) => s.spot_id === selectedSpot.value.spot_id)
+      const refreshed = spots.value.find((s) => spotKey(s.spot_id) === spotKey(selectedSpot.value.spot_id))
       if (!refreshed || !refreshed.is_available) {
         selectedSpot.value = null
       } else {
@@ -318,6 +320,32 @@ const isDateBooked = (dateStr) => {
   }
 
   return fullyBookedDates.value.has(dateStr)
+}
+
+const isSpotBookedForSelectedRange = (spot) => {
+  const checkIn = bookingForm.value.checkIn
+  const checkOut = bookingForm.value.checkOut
+  if (!spot || !checkIn || !checkOut || checkOut <= checkIn) return false
+
+  const blockedSet = blockedDatesBySpot.value[spot.spot_id]
+  if (!blockedSet) return false
+
+  // Egyetlen éjszaka átfedés is foglaltnak számít a kiválasztott intervallumban.
+  for (let d = new Date(`${checkIn}T00:00:00`); d < new Date(`${checkOut}T00:00:00`); d.setDate(d.getDate() + 1)) {
+    if (blockedSet.has(toDateString(d))) {
+      return true
+    }
+  }
+
+  return false
+}
+
+const isSpotSelectable = (spot) => {
+  if (!spot) return false
+  if (spot.is_available === false) return false
+  if (spot.is_booked) return false
+  if (isSpotBookedForSelectedRange(spot)) return false
+  return true
 }
 
 const calendarDays = computed(() => {
@@ -392,7 +420,7 @@ const formatDate = (dateStr) => {
 
 // Spot kiválasztás
 const selectSpot = (spot) => {
-  if (!spot.is_available) return
+  if (!isSpotSelectable(spot)) return
   selectedSpot.value = spot
 }
 
@@ -462,14 +490,16 @@ const initMap = async () => {
   try {
     const parsed = typeof geojsonData === 'string' ? JSON.parse(geojsonData) : geojsonData
     const spotLayers = new Map() // spot_id -> { layer, isPoint }
-    const findSpot = (spotId) => spots.value.find(s => s.spot_id === spotId)
+    const findSpot = (spotId) => spots.value.find(s => spotKey(s.spot_id) === spotKey(spotId))
+    const getFeatureSpotId = (props) => props?.spot_id ?? props?.id
 
     const geojsonLayer = L.geoJSON(parsed, {
       style: (feature) => {
         const props = feature.properties || {}
+        const featureSpotId = getFeatureSpotId(props)
         // Kempinghely (Polygon) — szín elérhetőség alapján
-        if (props.spot_id) {
-          const spot = findSpot(props.spot_id)
+        if (featureSpotId) {
+          const spot = findSpot(featureSpotId)
           const available = spot?.is_available !== false
           return {
             color: available ? '#22c55e' : '#ef4444',
@@ -489,9 +519,10 @@ const initMap = async () => {
       },
       pointToLayer: (feature, latlng) => {
         const props = feature.properties || {}
+        const featureSpotId = getFeatureSpotId(props)
         // Kempinghely pont
-        if (props.spot_id) {
-          const spot = findSpot(props.spot_id)
+        if (featureSpotId) {
+          const spot = findSpot(featureSpotId)
           const available = spot?.is_available !== false
           return L.circleMarker(latlng, {
             radius: 10,
@@ -512,19 +543,21 @@ const initMap = async () => {
       },
       onEachFeature: (feature, layer) => {
         const props = feature.properties || {}
-        if (props.spot_id) {
+        const featureSpotId = getFeatureSpotId(props)
+        if (featureSpotId) {
           // Foglalható hely — kattintható
-          const spot = findSpot(props.spot_id)
+          const spot = findSpot(featureSpotId)
           const isPoint = feature.geometry.type === 'Point'
-          spotLayers.set(props.spot_id, { layer, isPoint })
+          spotLayers.set(featureSpotId, { layer, isPoint })
           if (spot) {
             layer.bindTooltip(
               `${spot.name || 'Hely'} · ${spot.type} · ${spot.capacity} fő · ${spot.price_per_night} Ft/éj`,
               { direction: 'top', offset: [0, -10] }
             )
             layer.on('click', () => {
-              if (!spot.is_available) return
-              selectedSpot.value = spot
+              const currentSpot = findSpot(featureSpotId)
+              if (!currentSpot || !isSpotSelectable(currentSpot)) return
+              selectedSpot.value = currentSpot
             })
           }
         } else if (props.type === 'info' && props.label) {
@@ -540,26 +573,41 @@ const initMap = async () => {
     const bounds = geojsonLayer.getBounds()
     if (bounds.isValid()) map.fitBounds(bounds, { padding: [30, 30] })
 
+    const applySpotStyles = () => {
+      for (const [spotId, entry] of spotLayers.entries()) {
+        const spot = findSpot(spotId)
+        if (!spot) continue
+
+        const isSelected = spotKey(selectedSpot.value?.spot_id) === spotKey(spotId)
+        const available = isSpotSelectable(spot)
+
+        if (entry.isPoint) {
+          if (isSelected) {
+            entry.layer.setStyle({ fillColor: '#3b82f6', color: '#fff', weight: 2, fillOpacity: 0.9 })
+          } else {
+            entry.layer.setStyle({ fillColor: available ? '#22c55e' : '#ef4444', color: '#fff', weight: 2, fillOpacity: 0.9 })
+          }
+        } else {
+          if (isSelected) {
+            entry.layer.setStyle({ color: '#3b82f6', weight: 2, fillColor: '#93c5fd', fillOpacity: 0.6 })
+          } else {
+            entry.layer.setStyle({ color: available ? '#22c55e' : '#ef4444', weight: 2, fillColor: available ? '#bbf7d0' : '#fecaca', fillOpacity: 0.4 })
+          }
+        }
+      }
+    }
+
     // Kiválasztott hely kiemelése a térképen
-    watch(selectedSpot, (newSpot, oldSpot) => {
-      if (oldSpot && spotLayers.has(oldSpot.spot_id)) {
-        const { layer, isPoint } = spotLayers.get(oldSpot.spot_id)
-        const available = oldSpot.is_available !== false
-        if (isPoint) {
-          layer.setStyle({ fillColor: available ? '#22c55e' : '#ef4444', color: '#fff', weight: 2, fillOpacity: 0.9 })
-        } else {
-          layer.setStyle({ color: available ? '#22c55e' : '#ef4444', weight: 2, fillColor: available ? '#bbf7d0' : '#fecaca', fillOpacity: 0.4 })
-        }
-      }
-      if (newSpot && spotLayers.has(newSpot.spot_id)) {
-        const { layer, isPoint } = spotLayers.get(newSpot.spot_id)
-        if (isPoint) {
-          layer.setStyle({ fillColor: '#3b82f6', color: '#fff', weight: 2, fillOpacity: 0.9 })
-        } else {
-          layer.setStyle({ color: '#3b82f6', weight: 2, fillColor: '#93c5fd', fillOpacity: 0.6 })
-        }
-      }
+    watch(selectedSpot, () => {
+      applySpotStyles()
     })
+
+    // Foglaltság változásakor a térképen is azonnal frissítjük a színeket.
+    watch(spots, () => {
+      applySpotStyles()
+    }, { deep: true })
+
+    applySpotStyles()
   } catch (e) { console.warn('GeoJSON parse error:', e) }
 }
 
@@ -703,8 +751,8 @@ onMounted(async () => {
                    @click="selectSpot(spot)"
                    :class="[
                      'p-4 rounded-lg border-2 cursor-pointer transition-all',
-                     !spot.is_available ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' : '',
-                     spot.is_available && selectedSpot?.spot_id !== spot.spot_id ? 'bg-white border-gray-200 hover:border-[#4A7434]' : '',
+                     !isSpotSelectable(spot) ? 'bg-red-50 border-red-200 opacity-60 cursor-not-allowed' : '',
+                     isSpotSelectable(spot) && selectedSpot?.spot_id !== spot.spot_id ? 'bg-white border-gray-200 hover:border-[#4A7434]' : '',
                      selectedSpot?.spot_id === spot.spot_id ? 'bg-green-50 border-[#4A7434] ring-2 ring-[#4A7434]/20' : ''
                    ]">
                 <div class="flex justify-between items-start">
@@ -719,7 +767,7 @@ onMounted(async () => {
                   </div>
                 </div>
                 <div class="mt-2">
-                  <span v-if="!spot.is_available" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Foglalt</span>
+                  <span v-if="!isSpotSelectable(spot)" class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Foglalt</span>
                   <span v-else-if="selectedSpot?.spot_id === spot.spot_id" class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">&#10003; Kiválasztva</span>
                   <span v-else class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full">Szabad</span>
                 </div>
@@ -958,8 +1006,8 @@ onMounted(async () => {
     position: sticky;
     top: 90px;
     z-index: 10;
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
   }
 
   img {
