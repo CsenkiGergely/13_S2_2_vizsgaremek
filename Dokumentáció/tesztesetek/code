@@ -3,7 +3,7 @@ Library           SeleniumLibrary
 
 *** Test Cases ***
 Regiszter
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'text-gray-700') and contains(text(), 'Regisztráció')]
@@ -18,7 +18,7 @@ Regiszter
     Close Browser
 
 Regiszter hiba
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'text-gray-700') and contains(text(), 'Regisztráció')]
@@ -44,7 +44,7 @@ Regiszter hiba
     Close Browser
 
 bejelentkezes
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
@@ -56,7 +56,7 @@ bejelentkezes
     Close Browser
 
 bejelentkezes hiba
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
@@ -72,7 +72,7 @@ bejelentkezes hiba
     Close Browser
 
 Partner hiba - nincs bejelentkezve
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(text(), 'Legyél partnerünk')]
@@ -83,7 +83,7 @@ Partner hiba - nincs bejelentkezve
     Close Browser
 
 Partner hiba - rossz telefonszam
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
@@ -110,7 +110,7 @@ Partner hiba - rossz telefonszam
     Close Browser
 
 Partner sikeres
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
@@ -127,7 +127,7 @@ Partner sikeres
     Close Browser
 
 Kemping letrehozas hiba
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
@@ -136,7 +136,7 @@ Kemping letrehozas hiba
     Input Text    id=login-password    Csenki1234!
     Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
     Sleep    3
-    Go To    http://localhost:5173/Tulajdonos
+    Go To    https://www.campsite.hu/Tulajdonos
     Sleep    3
     Click Element    xpath=//div[contains(@class, 'tab') and contains(text(), 'Új kemping')]
     Sleep    2
@@ -179,7 +179,7 @@ Kemping letrehozas hiba
     Close Browser
 
 Kemping letrehozas sikeres
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
@@ -188,7 +188,7 @@ Kemping letrehozas sikeres
     Input Text    id=login-password    Csenki1234!
     Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
     Sleep    3
-    Go To    http://localhost:5173/Tulajdonos
+    Go To    https://www.campsite.hu/Tulajdonos
     Sleep    3
     Click Element    xpath=//div[contains(@class, 'tab') and contains(text(), 'Új kemping')]
     Sleep    2
@@ -207,7 +207,7 @@ Kemping letrehozas sikeres
     Close Browser
 
 Kemping terkep feltoltes
-    Open Browser    http://localhost:5173/    chrome
+    Open Browser    https://www.campsite.hu/    chrome
     Maximize Browser Window
     Sleep    3
     Click Element    xpath=//button[contains(@class, 'bg-[#4A7434]') and contains(text(), 'Bejelentkezés')]
@@ -216,7 +216,7 @@ Kemping terkep feltoltes
     Input Text    id=login-password    Csenki1234!
     Click Button    xpath=//button[@type='submit' and contains(text(), 'Bejelentkezés')]
     Sleep    3
-    Go To    http://localhost:5173/Tulajdonos
+    Go To    https://www.campsite.hu/Tulajdonos
     Sleep    3
     Click Element    xpath=//div[contains(@class, 'tab') and contains(text(), 'Térkép')]
     Sleep    2
