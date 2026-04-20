@@ -57,26 +57,26 @@ class CampingPhotoController extends Controller
         foreach ($files as $index => $file) {
             $fileName = $file->getClientOriginalName();
 
-            // --- Limit ellenőrzés ---
+            // Limit ellenőrzés
             if ($currentPhotosCount + $uploaded >= 10) {
                 $errors[] = ['file' => $fileName, 'message' => 'Elérted a 10 képes limitet.'];
                 continue;
             }
 
-            // --- Fájlméret: max 5 MB ---
+            // Fájlméret: max 5 MB
             if ($file->getSize() > 5 * 1024 * 1024) {
                 $errors[] = ['file' => $fileName, 'message' => 'A fájl mérete meghaladja az 5 MB-ot.'];
                 continue;
             }
 
-            // --- Formátum ellenőrzés ---
+            // Formátum ellenőrzés
             $ext = strtolower($file->getClientOriginalExtension());
             if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
                 $errors[] = ['file' => $fileName, 'message' => 'Nem támogatott formátum. Engedélyezett: jpg, jpeg, png, webp.'];
                 continue;
             }
 
-            // --- Felbontás ellenőrzés: max 4000x4000 ---
+            // Felbontás ellenőrzés: max 4000x4000
             $imageSize = @getimagesize($file->getPathname());
             if (!$imageSize) {
                 $errors[] = ['file' => $fileName, 'message' => 'Nem sikerült beolvasni a képet.'];
@@ -88,26 +88,26 @@ class CampingPhotoController extends Controller
                 continue;
             }
 
-            // --- GD: kép beolvasás ---
+            // GD: kép beolvasás
             $srcImage = $this->gdCreateFromFile($file->getPathname(), $ext);
             if (!$srcImage) {
                 $errors[] = ['file' => $fileName, 'message' => 'Nem sikerült feldolgozni a képet.'];
                 continue;
             }
 
-            // --- Fájlnév generálás ---
+            // Fájlnév generálás
             $baseName = time() . '_' . uniqid();
             $fullName = $baseName . '.' . $ext;        // pl. 1711234567_abc123.jpg
             $thumbName = $baseName . '_thumb.' . $ext;  // pl. 1711234567_abc123_thumb.jpg
 
             try {
-                // --- Full kép: max 1920x1080, arányosan ---
+                // Full kép: max 1920x1080, arányosan
                 $fullImage = $this->gdResize($srcImage, $origW, $origH, 1920, 1080);
                 $fullTmp = tempnam(sys_get_temp_dir(), 'full');
                 $this->gdSave($fullImage, $fullTmp, $ext);
                 imagedestroy($fullImage);
 
-                // --- Thumb: 600px széles, arányos magasság ---
+                // Thumb: 600px széles, arányos magasság 
                 $thumbH = (int) round($origH * (600 / $origW));
                 $thumbImage = $this->gdResize($srcImage, $origW, $origH, 600, $thumbH);
                 $thumbTmp = tempnam(sys_get_temp_dir(), 'thumb');
@@ -115,7 +115,7 @@ class CampingPhotoController extends Controller
                 imagedestroy($thumbImage);
                 imagedestroy($srcImage);
 
-                // --- S3 feltöltés ---
+                // S3 feltöltés
                 $fullContent = file_get_contents($fullTmp);
                 $thumbContent = file_get_contents($thumbTmp);
 
@@ -176,7 +176,7 @@ class CampingPhotoController extends Controller
         ], $status);
     }
 
-    // --- GD segédfüggvények ---
+    // GD segédfüggvények
 
     /** Kép betöltése GD-vel a formátum alapján */
     private function gdCreateFromFile(string $path, string $ext)
@@ -367,7 +367,7 @@ class CampingPhotoController extends Controller
             return response()->json(['message' => 'Ez az URL nem engedélyezett.'], 422);
         }
 
-        // DNS feloldás — ellenőrizzük, hogy az IP nem privát tartományba esik
+        // DNS feloldás ellenőrizzük hogy az IP nem privát tartományba esik
         $ip = gethostbyname($host);
         if ($ip && (
             filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false
@@ -383,7 +383,7 @@ class CampingPhotoController extends Controller
 
         $camping = Camping::findOrFail($campingId);
 
-        // Tulajdonos ellenőrzés (int cast)
+        // Tulajdonos ellenőrzés
         if ((int) $camping->user_id !== (int) Auth::id()) {
             return response()->json([
                 'message' => 'Csak a kemping tulajdonosa adhat hozzá képeket.'

@@ -155,7 +155,7 @@
 
     /* Kapcsolati adatok vizuálisan elkülönítve */
     .container p:nth-last-of-type(-n+4) {
-      /* the last 4 paragraphs include contact details in this template; style them slightly differently */
+      
       color: #0b1220;
       margin: 6px 0;
       font-weight: 600;

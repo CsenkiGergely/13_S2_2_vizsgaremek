@@ -140,7 +140,7 @@ class CampingSpotController extends Controller
             return response()->json(['message' => 'Kemping hely nem található'], 404);
         }
 
-        // Validálás — minden mező opcionális ('sometimes'), de ha jön, típusa ellenőrzött
+        // Validálás minden mező opcionális ('sometimes'), de ha jön, típusa ellenőrzött
         $validated = $request->validate([
             'name'            => 'sometimes|string|max:100',
             'type'            => 'sometimes|string|max:50',

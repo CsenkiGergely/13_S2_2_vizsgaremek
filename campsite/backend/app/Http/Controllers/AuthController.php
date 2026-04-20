@@ -62,7 +62,7 @@ class AuthController extends Controller
                 $message->subject('Email-megerősítés - CampSite');
             });
         } catch (\Exception $e) {
-            Log::error('Email kuldesi hiba regisztracional', [
+            Log::error('Email küldési hiba regisztrációnál', [
                 'email' => $user->email,
                 'error' => $e->getMessage(),
             ]);
@@ -158,7 +158,7 @@ class AuthController extends Controller
                 $message->subject('Jelszó-visszaállítás - CampSite');
             });
         } catch (\Exception $e) {
-            Log::error('Email kuldesi hiba jelszo visszaallitasnal', [
+            Log::error('Email küldési hiba jelszó visszaállításnál', [
                 'email' => $request->email,
                 'error' => $e->getMessage(),
             ]);
