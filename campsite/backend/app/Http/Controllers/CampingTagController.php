@@ -20,7 +20,7 @@ class CampingTagController extends Controller
     }
 
     /**
-     * Tagek szinkronizálása — a megadott lista lesz az aktuális (csak tulajdonos)
+     * Tagek szinkronizálása a megadott lista lesz az aktuális (csak tulajdonos)
      */
     public function sync(Request $request, string $campingId)
     {

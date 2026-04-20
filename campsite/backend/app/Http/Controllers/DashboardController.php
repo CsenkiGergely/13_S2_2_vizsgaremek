@@ -51,7 +51,7 @@ class DashboardController extends Controller
         $activeGuests = Booking::whereIn('camping_spot_id', $mySpotIds)
             ->where('status', 'checked_in')->sum('guests');
 
-        // foglalt helyek - checked_in mindig számít (fizikailag ott van), confirmed csak ha a mai nap az időszakban van
+        // foglalt helyek checked_in mindig számít (fizikailag ott van), confirmed csak ha a mai nap az időszakban van
         $today = Carbon::today();
         $bookedSpots = Booking::whereIn('camping_spot_id', $mySpotIds)
             ->where(function ($query) use ($today) {

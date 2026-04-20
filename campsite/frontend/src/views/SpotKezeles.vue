@@ -2,7 +2,7 @@
   <div class="spot-kezeles-container">
     <h1>Kemping helyek kezelése</h1>
     <p>Kemping ID: {{ campingId }}</p>
-    <!-- TODO: spot CRUD implementáció -->
+    
   </div>
 </template>
 

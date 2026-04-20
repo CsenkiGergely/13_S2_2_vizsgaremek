@@ -475,7 +475,7 @@ class BookingController extends Controller
 
             $camping = $gate->camping;
 
-            // Postman/diagnosztikai fallback: ha qr_code mező érkezik, nem futtatunk Node dekódolást.
+            // ha qr_code mező érkezik, nem futtatunk Node dekódolást
             $providedQrCode = trim((string) $request->input('qr_code', ''));
             if ($providedQrCode !== '') {
                 $qrCode = $providedQrCode;
@@ -875,7 +875,7 @@ class BookingController extends Controller
             return null;
         }
 
-        // Relatív/alias név esetén feloldjuk abszolút útvonalra.
+        // alias név esetén feloldjuk abszolút útvonalra.
         if (DIRECTORY_SEPARATOR === '\\') {
             $where = new Process(['where', $candidate], null, $this->buildNodeProcessEnv());
             $where->setTimeout(2);
@@ -972,7 +972,7 @@ class BookingController extends Controller
         $env = [];
 
         if (DIRECTORY_SEPARATOR === '\\') {
-            // Windows alatt ezek hiánya okozhat CSPRNG/OpenSSL init hibát child processben.
+            // windowson alatt ezek hiánya okozhat CSPRNG/OpenSSL init hibát child processben.
             $env['SystemRoot'] = getenv('SystemRoot') ?: 'C:\\Windows';
             $env['WINDIR'] = getenv('WINDIR') ?: 'C:\\Windows';
             $env['ComSpec'] = getenv('ComSpec') ?: 'C:\\Windows\\System32\\cmd.exe';

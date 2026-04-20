@@ -22,7 +22,7 @@ function out(obj) {
 }
 
 /**
- * jsQR-t futtat egy Jimp képen, mindkét invertálási irányban egyszerre.
+ * jsQR-t futtat egy Jimp képen, mindkét invertálási irányban egyszerre
  */
 function tryDecode(img) {
     const { width, height, data } = img.bitmap;
@@ -43,8 +43,8 @@ function normalizeSize(img, targetMax = 800) {
 }
 
 /**
- * Képet felnagyít egy adott célméretre (hosszabb oldal = targetPx).
- * RESIZE_NEAREST_NEIGHBOR: éles pixel szélek, nem elmosódott – QR-hoz ideális.
+ * Képet felnagyít egy adott célméretre (hosszabb oldal = targetPx)
+ * RESIZE_NEAREST_NEIGHBOR: éles pixel szélek, nem elmosódott – QR-hoz ideális
  */
 function rescale(img, targetPx) {
     const { width, height } = img.bitmap;
