@@ -95,7 +95,7 @@
         </div>
 
         <div class="content">
-            <h2>Üdvözlünk, {{ $user->name }}! 🏕️</h2>
+            <h2>Üdvözlünk, {{ trim(($user->owner_last_name ?? '') . ' ' . ($user->owner_first_name ?? '')) ?: ($user->email ?? 'Felhasználó') }}! 🏕️</h2>
 
             <p>Köszönjük, hogy regisztráltál a CampSite-on!</p>
 

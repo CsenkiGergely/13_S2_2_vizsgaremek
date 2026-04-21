@@ -20,8 +20,8 @@ return [
     'allowed_methods' => ['*'],
 
     // CORS engedélyezett origin-ök — .env-ből olvasva, vesszővel elválasztva
-    // Példa .env: CORS_ALLOWED_ORIGINS=https://example.com,http://localhost:5173
-    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:3000')),
+    
+    'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))))),
 
     'allowed_origins_patterns' => [],
 

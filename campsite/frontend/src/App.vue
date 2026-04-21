@@ -1,30 +1,17 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
-import ResetPassword from './views/ResetPassword.vue'
 
-
-const currentView = ref('home')
-
-onMounted(() => {
-  // link alapján dob be a reset jelszó oldalra (csak ha /reset-password útvonalon vagyunk)
-  const urlParams = new URLSearchParams(window.location.search)
-  const path = window.location.pathname
-  if (path === '/reset-password' && urlParams.has('token') && urlParams.has('email')) {
-    currentView.value = 'reset-password'
-  }
-})
+const route = useRoute()
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col">
-    <!-- reset password full screen nézet -->
-    <template v-if="currentView === 'reset-password'">
-      <ResetPassword />
+    <template v-if="route.meta?.skipLayout">
+      <router-view />
     </template>
 
-    <!-- normál oldal layout -->
     <template v-else>
       <Header/>
       <main class="grow">

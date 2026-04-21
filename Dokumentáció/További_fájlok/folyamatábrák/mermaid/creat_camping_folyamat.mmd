@@ -1,0 +1,62 @@
+flowchart TD
+    Start([Kezdés])
+    OpenPage[/Új kemping oldal megnyitása/]
+    CheckLogin{Bejelentkezve?}
+    CheckOwner{Tulajdonos<br/>jogosultság?}
+    ErrorAuth[/Hiba: Nincs jogosultság/]
+    
+    FormBasic[/Alapadatok kitöltése:<br/>név, tulajdonos, leírás/]
+    ValidateBasic{Alapadatok<br/>validálása}
+    ErrorBasic[/Hiba: Hiányzó/érvénytelen adatok/]
+    
+    FormLocation[/Cím megadása:<br/>irányítószám, megye,<br/>város, utca, házszám/]
+    ValidateLocation{Cím adatok<br/>validálása}
+    ErrorLocation[/Hiba: Érvénytelen cím/]
+    CreateLocation[/Location rekord létrehozása/]
+    
+    FormOptional[/Opcionális: Cégnév,<br/>adószám, számlázási cím/]
+    
+    AssembleData[/Adatcsomag összeállítása:<br/>user_id, location_id, stb./]
+    CreateCamping[/Camping rekord<br/>létrehozása DB-ben/]
+    
+    CheckSave{Sikeres<br/>mentés?}
+    ErrorSave[/Hiba: Mentési probléma/]
+    Success[/Sikeres létrehozás üzenet/]
+    
+    Redirect{Átirányítás}
+    DetailPage[/Kemping részletek oldal/]
+    SpotPage[/Kempinghely hozzáadása/]
+    End([Vége])
+    
+    Start --> OpenPage
+    OpenPage --> CheckLogin
+    CheckLogin -->|Nem| ErrorAuth
+    CheckLogin -->|Igen| CheckOwner
+    CheckOwner -->|Nem| ErrorAuth
+    CheckOwner -->|Igen| FormBasic
+    ErrorAuth --> End
+    
+    FormBasic --> ValidateBasic
+    ValidateBasic -->|Sikertelen| ErrorBasic
+    ValidateBasic -->|Sikeres| FormLocation
+    ErrorBasic --> FormBasic
+    
+    FormLocation --> ValidateLocation
+    ValidateLocation -->|Sikertelen| ErrorLocation
+    ValidateLocation -->|Sikeres| CreateLocation
+    ErrorLocation --> FormLocation
+    
+    CreateLocation --> FormOptional
+    FormOptional --> AssembleData
+    AssembleData --> CreateCamping
+    
+    CreateCamping --> CheckSave
+    CheckSave -->|Sikertelen| ErrorSave
+    CheckSave -->|Sikeres| Success
+    ErrorSave --> End
+    
+    Success --> Redirect
+    Redirect -->|Részletek| DetailPage
+    Redirect -->|Helyek| SpotPage
+    DetailPage --> End
+    SpotPage --> End

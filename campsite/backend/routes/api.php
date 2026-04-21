@@ -57,8 +57,8 @@ Route::get('/campings/{campingId}/spots/{spotId}', [CampingSpotController::class
 
 // ESP32 QR szkenner végpont (saját Bearer auth_token, nem Sanctum)
 // Regisztrálva a Sanctum csoport ELŐTT, hogy a POST /bookings/{id} wildcard ne kapja el
-// Throttle: max 30 kérés/perc per IP (DoS védelem az ESP32 végpontra)
-Route::post('/bookings/scan-image', [BookingController::class, 'scanImage'])->middleware('throttle:30,1');
+// Throttle: max 120 kérés/perc per IP (5 mp-es szkenneléshez és több kamera tartalékhoz)
+Route::post('/bookings/scan-image', [BookingController::class, 'scanImage'])->middleware('throttle:120,1');
 // GeoJSON térkép lekérése (publikus - nem kell auth)
 Route::get('/campings/{id}/geojson', [CampingController::class, 'getGeojson']);
 

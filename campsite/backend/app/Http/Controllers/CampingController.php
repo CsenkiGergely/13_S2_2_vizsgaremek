@@ -157,8 +157,8 @@ class CampingController extends Controller
             'city' => 'required|string|max:100',
             'zip_code' => 'required|string|max:10',
             'street_address' => 'required|string|max:200',
-            'latitude' => 'nullable|numeric', // -> google api
-            'longitude' => 'nullable|numeric',// -> google api
+            'latitude' => 'nullable|numeric', // -> google api majd a jövöbeli fejlesztésekhez és a jelenlegi openstreetmap adatok tarolása
+            'longitude' => 'nullable|numeric',// -> google api majd a jövöbeli fejlesztésekhez és a jelenlegi openstreetmap adatok tarolása
         ]);
 
         
@@ -167,7 +167,7 @@ class CampingController extends Controller
             'zip_code' => $fields['zip_code'],
             'street_address' => $fields['street_address'],
             'latitude' => $fields['latitude'] ?? null,
-            'longitude' => $fields['longitude'] ?? null, // google api majd a jövöbeli kerséshez
+            'longitude' => $fields['longitude'] ?? null, // google api majd a jövöbeli fejlesztésekhez
         ]);
 
 
@@ -225,8 +225,8 @@ class CampingController extends Controller
             'required_guest_fields.*' => 'string',
         ]);
 
-        // Location mezők frissítése: ha a location rekord meg van osztva több kemping között,
-        // előbb leválasztjuk egy új location rekordra, így nem írjuk felül a többi kemping címét.
+        // location mezők frissítése: ha a location rekord meg van osztva több kemping között
+        // előbb leválasztjuk egy új location rekordra, így nem írjuk felül a többi kemping címét
         if (
             array_key_exists('city', $fields) ||
             array_key_exists('zip_code', $fields) ||

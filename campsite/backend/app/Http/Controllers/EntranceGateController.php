@@ -112,7 +112,7 @@ class EntranceGateController extends Controller
     /**
      * POST /api/campings/{campingId}/gates/{gateId}/esp32-token
      * Új token generálása ehhez a kapuhoz.
-     * A teljes token csak egyszer jelenik meg – utána már csak prefix látható.
+     * A teljes token csak egyszer jelenik meg utána már csak prefix látható.
      */
     public function generateToken(Request $request, $campingId, $gateId)
     {

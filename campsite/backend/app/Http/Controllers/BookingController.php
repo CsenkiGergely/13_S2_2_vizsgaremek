@@ -9,6 +9,8 @@ use App\Models\Comment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
+use Symfony\Component\Process\Process;
 
 class BookingController extends Controller
 {
@@ -130,11 +132,11 @@ class BookingController extends Controller
         $overlapping_bookings = Booking::where('camping_spot_id', $validated['camping_spot_id'])
             ->where('status', '!=', 'cancelled')
             ->where(function ($query) use ($validated) {
-                // az új érkezés a meglévő foglalás közé esik        ????????
-                $query->where(function ($q) use ($validated) {
-                    $q->where('arrival_date', '<=', $validated['arrival_date'])
-                      ->where('departure_date', '>=', $validated['arrival_date']);
-                })
+                                // Az új érkezés a meglévő foglalás közé esik.
+                                $query->where(function ($q) use ($validated) {
+                                        $q->where('arrival_date', '<=', $validated['arrival_date'])
+                                            ->where('departure_date', '>=', $validated['arrival_date']);
+                                })
                 // az új távozás a meglévő foglalás közé esik
                 ->orWhere(function ($q) use ($validated) {
                     $q->where('arrival_date', '<=', $validated['departure_date'])
@@ -444,259 +446,566 @@ class BookingController extends Controller
      */
     public function scanImage(Request $request)
     {
-        //  Kapu token ellenőrzés 
-        $authHeader    = $request->header('Authorization', '');
-        $providedToken = str_starts_with($authHeader, 'Bearer ')
-            ? substr($authHeader, 7)
-            : '';
+        $tmpFile = null;
 
-        if (!$providedToken) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Hiányzó hitelesítési token.'
-            ], 401);
-        }
+        try {
+            // Kapu token ellenőrzés
+            $authHeader    = $request->header('Authorization', '');
+            $providedToken = str_starts_with($authHeader, 'Bearer ')
+                ? trim(substr($authHeader, 7))
+                : '';
 
-        $gate = \App\Models\EntranceGate::whereRaw('auth_token = ?', [$providedToken])
-            ->with('camping')
-            ->first();
-
-        if (!$gate) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Érvénytelen token – kapu nem található.'
-            ], 401);
-        }
-
-        $camping = $gate->camping;
-
-        //  Kép olvasása (raw body vagy multipart)
-        $contentType = $request->header('Content-Type', '');
-        $isRawJpeg   = str_starts_with($contentType, 'image/jpeg') || str_starts_with($contentType, 'image/jpg');
-        $isRawPng    = str_starts_with($contentType, 'image/png');
-
-        if ($isRawJpeg || $isRawPng) {
-           
-            $imageData = $request->getContent();
-            if (empty($imageData)) {
+            if ($providedToken === '') {
                 return response()->json([
                     'valid'   => false,
-                    'message' => 'Üres kép body.',
+                    'message' => 'Hiányzó hitelesítési token.'
+                ], 401);
+            }
+
+            $gate = \App\Models\EntranceGate::whereRaw('auth_token = ?', [$providedToken])
+                ->with('camping')
+                ->first();
+
+            if (!$gate) {
+                return response()->json([
+                    'valid'   => false,
+                    'message' => 'Érvénytelen token – kapu nem található.'
+                ], 401);
+            }
+
+            $camping = $gate->camping;
+
+            // ha qr_code mező érkezik, nem futtatunk Node dekódolást
+            $providedQrCode = trim((string) $request->input('qr_code', ''));
+            if ($providedQrCode !== '') {
+                $qrCode = $providedQrCode;
+                \Log::info('[scan-image] Direkt qr_code használat (dekóder kihagyva)', [
+                    'camping_id' => $camping->id,
+                ]);
+            } else {
+                $tmpFile = $this->createScanTempImage($request);
+
+                \Log::info('[scan-image] Temp fájl mentve', [
+                    'path'       => $tmpFile,
+                    'size_bytes' => @filesize($tmpFile) ?: 0,
+                    'camping_id' => $camping->id,
+                ]);
+
+                $decode = $this->decodeQrFromTempImage($tmpFile);
+                if (!($decode['success'] ?? false)) {
+                    \Log::warning('[scan-image] QR dekódolás sikertelen', [
+                        'camping_id' => $camping->id,
+                        'kind'       => $decode['kind'] ?? 'unknown',
+                        'error'      => $decode['error'] ?? 'Ismeretlen hiba',
+                        'node_exit'  => $decode['node_exit'] ?? null,
+                        'node_raw'   => $decode['node_raw'] ?? null,
+                    ]);
+
+                    if (($decode['kind'] ?? 'unknown') !== 'no_qr') {
+                        return response()->json([
+                            'valid'   => false,
+                            'message' => 'A QR dekódoló szolgáltatás átmenetileg nem elérhető.',
+                        ], 503);
+                    }
+
+                    return response()->json([
+                        'valid'   => false,
+                        'message' => 'Nem található QR kód a képen.',
+                        'detail'  => $decode['error'] ?? 'Ismeretlen hiba a QR dekódolás során.',
+                    ], 422);
+                }
+
+                $qrCode = trim((string) ($decode['data'] ?? ''));
+                \Log::info('[scan-image] QR dekódolva', [
+                    'qr_code'    => $qrCode,
+                    'camping_id' => $camping->id,
+                ]);
+            }
+
+            $qrCodeLower = mb_strtolower(trim($qrCode));
+            $qrCodeLookup = $this->normalizeQrForLookup($qrCode);
+
+            $booking = Booking::whereRaw('LOWER(qr_code) = ?', [$qrCodeLower])
+                ->where('camping_id', $camping->id)
+                ->with(['user', 'campingSpot'])
+                ->first();
+
+            if (!$booking) {
+                $candidate = Booking::where('camping_id', $camping->id)
+                    ->select(['id', 'qr_code'])
+                    ->get()
+                    ->first(function ($b) use ($qrCodeLookup) {
+                        return $this->normalizeQrForLookup((string) $b->qr_code) === $qrCodeLookup;
+                    });
+
+                if ($candidate) {
+                    $booking = Booking::where('id', $candidate->id)
+                        ->with(['user', 'campingSpot'])
+                        ->first();
+                }
+            }
+
+            if (!$booking) {
+                $bookingDifferentCamping = Booking::whereRaw('LOWER(qr_code) = ?', [$qrCodeLower])->first();
+                if ($bookingDifferentCamping) {
+                    return response()->json([
+                        'valid'   => false,
+                        'message' => 'A QR kód létezik, de másik kempinghez tartozik.',
+                    ], 403);
+                }
+
+                return response()->json([
+                    'valid'   => false,
+                    'message' => 'Érvénytelen QR kód – nem található foglalás.',
+                ], 404);
+            }
+
+            if ($booking->status === 'cancelled') {
+                return response()->json([
+                    'valid'   => false,
+                    'message' => 'Ez a foglalás le lett mondva.',
+                    'user_id' => (int) $booking->user_id,
                 ], 422);
             }
-            $ext     = $isRawPng ? '.png' : '.jpg';
-            $tmpFile = tempnam(sys_get_temp_dir(), 'esp32_qr_') . $ext;
-            file_put_contents($tmpFile, $imageData);
-        } else {
-            // multipart/form-data (Postman tesztelés) – JPEG és PNG is elfogadott
-            $request->validate([
-                'image' => 'required|file|mimes:jpeg,jpg,png|max:10240',
+
+            $arrivalDate   = optional($booking->arrival_date)->format('Y-m-d');
+            $departureDate = optional($booking->departure_date)->format('Y-m-d');
+            $today         = now()->toDateString();
+
+            if (!$arrivalDate || !$departureDate) {
+                \Log::error('[scan-image] Hiányzó vagy hibás dátum a foglalásban', [
+                    'booking_id' => $booking->id,
+                    'camping_id' => $camping->id,
+                ]);
+
+                return response()->json([
+                    'valid'   => false,
+                    'message' => 'A foglalás dátumai hibásak.',
+                ], 422);
+            }
+
+            if ($today < $arrivalDate) {
+                return response()->json([
+                    'valid'   => false,
+                    'message' => 'Ez a foglalás csak ' . $arrivalDate . '-től érvényes.',
+                    'user_id' => (int) $booking->user_id,
+                ], 422);
+            }
+
+            if ($today > $departureDate) {
+                return response()->json([
+                    'valid'   => false,
+                    'message' => 'Ez a foglalás ' . $departureDate . '-ig volt érvényes.',
+                    'user_id' => (int) $booking->user_id,
+                ], 422);
+            }
+
+            if ($booking->status === 'pending' || $booking->status === 'confirmed') {
+                $booking->status = 'checked_in';
+                $booking->save();
+            }
+
+            return response()->json([
+                'valid'   => true,
+                'message' => 'Sikeres bejelentkezés!',
+                'user_id' => (int) $booking->user_id,
             ]);
-            $uploadedFile = $request->file('image');
-            $ext          = strtolower($uploadedFile->getClientOriginalExtension()) === 'png' ? '.png' : '.jpg';
-            $tmpFile      = tempnam(sys_get_temp_dir(), 'esp32_qr_') . $ext;
-            file_put_contents($tmpFile, file_get_contents($uploadedFile->getRealPath()));
-        }
-
-        \Log::info('[scan-image] Temp fájl mentve', [
-            'path' => $tmpFile,
-            'size' => filesize($tmpFile),
-        ]);
-
-        // Node.js QR dekódoló hívása 
-        $scriptPath = base_path('scripts/decode-qr.js');
-        $nodePath   = env('NODE_PATH', 'node');
-        $escapedTmp = escapeshellarg($tmpFile);
-        $escapedScr = escapeshellarg($scriptPath);
-
-        $lines    = [];
-        $exitCode = 0;
-        exec("$nodePath $escapedScr $escapedTmp 2>&1", $lines, $exitCode);
-        @unlink($tmpFile);
-
-        $rawOutput = implode('', $lines);
-        $decoded   = json_decode($rawOutput, true);
-
-        if (!$decoded || !($decoded['success'] ?? false)) {
-            $error = $decoded['error'] ?? 'Ismeretlen hiba a QR dekódolás során.';
-            \Log::warning('[scan-image] QR dekódolás sikertelen', [
-                'camping_id' => $camping->id,
-                'error'      => $error,
-                'node_exit'  => $exitCode,
-                'node_raw'   => $rawOutput,
+        } catch (\Throwable $e) {
+            \Log::error('[scan-image] Váratlan backend hiba', [
+                'error'       => $e->getMessage(),
+                'file'        => $e->getFile(),
+                'line'        => $e->getLine(),
+                'content_type'=> $request->header('Content-Type', ''),
+                'length'      => $request->header('Content-Length', ''),
             ]);
+
             return response()->json([
                 'valid'   => false,
-                'message' => 'Nem található QR kód a képen.',
-                'detail'  => $error,
-            ], 422);
+                'message' => 'A szkenner szolgáltatás átmenetileg nem elérhető.',
+            ], 503);
+        } finally {
+            if ($tmpFile && is_file($tmpFile)) {
+                @unlink($tmpFile);
+            }
         }
-
-        $qrCode = $decoded['data'];
-        \Log::info('[scan-image] QR dekódolva', [
-            'qr_code'    => $qrCode,
-            'camping_id' => $camping->id,
-        ]);
-
-        //foglalás keresése a kempinghez 
-        $booking = Booking::where('qr_code', $qrCode)
-            ->where('camping_id', $camping->id)
-            ->with(['user', 'campingSpot'])
-            ->first();
-
-        if (!$booking) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Érvénytelen QR kód – nem található foglalás.'
-            ], 404);
-        }
-
-        if ($booking->status == 'cancelled') {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Ez a foglalás le lett mondva.',
-                'booking' => $booking
-            ], 422);
-        }
-
-        $today = date('Y-m-d');
-
-        if ($today < $booking->arrival_date->format('Y-m-d')) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Ez a foglalás csak ' . $booking->arrival_date->format('Y-m-d') . '-től érvényes.',
-                'booking' => $booking
-            ], 422);
-        }
-
-        if ($today > $booking->departure_date->format('Y-m-d')) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Ez a foglalás ' . $booking->departure_date->format('Y-m-d') . '-ig volt érvényes.',
-                'booking' => $booking
-            ], 422);
-        }
-
-        if ($booking->status == 'pending' || $booking->status == 'confirmed') {
-            $booking->status = 'checked_in';
-            $booking->save();
-        }
-
-        return response()->json([
-            'valid'   => true,
-            'message' => 'Sikeres bejelentkezés!',
-            'booking' => $booking
-        ]);
     }
 
-    public function scanQrCode(Request $request)
+    private function createScanTempImage(Request $request): string
     {
-        // Token ellenőrzés 
-        $expectedToken = env('ESP32_SECRET_TOKEN');
-        $authHeader    = $request->header('Authorization', '');
-        $providedToken = str_starts_with($authHeader, 'Bearer ')
-            ? substr($authHeader, 7)
-            : '';
+        $contentType = strtolower($request->header('Content-Type', ''));
+        $isRawJpeg   = str_starts_with($contentType, 'image/jpeg') || str_starts_with($contentType, 'image/jpg');
+        $isRawPng    = str_starts_with($contentType, 'image/png');
+        $maxBytes    = (int) env('ESP32_SCAN_MAX_BYTES', 3 * 1024 * 1024);
 
-        if (!$expectedToken || $providedToken !== $expectedToken) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Érvénytelen hitelesítési token.'
-            ], 401);
+        if ($isRawJpeg || $isRawPng) {
+            $imageData = $request->getContent();
+            $size      = strlen((string) $imageData);
+
+            if ($size === 0) {
+                throw new \RuntimeException('Üres kép body.');
+            }
+            if ($size > $maxBytes) {
+                throw new \RuntimeException('Túl nagy képméret.');
+            }
+
+            $ext = $isRawPng ? '.png' : '.jpg';
+            $tmp = tempnam(sys_get_temp_dir(), 'esp32_qr_');
+            if ($tmp === false) {
+                throw new \RuntimeException('Nem sikerült ideiglenes fájlt létrehozni.');
+            }
+            $tmpFile = $tmp . $ext;
+            @rename($tmp, $tmpFile);
+
+            if (file_put_contents($tmpFile, $imageData) === false) {
+                throw new \RuntimeException('Nem sikerült a képet ideiglenes fájlba menteni.');
+            }
+
+            return $tmpFile;
         }
 
-        // Validáció 
-        $validated = $request->validate([
-            'image'      => 'required|file|mimes:jpeg,jpg|max:2048',
-            'camping_id' => 'required|exists:campings,id',
+        $request->validate([
+            'image' => 'required|file|mimes:jpeg,jpg,png|max:10240',
         ]);
 
-        // Kép mentése ideiglenes fájlba
-        $tmpFile = tempnam(sys_get_temp_dir(), 'esp32_qr_') . '.jpg';
-        file_put_contents($tmpFile, file_get_contents($request->file('image')->getRealPath()));
-
-        // Node.js QR dekódoló hívása 
-        $scriptPath = base_path('scripts/decode-qr.js');
-        $nodePath   = env('NODE_PATH', 'node');
-        $escapedTmp = escapeshellarg($tmpFile);
-        $escapedScr = escapeshellarg($scriptPath);
-
-        $output   = '';
-        $exitCode = 0;
-        exec("$nodePath $escapedScr $escapedTmp 2>&1", $lines, $exitCode);
-        @unlink($tmpFile); // ideiglenes fájl törlése
-
-        $output = implode('', $lines);
-        $decoded = json_decode($output, true);
-
-        if (!$decoded || !($decoded['success'] ?? false)) {
-            $error = $decoded['error'] ?? 'Ismeretlen hiba a QR dekódolás során.';
-            \Log::warning('[scan-image] QR dekódolás sikertelen', [
-                'camping_id' => $validated['camping_id'],
-                'error'      => $error,
-            ]);
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Nem található QR kód a képen.',
-                'detail'  => $error,
-            ], 422);
+        $uploadedFile = $request->file('image');
+        $raw          = file_get_contents($uploadedFile->getRealPath());
+        if ($raw === false || $raw === '') {
+            throw new \RuntimeException('A feltöltött kép nem olvasható.');
         }
 
-        $qrCode = $decoded['data'];
-        \Log::info('[scan-image] QR dekódolva', [
-            'qr_code'    => $qrCode,
-            'camping_id' => $validated['camping_id'],
-        ]);
+        $ext = strtolower($uploadedFile->getClientOriginalExtension()) === 'png' ? '.png' : '.jpg';
+        $tmp = tempnam(sys_get_temp_dir(), 'esp32_qr_');
+        if ($tmp === false) {
+            throw new \RuntimeException('Nem sikerült ideiglenes fájlt létrehozni.');
+        }
+        $tmpFile = $tmp . $ext;
+        @rename($tmp, $tmpFile);
 
-        // Meglévő scan logika (QR string alapján foglalás keresése)
-        $booking = Booking::where('qr_code', $qrCode)
-            ->where('camping_id', $validated['camping_id'])
-            ->with(['user', 'campingSpot'])
-            ->first();
-
-        if (!$booking) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Érvénytelen QR kód – nem található foglalás.'
-            ], 404);
+        if (file_put_contents($tmpFile, $raw) === false) {
+            throw new \RuntimeException('Nem sikerült a feltöltött képet ideiglenes fájlba menteni.');
         }
 
-        if ($booking->status == 'cancelled') {
-            return response()->json([
-                'valid'    => false,
-                'message'  => 'Ez a foglalás le lett mondva.',
-                'booking'  => $booking
-            ], 422);
-        }
-
-        $today = date('Y-m-d');
-
-        if ($today < $booking->arrival_date->format('Y-m-d')) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Ez a foglalás csak ' . $booking->arrival_date->format('Y-m-d') . '-től érvényes.',
-                'booking' => $booking
-            ], 422);
-        }
-
-        if ($today > $booking->departure_date->format('Y-m-d')) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Ez a foglalás ' . $booking->departure_date->format('Y-m-d') . '-ig volt érvényes.',
-                'booking' => $booking
-            ], 422);
-        }
-
-        if ($booking->status == 'pending' || $booking->status == 'confirmed') {
-            $booking->status = 'checked_in';
-            $booking->save();
-        }
-
-        return response()->json([
-            'valid'   => true,
-            'message' => 'Sikeres bejelentkezés!',
-            'booking' => $booking
-        ]);
+        return $tmpFile;
     }
 
+    private function decodeQrFromTempImage(string $tmpFile): array
+    {
+        $scriptDir  = base_path('scripts');
+        $scriptPath = $scriptDir . DIRECTORY_SEPARATOR . 'decode-qr.js';
+        if (!is_file($scriptPath)) {
+            return [
+                'success'  => false,
+                'kind'     => 'runtime',
+                'error'    => 'QR dekódoló script nem található.',
+                'node_exit'=> null,
+                'node_raw' => null,
+            ];
+        }
+
+        $nodeCandidates = $this->getNodeCandidates();
+
+        $timeout             = (float) env('QR_DECODE_TIMEOUT_SECONDS', 8);
+        $lastError           = null;
+        $hadHealthyCandidate = false;
+
+        foreach ($nodeCandidates as $nodeBin) {
+            if (!$this->isHealthyNodeBinary($nodeBin)) {
+                if (!$hadHealthyCandidate && $lastError === null) {
+                    $probeInfo = $this->probeNodeBinary($nodeBin);
+                    $lastError = [
+                        'success'   => false,
+                        'kind'      => 'runtime',
+                        'error'     => 'A Node futtatókörnyezet hibás vagy nem használható: ' . $nodeBin,
+                        'node_exit' => $probeInfo['exit'],
+                        'node_raw'  => trim(($probeInfo['out'] ?? '') . "\n" . ($probeInfo['err'] ?? '')),
+                    ];
+                }
+                continue;
+            }
+
+            $hadHealthyCandidate = true;
+
+            $process = new Process([$nodeBin, 'decode-qr.js', $tmpFile], $scriptDir, $this->buildNodeProcessEnv());
+            $process->setTimeout($timeout);
+            $process->setIdleTimeout($timeout);
+
+            try {
+                $process->run();
+            } catch (ProcessTimedOutException $e) {
+                if ($lastError === null) {
+                    $lastError = [
+                        'success'   => false,
+                        'kind'      => 'timeout',
+                        'error'     => 'QR dekódolás időtúllépés.',
+                        'node_exit' => $process->getExitCode(),
+                        'node_raw'  => trim($process->getOutput() . "\n" . $process->getErrorOutput()),
+                    ];
+                }
+                continue;
+            }
+
+            $stdout    = trim($process->getOutput());
+            $stderr    = trim($process->getErrorOutput());
+            $rawOutput = trim($stdout . ($stderr !== '' ? "\n" . $stderr : ''));
+            $decoded   = json_decode($stdout, true);
+
+            if ($decoded && ($decoded['success'] ?? false)) {
+                return [
+                    'success'   => true,
+                    'kind'      => 'ok',
+                    'data'      => $decoded['data'] ?? '',
+                    'node_exit' => $process->getExitCode(),
+                    'node_raw'  => $rawOutput,
+                ];
+            }
+
+            $errorMessage = is_array($decoded)
+                ? ($decoded['error'] ?? ($rawOutput !== '' ? $rawOutput : 'Ismeretlen hiba a QR dekódolás során.'))
+                : ($rawOutput !== '' ? $rawOutput : 'Ismeretlen hiba a QR dekódolás során.');
+
+            $isNoQr = is_array($decoded)
+                && ($decoded['success'] ?? null) === false
+                && (($decoded['error'] ?? '') === 'Nem található QR kód a képen.');
+
+            if ($isNoQr) {
+                return [
+                    'success'   => false,
+                    'kind'      => 'no_qr',
+                    'error'     => $errorMessage,
+                    'node_exit' => $process->getExitCode(),
+                    'node_raw'  => $rawOutput,
+                ];
+            }
+
+            $isRuntimeCrash = str_contains($errorMessage, 'Assertion failed')
+                || str_contains($errorMessage, 'node::InitializeOncePerProcessInternal')
+                || str_contains($errorMessage, 'Native stack trace')
+                || str_contains($errorMessage, 'CSPRNG')
+                || str_contains($errorMessage, 'not recognized as an internal or external command')
+                || str_contains($errorMessage, 'No such file or directory');
+
+            $lastError = [
+                'success'   => false,
+                'kind'      => $isRuntimeCrash ? 'runtime' : 'decode_error',
+                'error'     => $errorMessage,
+                'node_exit' => $process->getExitCode(),
+                'node_raw'  => $rawOutput,
+            ];
+        }
+
+        return $lastError ?? [
+            'success'   => false,
+            'kind'      => 'runtime',
+            'error'     => 'Nem található használható Node futtatókörnyezet.',
+            'node_exit' => null,
+            'node_raw'  => null,
+        ];
+    }
+
+    private function getNodeCandidates(): array
+    {
+        $candidates = [
+            trim((string) env('NODE_PATH', '')),
+            'node',
+        ];
+
+        if (DIRECTORY_SEPARATOR === '\\') {
+            // Gyakori Windows telepítési útvonalak explicit fallbackként
+            $localAppData = getenv('LOCALAPPDATA') ?: '';
+            $programFiles = getenv('ProgramFiles') ?: 'C:\\Program Files';
+            $programFilesX86 = getenv('ProgramFiles(x86)') ?: 'C:\\Program Files (x86)';
+
+            $candidates[] = $programFiles . '\\nodejs\\node.exe';
+            $candidates[] = $programFilesX86 . '\\nodejs\\node.exe';
+            if ($localAppData !== '') {
+                $candidates[] = $localAppData . '\\Programs\\nodejs\\node.exe';
+            }
+        }
+
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $where = new Process(['where', 'node'], null, $this->buildNodeProcessEnv());
+            $where->setTimeout(2);
+            $where->run();
+
+            if ($where->isSuccessful()) {
+                $lines = preg_split('/\r\n|\n|\r/', trim($where->getOutput())) ?: [];
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if ($line !== '') {
+                        $candidates[] = $line;
+                    }
+                }
+            }
+        } else {
+            $which = new Process(['which', 'node'], null, $this->buildNodeProcessEnv());
+            $which->setTimeout(2);
+            $which->run();
+
+            if ($which->isSuccessful()) {
+                $path = trim($which->getOutput());
+                if ($path !== '') {
+                    $candidates[] = $path;
+                }
+            }
+        }
+
+        $resolved = [];
+        foreach ($candidates as $candidate) {
+            $normalized = $this->normalizeNodeCandidate((string) $candidate);
+            if ($normalized !== null) {
+                $resolved[] = $normalized;
+            }
+        }
+
+        return array_values(array_unique($resolved));
+    }
+
+    private function normalizeNodeCandidate(string $candidate): ?string
+    {
+        $candidate = trim($candidate, " \t\n\r\0\x0B\"");
+        if ($candidate === '') {
+            return null;
+        }
+
+        // Közvetlen, abszolút útvonalnál csak valódi node binárist fogadunk el.
+        if ($this->isAbsolutePath($candidate)) {
+            if (is_file($candidate) && $this->isLikelyNodeExecutable($candidate)) {
+                return $candidate;
+            }
+            return null;
+        }
+
+        // alias név esetén feloldjuk abszolút útvonalra.
+        if (DIRECTORY_SEPARATOR === '\\') {
+            $where = new Process(['where', $candidate], null, $this->buildNodeProcessEnv());
+            $where->setTimeout(2);
+            $where->run();
+            if (!$where->isSuccessful()) {
+                return null;
+            }
+
+            $lines = preg_split('/\r\n|\n|\r/', trim($where->getOutput())) ?: [];
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line !== '' && is_file($line) && $this->isLikelyNodeExecutable($line)) {
+                    return $line;
+                }
+            }
+            return null;
+        }
+
+        $which = new Process(['which', $candidate], null, $this->buildNodeProcessEnv());
+        $which->setTimeout(2);
+        $which->run();
+        if (!$which->isSuccessful()) {
+            return null;
+        }
+
+        $path = trim($which->getOutput());
+        if ($path !== '' && is_file($path) && $this->isLikelyNodeExecutable($path)) {
+            return $path;
+        }
+
+        return null;
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        if (DIRECTORY_SEPARATOR === '\\') {
+            return (bool) preg_match('/^[A-Za-z]:\\\\/', $path) || str_starts_with($path, '\\\\');
+        }
+
+        return str_starts_with($path, '/');
+    }
+
+    private function isLikelyNodeExecutable(string $path): bool
+    {
+        $basename = strtolower(pathinfo($path, PATHINFO_BASENAME));
+        return in_array($basename, ['node', 'node.exe', 'node.cmd'], true);
+    }
+
+    private function isHealthyNodeBinary(string $nodeBin): bool
+    {
+        $probeInfo = $this->probeNodeBinary($nodeBin);
+        return $probeInfo['ok'] === true;
+    }
+
+    private function probeNodeBinary(string $nodeBin): array
+    {
+        if (!$this->isLikelyNodeExecutable($nodeBin)) {
+            return [
+                'ok'   => false,
+                'exit' => null,
+                'out'  => '',
+                'err'  => 'Érvénytelen Node futtatható fájl jelölt: ' . $nodeBin,
+            ];
+        }
+
+        $probe = new Process([
+            $nodeBin,
+            '-e',
+            'const c=require("crypto"); c.randomBytes(8); process.stdout.write("ok")',
+        ], null, $this->buildNodeProcessEnv());
+        $probe->setTimeout(5);
+
+        try {
+            $probe->run();
+        } catch (\Throwable $e) {
+            return [
+                'ok'   => false,
+                'exit' => null,
+                'out'  => '',
+                'err'  => $e->getMessage(),
+            ];
+        }
+
+        return [
+            'ok'   => $probe->isSuccessful() && trim($probe->getOutput()) === 'ok',
+            'exit' => $probe->getExitCode(),
+            'out'  => trim($probe->getOutput()),
+            'err'  => trim($probe->getErrorOutput()),
+        ];
+    }
+
+    private function buildNodeProcessEnv(): array
+    {
+        $env = [];
+
+        if (DIRECTORY_SEPARATOR === '\\') {
+            // windowson alatt ezek hiánya okozhat CSPRNG/OpenSSL init hibát child processben.
+            $env['SystemRoot'] = getenv('SystemRoot') ?: 'C:\\Windows';
+            $env['WINDIR'] = getenv('WINDIR') ?: 'C:\\Windows';
+            $env['ComSpec'] = getenv('ComSpec') ?: 'C:\\Windows\\System32\\cmd.exe';
+            $env['TEMP'] = getenv('TEMP') ?: sys_get_temp_dir();
+            $env['TMP'] = getenv('TMP') ?: sys_get_temp_dir();
+
+            $path = getenv('PATH') ?: '';
+            $systemPaths = [
+                'C:\\Windows\\System32',
+                'C:\\Windows',
+            ];
+
+            foreach ($systemPaths as $p) {
+                if ($path === '') {
+                    $path = $p;
+                    continue;
+                }
+
+                if (stripos($path, $p) === false) {
+                    $path .= ';' . $p;
+                }
+            }
+
+            $env['PATH'] = $path;
+        }
+
+        return $env;
+    }
+
+    private function normalizeQrForLookup(string $value): string
+    {
+        $normalized = mb_strtoupper(trim($value));
+        $normalized = preg_replace('/\s+/u', '', $normalized) ?? $normalized;
+        return $normalized;
+    }
 }

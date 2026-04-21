@@ -126,6 +126,7 @@ const tagModalSuccess = ref(false)
 
 // Térkép tab
 const showGeojsonGuide = ref(false)
+const showGateGuide = ref(false)
 const mapSelectedCampingId = ref(null)
 const mapGeojsonData = ref(null)
 const mapFileInput = ref(null)
@@ -1442,7 +1443,7 @@ onMounted(async () => {
 const anyModalOpen = computed(() =>
   showEditCampingModal.value || showEditSpotModal.value || showTagModal.value ||
   showBookingDetailModal.value || showGateModal.value || showRenameModal.value ||
-  showTokenModal.value || showGeojsonGuide.value || showGuestFieldsModal.value
+  showTokenModal.value || showGeojsonGuide.value || showGateGuide.value || showGuestFieldsModal.value
 )
 watch(anyModalOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
@@ -2069,7 +2070,10 @@ onUnmounted(() => { document.body.style.overflow = '' })
       <div class="gates-header">
         <div>
           <h2 class="gates-title">Kapuk kezelése</h2>
-          <p class="gates-subtitle">Kapuk hozzáadása, nyitvatartás beállítása</p>
+          <p class="gates-subtitle">
+            Kapuk hozzáadása, nyitvatartás beállítása ·
+            <a href="#" class="geojson-guide-link" @click.prevent="showGateGuide = true">📖 Útmutató a kapu párosításához</a>
+          </p>
         </div>
         <div class="gates-header-right">
           <select class="form-select" v-model="selectedCampingId">
@@ -2077,6 +2081,47 @@ onUnmounted(() => { document.body.style.overflow = '' })
             <option v-for="c in myCampings" :key="c.id" :value="c.id">{{ c.camping_name }}</option>
           </select>
           <button class="btn-add-gate" @click="openGateModal" :disabled="myCampings.length === 0">+ Új kapu</button>
+        </div>
+      </div>
+
+      <!-- Kapu párosítás útmutató modal -->
+      <div v-if="showGateGuide" class="geojson-guide-overlay" @click.self="showGateGuide = false">
+        <div class="geojson-guide-modal">
+          <div class="geojson-guide-header">
+            <h2>📖 QR scanner párosítási útmutató</h2>
+            <button class="geojson-guide-close" @click="showGateGuide = false">&times;</button>
+          </div>
+          <div class="geojson-guide-body">
+            <p>Ezzel a rövid folyamattal a QR szkannert összekötöd a kiválasztott kempinggel.</p>
+
+            <h3>1. lépés – Kemping kiválasztása</h3>
+            <ol>
+              <li>A Kapuk fülön válaszd ki a kempinget.</li>
+              <li>Kattints a <strong>+ Új kapu</strong> gombra.</li>
+              <li>Add meg a kapu nevét és (opcionálisan) nyitvatartását, majd mentsd.</li>
+            </ol>
+
+            <h3>2. lépés – Token generálás</h3>
+            <ol>
+              <li>A létrehozott kapu kártyáján kattints a <strong>Token generálása</strong> gombra.</li>
+              <li>A felugró ablakban a rendszer egyszer mutatja a teljes tokent.</li>
+              <li>Másold ki, és mentsd el biztonságosan (pl. jelszókezelőbe).</li>
+            </ol>
+
+            <h3>3. lépés – QR szkanner beállítás</h3>
+            <ol>
+              <li>Indítsd újra az eszközt, és csatlakozz a <strong>campsite</strong> WiFi hálózathoz.</li>
+              <li>A captive oldalon add meg a WiFi adatokat és a generált <strong>Bearer Tokent</strong>.</li>
+              <li>Mentés után az eszköz újracsatlakozik és elkezdi a szkennelést.</li>
+            </ol>
+
+            <h3>4. lépés – Ellenőrzés</h3>
+            <p>Sikeres párosítás után a kapu kártyán <strong>Token aktív</strong> státusz jelenik meg. Ezzel a tulajdonosi oldalon ellenőrizhető, hogy a QR scanner párosítása rendben megtörtént.</p>
+
+            <div class="geojson-guide-warning">
+              <strong>⚠️ Fontos:</strong> Ha kompromittálódik a token vagy új eszközt párosítasz, használd a <strong>Visszavonás</strong> gombot, majd generálj új tokent.
+            </div>
+          </div>
         </div>
       </div>
 

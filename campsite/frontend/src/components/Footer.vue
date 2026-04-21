@@ -148,14 +148,21 @@
   @media (max-width: 600px) {
     .footer {
       flex-direction: column;
+      justify-content: flex-start;
       align-items: flex-start;
-      padding: 24px 16px 16px;
-      gap: 24px;
+      flex-wrap: nowrap;
+      padding: 20px 16px 12px;
+      gap: 16px;
     }
 
     .footer-column {
-      flex: 1 1 100%;             /* Teljes szélességű mobilon */
+      flex: 0 0 auto;
       width: 100%;
+    }
+
+    .footer-column:first-child,
+    .footer-column:last-child {
+      flex: 0 0 auto;
     }
 
     .footerr {

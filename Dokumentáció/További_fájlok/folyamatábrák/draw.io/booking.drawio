@@ -1,0 +1,321 @@
+<mxfile host="65bd71144e">
+    <diagram name="Booking Folyamat" id="booking">
+        <mxGraphModel dx="6480" dy="3895" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1800" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="hasid" value="&lt;span style=&quot;font-weight: normal;&quot;&gt;Van személyazonosító szám?&lt;/span&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="580" y="970" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-334" style="edgeStyle=none;html=1;rounded=0;curved=0;endArrow=none;endFill=0;" edge="1" parent="1" source="iddata">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640" y="1180" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="480" y="1180"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="iddata" value="Személyazonosító szám megadása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="400" y="990" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="haspassport" value="&lt;span style=&quot;font-weight: normal;&quot;&gt;Van &lt;/span&gt;&lt;span style=&quot;font-weight: 400;&quot;&gt;útiokmány &lt;/span&gt;&lt;span style=&quot;font-weight: normal;&quot;&gt;?&lt;/span&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="740" y="970" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-335" style="edgeStyle=none;html=1;endArrow=none;endFill=0;" edge="1" parent="1" source="passport">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="799.9999999999998" y="1180" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="passport" value="útiokmány szám megadás" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="720" y="1100" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="hasvisa" value="&lt;span style=&quot;font-weight: normal;&quot;&gt;Van vízuma?&lt;/span&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="900" y="970" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="visa" value="Vízum szám megadása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="880" y="1100" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="haspermit" value="&lt;span style=&quot;font-weight: normal;&quot;&gt;Van tartózkodási engedély?&lt;/span&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="1060" y="970" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="permit" value="Tartózkodási engedély szám megadása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="1040" y="1100" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" target="hasid">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640.0000000000002" y="950" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="hasid" target="iddata">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e19l" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="e19">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="hasid" target="haspassport">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e20l" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="e20">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="haspassport" target="passport">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e22l" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="e22">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="haspassport" target="hasvisa">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e23l" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="e23">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="hasvisa" target="visa">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e25l" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="e25">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="hasvisa" target="haspermit">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e26l" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="e26">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="visa">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="960" y="1180"/>
+                            <mxPoint x="640" y="1180"/>
+                        </Array>
+                        <mxPoint x="640" y="1220" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="haspermit" target="permit">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e28l" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="e28">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e29" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=none;endFill=0;" edge="1" parent="1" source="haspermit">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1280" y="1050" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="1280" y="1020"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-331" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="e29">
+                    <mxGeometry x="-0.27" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="permit">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1120" y="1180"/>
+                            <mxPoint x="640" y="1180"/>
+                        </Array>
+                        <mxPoint x="640" y="1220" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="1280" y="1180"/>
+                            <mxPoint x="640" y="1180"/>
+                        </Array>
+                        <mxPoint x="1280.1428571428569" y="1050" as="sourcePoint"/>
+                        <mxPoint x="640" y="1220" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-302" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-298" target="WX7I5IFClw8l7QKpNuu2-301">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-298" value="Oldal megnyitása" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#000000;strokeColor=light-dark(#b0b0b0, #4a4a4a);" vertex="1" parent="1">
+                    <mxGeometry x="565" y="120" width="150" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-300" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-299" target="WX7I5IFClw8l7QKpNuu2-298">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-299" value="Kezdés" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="590" y="30" width="100" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-304" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-301">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640" y="300" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-301" value="Keresési adatok megadása&lt;br&gt;Város, érkezés/távozás,&amp;nbsp;&lt;br&gt;vendégek száma" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="210" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-307" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" target="WX7I5IFClw8l7QKpNuu2-306">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640" y="360" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-311" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-306" target="WX7I5IFClw8l7QKpNuu2-310">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-306" value="Kempinghely típusának kiválasztása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="400" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-309" value="Kemping kiválasztása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="300" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-312" style="edgeStyle=none;html=1;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-310">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640" y="630" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-321" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="WX7I5IFClw8l7QKpNuu2-312">
+                    <mxGeometry x="0.0182" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-315" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;rounded=0;curved=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-310" target="WX7I5IFClw8l7QKpNuu2-314">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="830" y="550"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-320" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="WX7I5IFClw8l7QKpNuu2-315">
+                    <mxGeometry x="-0.6089" y="-3" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-310" value="&lt;span style=&quot;font-weight: normal;&quot;&gt;Grafikus helyfoglalás?&lt;/span&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="580" y="500" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-318" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-313" target="WX7I5IFClw8l7QKpNuu2-316">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-313" value="Hely kiválasztása&amp;nbsp;&lt;div&gt;grafikusan&lt;/div&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="630" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-319" style="edgeStyle=none;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;rounded=0;curved=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-314" target="WX7I5IFClw8l7QKpNuu2-316">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="830" y="780"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-314" value="Hely automatikus kiválasztása a rendszer szerint" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="750" y="630" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-322" style="edgeStyle=none;html=1;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-316">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640.0000000000002" y="890" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-325" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="WX7I5IFClw8l7QKpNuu2-322">
+                    <mxGeometry x="-0.2476" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-323" style="edgeStyle=none;html=1;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-316">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="510" y="780" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-324" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="WX7I5IFClw8l7QKpNuu2-323">
+                    <mxGeometry x="-0.3455" y="-2" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-316" value="&lt;span style=&quot;font-weight: normal;&quot;&gt;Be van jelentkezve?&lt;/span&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="580" y="730" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-328" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;rounded=0;curved=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-326" target="WX7I5IFClw8l7QKpNuu2-327">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="440" y="920"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-326" value="Bejelentkezés" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="360" y="750" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-327" value="Adatok megadása:&lt;div&gt;Vezeték/Keresztnév&lt;br&gt;Születési hely&lt;br&gt;Vendég neme&lt;br&gt;Anya születési neve&lt;br&gt;Telefonszám&lt;br&gt;Állampolgárság&lt;br&gt;&lt;br&gt;&lt;/div&gt;" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="890" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-330" value="QR kód létrehozása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="550" y="1630" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-338" style="edgeStyle=none;html=1;rounded=0;curved=0;endArrow=none;endFill=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-336">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="440" y="920" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="320" y="1260"/>
+                            <mxPoint x="320" y="920"/>
+                            <mxPoint x="440" y="920"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-339" value="Nem" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="WX7I5IFClw8l7QKpNuu2-338">
+                    <mxGeometry x="-0.8077" y="3" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-344" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-336" target="WX7I5IFClw8l7QKpNuu2-342">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-345" value="Igen" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="WX7I5IFClw8l7QKpNuu2-344">
+                    <mxGeometry x="-0.2667" y="4" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-336" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: transparent; font-weight: normal;&quot;&gt;Adatbekérő link létrehozása a többi vendég számára&lt;/span&gt;&lt;/div&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=center;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="580" y="1200" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-346" style="edgeStyle=none;html=1;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-342">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640" y="1440" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-342" value="Adatbekérő link létrehozása" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="550" y="1340" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-349" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-347" target="WX7I5IFClw8l7QKpNuu2-348">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-347" value="Fizetési mód kiválasztása&lt;br&gt;(banki utalás, paypal stb)" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="1440" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-354" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-348" target="WX7I5IFClw8l7QKpNuu2-330">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-348" value="Fizetés" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fixedSize=1;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="560" y="1530" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-357" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-350" target="WX7I5IFClw8l7QKpNuu2-356">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-350" value="Adatok mentése az adatbázisba" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="587.5" y="1730" width="105" height="75.5" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-355" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="WX7I5IFClw8l7QKpNuu2-330" target="WX7I5IFClw8l7QKpNuu2-350">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="WX7I5IFClw8l7QKpNuu2-356" value="Vége" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;" vertex="1" parent="1">
+                    <mxGeometry x="580" y="1840" width="120" height="60" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

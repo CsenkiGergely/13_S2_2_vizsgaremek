@@ -1,0 +1,76 @@
+flowchart TD
+    Start([Kezdés])
+    Browse[/Kempinghelyek böngészése/]
+    SelectSpot[/Kempinghely kiválasztása/]
+    CheckAvailable{Elérhető<br/>a hely?}
+    ErrorNotAvailable[/Hiba: Hely nem elérhető/]
+    
+    CheckLogin{Bejelentkezve?}
+    LoginPage[/Átirányítás<br/>bejelentkezésre/]
+    
+    BookingForm[/Foglalási űrlap/]
+    SelectDates[/Érkezés és távozás<br/>dátumának kiválasztása/]
+    GuestCount[/Vendégek száma megadása/]
+    
+    ValidateDates{Dátumok<br/>validálása}
+    ErrorDates[/Hiba: Érvénytelen dátumok/]
+    
+    CheckCapacity{Vendégszám<br/>< Maximum?}
+    ErrorCapacity[/Hiba: Túl sok vendég/]
+    
+    GuestData[/Vendég adatok:<br/>név, születési dátum,<br/>születési hely, nem, stb./]
+    ValidateGuest{Vendég adatok<br/>validálása}
+    ErrorGuest[/Hiba: Hiányzó adatok/]
+    
+    ReviewBooking[/Foglalás áttekintése/]
+    ConfirmButton[/Foglalás megerősítése<br/>gomb megnyomása/]
+    
+    CreateBooking[/Booking rekord létrehozása:<br/>user_id, camping_id,<br/>spot_id, dátumok, státusz/]
+    CreateGuest[/User_guest rekord létrehozása<br/>vagy frissítése/]
+    
+    SetGuestRole[/Vendég szerepkör hozzáadása<br/>a felhasználóhoz/]
+    GenerateCode[/QR kód generálása/]
+    
+    Success[/Sikeres foglalás!<br/>Vendég szerepkör aktiválva/]
+    SendConfirm[/Visszaigazoló email küldése<br/>QR kóddal/]
+    
+    ShowDetails[/Foglalás részletei oldal/]
+    End([Vége])
+    
+    Start --> Browse
+    Browse --> SelectSpot
+    SelectSpot --> CheckAvailable
+    CheckAvailable -->|Nem| ErrorNotAvailable
+    CheckAvailable -->|Igen| CheckLogin
+    ErrorNotAvailable --> Browse
+    
+    CheckLogin -->|Nem| LoginPage
+    CheckLogin -->|Igen| BookingForm
+    LoginPage --> BookingForm
+    
+    BookingForm --> SelectDates
+    SelectDates --> GuestCount
+    
+    GuestCount --> ValidateDates
+    ValidateDates -->|Sikertelen| ErrorDates
+    ValidateDates -->|Sikeres| CheckCapacity
+    ErrorDates --> SelectDates
+    
+    CheckCapacity -->|Nem| ErrorCapacity
+    CheckCapacity -->|Igen| GuestData
+    ErrorCapacity --> GuestCount
+    
+    GuestData --> ValidateGuest
+    ValidateGuest -->|Sikertelen| ErrorGuest
+    ValidateGuest -->|Sikeres| ReviewBooking
+    ErrorGuest --> GuestData
+    
+    ReviewBooking --> ConfirmButton
+    ConfirmButton --> CreateBooking
+    CreateBooking --> CreateGuest
+    CreateGuest --> SetGuestRole
+    SetGuestRole --> GenerateCode
+    GenerateCode --> Success
+    Success --> SendConfirm
+    SendConfirm --> ShowDetails
+    ShowDetails --> End

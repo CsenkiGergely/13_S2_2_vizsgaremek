@@ -1,6 +1,6 @@
 /*********
-  ESP32-S3 QR Scanner - Laravel backend feldolgozással
-  Board: Freenove ESP32-S3 WROOM (N16R8)
+  ESP32-S3 QR Scanner
+  Freenove ESP32-S3 WROOM (N16R8)
 *********/
 
 #include <Arduino.h>
@@ -12,12 +12,16 @@
 #include "esp_camera.h"
 
 // ---- Laravel konfig ----
-#define LARAVEL_URL "https://campsite-460d.onrender.com/api/bookings/scan-image"
+#define LARAVEL_URL "https://campsite.hu/api/bookings/scan-image"
 // ------------------------
+
+#define SCAN_INTERVAL_MS    1500
+#define CONFIG_PORTAL_TIMEOUT_SEC 45
 
 Preferences prefs;
 char auth_token[128] = "";
 char camp_id[32] = "";
+bool shouldSaveConfig = false;
 
 #define CAM_PIN_PWDN   -1
 #define CAM_PIN_RESET  -1
@@ -38,59 +42,119 @@ char camp_id[32] = "";
 
 unsigned long lastScanTime = 0;
 
-// Laravel-nek küldi a JPEG képet feldolgozásra
-void sendToLaravel(camera_fb_t *fb) {
+// Jelzi, hogy a captive portalon a felhasználó mentett változást.
+void onSaveConfigCallback() {
+  shouldSaveConfig = true;
+}
+
+// sikeres/sikertelen állapot.
+void printScanResult(bool success, unsigned long elapsedMs) {
+  const char *label = success ? "SIKERES" : "SIKERTELEN";
+  Serial.printf("%s (%lu ms)\n", label, elapsedMs);
+}
+
+// WiFiManager portal
+void configurePortal(WiFiManager &wm, WiFiManagerParameter &tokenParam) {
+  const char *wm_menu[] = {"wifi", "exit"};
+  wm.setMenu(wm_menu, 2);
+  wm.setTitle("CampSite QR Scanner");
+  wm.setCustomHeadElement(
+    "<meta charset='UTF-8'>"
+    "<style>"
+    "body{background:#f5f7f0;font-family:'Segoe UI',Arial,sans-serif;}"
+    "h1,h3{color:#516E37;}"
+    ".wrap{max-width:400px;margin:0 auto;padding:20px;}"
+    "button,.btn{background:#DF8534!important;border:none!important;border-radius:8px!important;color:#fff!important;"
+    "font-size:16px!important;padding:12px!important;cursor:pointer;transition:background .2s;}"
+    "button:hover,.btn:hover{background:#c97229!important;}"
+    "input[type='text'],input[type='password'],select{border:2px solid #ddd!important;border-radius:8px!important;"
+    "padding:10px!important;font-size:14px!important;width:100%!important;box-sizing:border-box!important;"
+    "transition:border .2s;}"
+    "input:focus{border-color:#516E37!important;outline:none!important;}"
+    "a{color:#DF8534;text-decoration:none;}"
+    "a:hover{color:#516E37;}"
+    "</style>"
+    "<script>"
+    "window.onload=function(){"
+    "var b=document.querySelectorAll('button');"
+    "for(var i=0;i<b.length;i++){"
+    "var t=b[i].textContent.trim();"
+    "if(t=='Configure WiFi')b[i].innerHTML='WiFi beállítások';"
+    "else if(t=='Exit')b[i].innerHTML='Kilépés';"
+    "else if(t=='Save')b[i].innerHTML='Mentés';"
+    "}"
+    "var l=document.querySelectorAll('label');"
+    "for(var j=0;j<l.length;j++){"
+    "if(l[j].textContent.trim()=='Password')l[j].innerHTML='Jelszó';"
+    "if(l[j].textContent.trim()=='Show Password')l[j].innerHTML=' Jelszó megjelenítése';"
+    "}"
+    "};"
+    "</script>"
+  );
+
+  wm.setSaveConfigCallback(onSaveConfigCallback);
+  wm.addParameter(&tokenParam);
+  wm.setConfigPortalTimeout(CONFIG_PORTAL_TIMEOUT_SEC);
+  wm.setCaptivePortalEnable(true);
+  wm.setAPClientCheck(true);
+  wm.setWebPortalClientCheck(true);
+}
+
+// Laravelnek küldi a JPEG képet feldolgozásra
+bool sendToLaravel(camera_fb_t *fb) {
+  if (!fb || !fb->buf || fb->len == 0) {
+    return false;
+  }
+
   WiFiClientSecure client;
-  client.setInsecure(); // SSL tanúsítvány ellenőrzés kihagyása
+  client.setInsecure();
 
   HTTPClient http;
-  http.begin(client, LARAVEL_URL);
+  http.setConnectTimeout(8000);
+  http.setTimeout(15000);
+  http.useHTTP10(false);
+  http.setReuse(true);
+
+  if (!http.begin(client, LARAVEL_URL)) {
+    Serial.println("HTTP begin hiba");
+    return false;
+  }
+
   http.addHeader("Content-Type", "image/jpeg");
   http.addHeader("Authorization", "Bearer " + String(auth_token));
   http.addHeader("Accept", "application/json");
   http.addHeader("X-Camp-ID", String(camp_id));
 
+  const unsigned long start = millis();
   int httpCode = http.POST(fb->buf, fb->len);
+  const unsigned long elapsed = millis() - start;
+
 
   if (httpCode == 200) {
     String response = http.getString();
 
     if (response.indexOf("\"valid\":true") >= 0) {
-      // Megpróbáljuk kiszedni a message mezőt
-      int msgStart = response.indexOf("\"message\":\"");
-      if (msgStart >= 0) {
-        msgStart += 11;
-        int msgEnd = response.indexOf("\"", msgStart);
-        String msg = response.substring(msgStart, msgEnd);
-        Serial.println("✓ SIKERES: " + msg);
-      } else {
-        Serial.println("bejelentkezes");
-      }
+      printScanResult(true, elapsed);
       digitalWrite(48, HIGH);
       delay(1000);
       digitalWrite(48, LOW);
-    } else {
-      int msgStart = response.indexOf("\"message\":\"");
-      if (msgStart >= 0) {
-        msgStart += 11;
-        int msgEnd = response.indexOf("\"", msgStart);
-        String msg = response.substring(msgStart, msgEnd);
-        Serial.println("✗ ERVENYTELEN: " + msg);
-      } else {
-        Serial.println("QR kod");
-      }
+      http.end();
+      return true;
     }
+
+    printScanResult(false, elapsed);
   } else if (httpCode == 422) {
-    // Nincs QR kód a képen
-    Serial.println("Nem talalt QR kodot a kepen");
+    printScanResult(false, elapsed);
   } else if (httpCode == 401) {
-    Serial.println("Token hiba");
+    printScanResult(false, elapsed);
+  } else if (httpCode == 503 || httpCode == 502 || httpCode == 504) {
+    printScanResult(false, elapsed);
   } else {
-    Serial.print("HTTP hiba: ");
-    Serial.println(httpCode);
+    printScanResult(false, elapsed);
   }
 
   http.end();
+  return false;
 }
 
 void setup() {
@@ -98,6 +162,15 @@ void setup() {
 
   pinMode(48, OUTPUT);
   digitalWrite(48, LOW);
+
+  prefs.begin("config", false);
+  String savedToken = prefs.getString("token", "");
+  String savedCampId = prefs.getString("campid", "");
+
+  strncpy(auth_token, savedToken.c_str(), sizeof(auth_token));
+  strncpy(camp_id, savedCampId.c_str(), sizeof(camp_id));
+  auth_token[sizeof(auth_token) - 1] = '\0';
+  camp_id[sizeof(camp_id) - 1] = '\0';
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -114,122 +187,83 @@ void setup() {
   config.pin_pclk     = CAM_PIN_PCLK;
   config.pin_vsync    = CAM_PIN_VSYNC;
   config.pin_href     = CAM_PIN_HREF;
-  config.pin_sscb_sda = CAM_PIN_SIOD;
-  config.pin_sscb_scl = CAM_PIN_SIOC;
+  config.pin_sccb_sda = CAM_PIN_SIOD;
+  config.pin_sccb_scl = CAM_PIN_SIOC;
   config.pin_pwdn     = CAM_PIN_PWDN;
   config.pin_reset    = CAM_PIN_RESET;
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size   = FRAMESIZE_VGA;     // 640x480 (VGA)
-  config.jpeg_quality = 10;                // kicsit kisebb fájl, még jó minőség
-  config.fb_count     = 2;
+  config.frame_size   = FRAMESIZE_VGA;
+  config.jpeg_quality = 10;
+  config.fb_count     = 3;
   config.fb_location  = CAMERA_FB_IN_PSRAM;
   config.grab_mode    = CAMERA_GRAB_LATEST;
 
   if (esp_camera_init(&config) != ESP_OK) {
-    Serial.println("Kamera  hiba");
+    Serial.println("Kamera hiba");
     return;
   }
 
   ledcDetachPin(48);
   digitalWrite(48, LOW);
 
-  // Mentett beállítások betöltése flash-ből
-  prefs.begin("config", false);
-  strncpy(auth_token, prefs.getString("token", "").c_str(), sizeof(auth_token));
-  strncpy(camp_id, prefs.getString("campid", "").c_str(), sizeof(camp_id));
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
 
+  // Minden indításnál rövid ideig legyen elérhető portal beállítás módosításhoz.
   WiFiManager wm;
-  // wm.resetSettings(); // <- csak akkor uncommenteld ha új WiFi-re kell átállni
+  WiFiManagerParameter tokenParam("token", "Bearer Token", auth_token, sizeof(auth_token) - 1,
+                                  "type='password' placeholder='pl. aB3xK9mQpR7vLw2n'");
+  configurePortal(wm, tokenParam);
+  Serial.println("Beállítás portal indul (rövid ideig módosítható)");
+  wm.startConfigPortal("campsite");
 
-  // CampSite dizájn a captive portalon
-  const char* wm_menu[] = {"wifi", "exit"};
-  wm.setMenu(wm_menu, 2);
-  wm.setTitle("CampSite QR Scanner");
-  wm.setCustomHeadElement(
-    "<meta charset='UTF-8'>"
-    "<style>"
-    "body{background:#f5f7f0;font-family:'Segoe UI',Arial,sans-serif;}"
-    "h1,h3{color:#516E37;}"
-    ".wrap{max-width:400px;margin:0 auto;padding:20px;}"
-    "button, .btn{background:#DF8534!important;border:none!important;border-radius:8px!important;color:#fff!important;"
-    "font-size:16px!important;padding:12px!important;cursor:pointer;transition:background .2s;}"
-    "button:hover,.btn:hover{background:#c97229!important;}"
-    "input[type='text'],input[type='password'],select{border:2px solid #ddd!important;border-radius:8px!important;"
-    "padding:10px!important;font-size:14px!important;width:100%!important;box-sizing:border-box!important;"
-    "transition:border .2s;}"
-    "input:focus{border-color:#516E37!important;outline:none!important;}"
-    "a{color:#DF8534;text-decoration:none;}"
-    "a:hover{color:#516E37;}"
-    ".msg{background:#fff;border-left:4px solid #DF8534;padding:10px;margin:10px 0;border-radius:0 8px 8px 0;}"
-    "</style>"
-    "<script>"
-    "window.onload=function(){"
-    "var b=document.querySelectorAll('button');"
-    "for(var i=0;i<b.length;i++){"
-    "var t=b[i].textContent.trim();"
-    "if(t=='Configure WiFi')b[i].innerHTML='WiFi beállítások';"
-    "else if(t=='Exit')b[i].innerHTML='Kilépés';"
-    "else if(t=='Save')b[i].innerHTML='Mentés';"
-    "}"
-    "var l=document.querySelectorAll('label');"
-    "for(var i=0;i<l.length;i++){"
-    "if(l[i].textContent.trim()=='Password')l[i].innerHTML='Jelszó';"    "if(l[i].textContent.trim()=='Show Password')l[i].innerHTML=' Jelszó megjelenítése';"    "}"
-    "var all=document.body.getElementsByTagName('*');"
-    "for(var i=0;i<all.length;i++){"
-    "if(all[i].children.length==0&&all[i].textContent.indexOf('No AP')>=0)all[i].style.display='none';"
-    "}"
-    "var h=document.querySelectorAll('h3');"
-    "for(var i=0;i<h.length;i++){"
-    "if(h[i].textContent.trim()=='CampSite')h[i].style.display='none';"
-    "}"
-    "};"
-    "</script>"
-  );
-  wm.setCustomMenuHTML("");
+  // A portalban esetlegesen módosított token átvétele.
+  const char *newToken = tokenParam.getValue();
+  if (newToken && strlen(newToken) > 0) {
+    strncpy(auth_token, newToken, sizeof(auth_token));
+    auth_token[sizeof(auth_token) - 1] = '\0';
+  }
 
-  // Egyedi mezők a captive portalon
-  WiFiManagerParameter param_divider("<h3 style='margin:15px 0 10px;color:#516E37'>&#128274; Kapu beállítások</h3>");
-  WiFiManagerParameter param_campid("campid", "Camp ID", camp_id, 31, "placeholder='pl. 1'");
-  WiFiManagerParameter param_token("token", "Bearer Token", auth_token, 127, "type='password' placeholder='pl. aB3xK9mQpR7vLw2n'");
-  WiFiManagerParameter param_tokenbtn("<div style='text-align:left;margin:-8px 0 8px;'><label style='cursor:pointer;color:#000;font-size:inherit;'><input type='checkbox' onclick=\"var t=document.getElementById('token');t.type=t.type==='password'?'text':'password';\" style='margin-right:4px;'>Token megjelen&iacute;t&eacute;se</label></div>");
-  wm.addParameter(&param_divider);
-  wm.addParameter(&param_campid);
-  wm.addParameter(&param_token);
-  wm.addParameter(&param_tokenbtn);
+  // Csak változás esetén mentünk flash-be.
+  if (shouldSaveConfig) {
+    prefs.putString("token", auth_token);
+  }
+  prefs.putString("campid", camp_id);
+  prefs.end();
 
-  Serial.println("WiFi csatlakozás...");
-  if (!wm.autoConnect("CampSite", "jelszo123")) {
-    Serial.println("WiFi kapcsolódás sikertelen, újraindítás...");
-    delay(3000);
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.begin();
+    Serial.print("WiFi csatlakozás");
+    const unsigned long wifiStart = millis();
+    while (WiFi.status() != WL_CONNECTED && (millis() - wifiStart) < 15000) {
+      delay(300);
+      Serial.print(".");
+    }
+    Serial.println();
+  }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi kapcsolódás sikertelen");
     ESP.restart();
   }
 
-  // Beírt értékek mentése flash-be
-  if (strlen(param_campid.getValue()) > 0) {
-    strncpy(camp_id, param_campid.getValue(), sizeof(camp_id));
-    prefs.putString("campid", camp_id);
-  }
-  if (strlen(param_token.getValue()) > 0) {
-    strncpy(auth_token, param_token.getValue(), sizeof(auth_token));
-    prefs.putString("token", auth_token);
-  }
-  prefs.end();
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
-  Serial.print("Token: [");
-  Serial.print(auth_token);
-  Serial.println("]");
-  Serial.print("Camp ID: [");
-  Serial.print(camp_id);
-  Serial.println("]");
   Serial.println("Szkennelés indult...");
 }
 
 void loop() {
   unsigned long now = millis();
-  // 500ms-onként küld képet a Laravelnek
-  if (now - lastScanTime >= 1000) {
+
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.reconnect();
+    delay(300);
+    return;
+  }
+
+  // Időközönként új kép küldése a backendnek.
+  if (now - lastScanTime >= SCAN_INTERVAL_MS) {
     lastScanTime = now;
     camera_fb_t *fb = esp_camera_fb_get();
     if (fb) {

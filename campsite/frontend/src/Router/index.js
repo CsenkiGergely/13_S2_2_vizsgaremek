@@ -16,9 +16,9 @@ import VendegAdatok from '../views/VendegAdatok.vue'
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
-  { path: '/kereses', name: 'Kereses', component: Kereses },
+  { path: '/kereses', name: 'Kereses', component: Kereses, meta: { requiresSearchQuery: true } },
   { path: '/Tulajdonos', name: 'Tulajdonos', component: Tulajdonos },
-  { path: '/foglalas', name: 'FoglalasLista', component: Foglalas }, // ID nélküli verzió
+  { path: '/foglalas', name: 'FoglalasLista', component: Foglalas },
   { path: '/foglalas/:id', name: 'Foglalas', component: Foglalas }, // ID-s verzió
   { path: '/adatvedelem', name: 'Adatvedelem', component: Adatvedelem },
   { path: '/cookie', name: 'Cookie', component: Cookie },
@@ -29,7 +29,7 @@ const routes = [
   { path: '/vendeg-adatok', name: 'VendegAdatok', component: VendegAdatok, meta: { requiresAuth: true } },
   { path: '/profil', name: 'Profil', component: Profil },
   { path: '/foglalasaim', name: 'Foglalasaim', component: Foglalasaim, meta: { requiresAuth: true } },
-  { path: '/reset-password', name: 'ResetPassword', component: ResetPassword },
+  { path: '/reset-password', name: 'ResetPassword', component: ResetPassword, meta: { skipLayout: true } },
   { path: '/:pathMatch(.*)*', name: 'NotFound', redirect: '/' }
 ]
 
@@ -42,6 +42,20 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
+  if (to.meta.requiresSearchQuery) {
+    const hasSearchQuery = Object.values(to.query).some((value) => {
+      if (Array.isArray(value)) {
+        return value.some((item) => String(item).trim() !== '')
+      }
+      return value !== undefined && value !== null && String(value).trim() !== ''
+    })
+
+    if (!hasSearchQuery) {
+      next({ name: 'Home' })
+      return
+    }
+  }
+
   if (to.meta.requiresAuth && !localStorage.getItem('auth_token')) {
     next({ name: 'Felhasznalo' })
   } else {

@@ -1,0 +1,34 @@
+flowchart TD
+    Start([Kezdés])
+    InputData[/Adatok bevitele<br/>név, e-mail, jelszó/]
+    CheckPassword{Jelszó erősség}
+    WeakError[/Túl gyenge jelszó/]
+    ButtonPress[/Regisztráció gomb/]
+    Validate{Adatok validálása}
+    CheckUser{Létezik már<br/>felhasználó?}
+    Error1[/Érvénytelen adatok/]
+    Error2[/Felhasználó létezik/]
+    SaveDB[/Mentés adatbázisba/]
+    SendEmail{Email küldés}
+    Success[/Sikeres regisztráció/]
+    Redirect[/Átirányítás<br/>login oldalra/]
+    End([Vége])
+    
+    Start --> InputData
+    InputData --> CheckPassword
+    CheckPassword -->|Gyenge| WeakError
+    CheckPassword -->|Közepes| ButtonPress
+    CheckPassword -->|Erős| ButtonPress
+    WeakError --> InputData
+    ButtonPress --> Validate
+    Validate -->|Sikeres| CheckUser
+    Validate -->|Sikertelen| Error1
+    Error1 --> InputData
+    CheckUser -->|Igen| Error2
+    CheckUser -->|Nem| SaveDB
+    Error2 --> InputData
+    SaveDB --> SendEmail
+    SendEmail -->|Sikeres| Success
+    Success --> Redirect
+
+    Redirect --> End
